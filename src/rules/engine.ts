@@ -1,0 +1,564 @@
+/**
+ * Explainability Trace Engine
+ *
+ * Wraps existing compute functions, collects all results into a flat
+ * Map<string, TracedValue>, then provides trace tree building and
+ * human-readable explanation.
+ *
+ * No existing files are modified — this is a pure overlay.
+ */
+
+import type { TaxReturn, ItemizedDeductions } from '../model/types'
+import type { TracedValue } from '../model/traced'
+import { tracedFromComputation, tracedZero } from '../model/traced'
+import { computeForm1040 } from './2025/form1040'
+import type { Form1040Result } from './2025/form1040'
+import { computeScheduleB } from './2025/scheduleB'
+import type { ScheduleBResult } from './2025/scheduleB'
+import { STANDARD_DEDUCTION } from './2025/constants'
+
+// ── Types ────────────────────────────────────────────────────────
+
+export interface ComputeResult {
+  form1040: Form1040Result
+  scheduleB: ScheduleBResult
+  values: Map<string, TracedValue>
+  executedSchedules: string[]
+}
+
+export interface ComputeTrace {
+  nodeId: string
+  label: string
+  output: TracedValue
+  inputs: ComputeTrace[]
+  irsCitation?: string
+}
+
+// ── Node labels ──────────────────────────────────────────────────
+
+export const NODE_LABELS: Record<string, string> = {
+  // Form 1040
+  'form1040.line1a': 'Wages, salaries, tips',
+  'form1040.line2a': 'Tax-exempt interest',
+  'form1040.line2b': 'Taxable interest',
+  'form1040.line3a': 'Qualified dividends',
+  'form1040.line3b': 'Ordinary dividends',
+  'form1040.line7': 'Capital gain or (loss)',
+  'form1040.line8': 'Other income',
+  'form1040.line9': 'Total income',
+  'form1040.line10': 'Adjustments to income',
+  'form1040.line11': 'Adjusted gross income',
+  'form1040.line12': 'Deductions',
+  'form1040.line13': 'Qualified business income deduction',
+  'form1040.line14': 'Total deductions',
+  'form1040.line15': 'Taxable income',
+  'form1040.line16': 'Tax',
+  'form1040.line24': 'Total tax',
+  'form1040.line25': 'Federal income tax withheld',
+  'form1040.line33': 'Total payments',
+  'form1040.line34': 'Overpaid',
+  'form1040.line37': 'Amount you owe',
+
+  // Schedule A
+  'scheduleA.line1': 'Medical and dental expenses',
+  'scheduleA.line2': 'AGI (from Form 1040)',
+  'scheduleA.line3': 'AGI x 7.5%',
+  'scheduleA.line4': 'Medical deduction (excess over floor)',
+  'scheduleA.line5e': 'State and local taxes (before cap)',
+  'scheduleA.line7': 'State and local taxes (after cap)',
+  'scheduleA.line10': 'Mortgage interest',
+  'scheduleA.line14': 'Charitable contributions',
+  'scheduleA.line16': 'Other itemized deductions',
+  'scheduleA.line17': 'Total itemized deductions',
+
+  // Schedule B
+  'scheduleB.line4': 'Total interest',
+  'scheduleB.line6': 'Total ordinary dividends',
+
+  // Schedule D
+  'scheduleD.line1a': 'Short-term gain/loss (Box A)',
+  'scheduleD.line1b': 'Short-term gain/loss (Box B)',
+  'scheduleD.line7': 'Net short-term capital gain or (loss)',
+  'scheduleD.line8a': 'Long-term gain/loss (Box D)',
+  'scheduleD.line8b': 'Long-term gain/loss (Box E)',
+  'scheduleD.line13': 'Capital gain distributions',
+  'scheduleD.line15': 'Net long-term capital gain or (loss)',
+  'scheduleD.line16': 'Combined net gain or (loss)',
+  'scheduleD.line21': 'Capital gain/loss for Form 1040',
+
+  // Form 8949 categories
+  'form8949.A.proceeds': 'Form 8949 Box A — Total proceeds',
+  'form8949.A.basis': 'Form 8949 Box A — Total basis',
+  'form8949.A.adjustments': 'Form 8949 Box A — Total adjustments',
+  'form8949.A.gainLoss': 'Form 8949 Box A — Total gain/loss',
+  'form8949.B.proceeds': 'Form 8949 Box B — Total proceeds',
+  'form8949.B.basis': 'Form 8949 Box B — Total basis',
+  'form8949.B.adjustments': 'Form 8949 Box B — Total adjustments',
+  'form8949.B.gainLoss': 'Form 8949 Box B — Total gain/loss',
+  'form8949.D.proceeds': 'Form 8949 Box D — Total proceeds',
+  'form8949.D.basis': 'Form 8949 Box D — Total basis',
+  'form8949.D.adjustments': 'Form 8949 Box D — Total adjustments',
+  'form8949.D.gainLoss': 'Form 8949 Box D — Total gain/loss',
+  'form8949.E.proceeds': 'Form 8949 Box E — Total proceeds',
+  'form8949.E.basis': 'Form 8949 Box E — Total basis',
+  'form8949.E.adjustments': 'Form 8949 Box E — Total adjustments',
+  'form8949.E.gainLoss': 'Form 8949 Box E — Total gain/loss',
+
+  // Pseudo-nodes
+  'standardDeduction': 'Standard deduction',
+  'itemized.medicalExpenses': 'Medical expenses',
+  'itemized.stateLocalTaxes': 'State and local taxes',
+  'itemized.mortgageInterest': 'Mortgage interest',
+  'itemized.charitableCash': 'Charitable contributions (cash)',
+  'itemized.charitableNoncash': 'Charitable contributions (non-cash)',
+  'itemized.otherDeductions': 'Other deductions',
+}
+
+// ── computeAll ───────────────────────────────────────────────────
+
+export function computeAll(model: TaxReturn): ComputeResult {
+  const form1040 = computeForm1040(model)
+  const scheduleB = computeScheduleB(model)
+  const values = collectAllValues(form1040, scheduleB, model)
+
+  const executedSchedules: string[] = ['B']
+  if (form1040.scheduleA) executedSchedules.push('A')
+  if (form1040.scheduleD) executedSchedules.push('D')
+
+  return { form1040, scheduleB, values, executedSchedules }
+}
+
+// ── collectAllValues ─────────────────────────────────────────────
+
+export function collectAllValues(
+  form1040: Form1040Result,
+  scheduleB: ScheduleBResult,
+  model: TaxReturn,
+): Map<string, TracedValue> {
+  const values = new Map<string, TracedValue>()
+
+  function add(tv: TracedValue): void {
+    if (tv.source.kind === 'computed') {
+      values.set(tv.source.nodeId, tv)
+    }
+  }
+
+  // Form 1040 lines
+  add(form1040.line1a)
+  add(form1040.line2a)
+  add(form1040.line2b)
+  add(form1040.line3a)
+  add(form1040.line3b)
+  add(form1040.line7)
+  add(form1040.line8)
+  add(form1040.line9)
+  add(form1040.line10)
+  add(form1040.line11)
+  add(form1040.line12)
+  add(form1040.line13)
+  add(form1040.line14)
+  add(form1040.line15)
+  add(form1040.line16)
+  add(form1040.line24)
+  add(form1040.line25)
+  add(form1040.line33)
+  add(form1040.line34)
+  add(form1040.line37)
+
+  // Schedule A
+  if (form1040.scheduleA) {
+    const sa = form1040.scheduleA
+    add(sa.line1)
+    add(sa.line2)
+    add(sa.line3)
+    add(sa.line4)
+    add(sa.line5e)
+    add(sa.line7)
+    add(sa.line10)
+    add(sa.line14)
+    add(sa.line16)
+    add(sa.line17)
+  }
+
+  // Schedule B
+  add(scheduleB.line4)
+  add(scheduleB.line6)
+
+  // Schedule D + Form 8949
+  if (form1040.scheduleD) {
+    const sd = form1040.scheduleD
+    add(sd.line1a)
+    add(sd.line1b)
+    add(sd.line7)
+    add(sd.line8a)
+    add(sd.line8b)
+    add(sd.line13)
+    add(sd.line15)
+    add(sd.line16)
+    add(sd.line21)
+
+    for (const cat of sd.form8949.categories) {
+      add(cat.totalProceeds)
+      add(cat.totalBasis)
+      add(cat.totalAdjustments)
+      add(cat.totalGainLoss)
+    }
+  }
+
+  // ── Document source leaf nodes ───────────────────────────────
+
+  // W-2s
+  for (const w2 of model.w2s) {
+    const fields: Array<[string, number]> = [
+      ['box1', w2.box1],
+      ['box2', w2.box2],
+    ]
+    for (const [field, amount] of fields) {
+      values.set(`w2:${w2.id}:${field}`, {
+        amount,
+        source: {
+          kind: 'document',
+          documentType: 'W-2',
+          documentId: w2.id,
+          field: boxLabel(field),
+          description: `W-2 from ${w2.employerName} (${boxLabel(field)})`,
+        },
+        confidence: 1.0,
+      })
+    }
+  }
+
+  // 1099-INTs
+  for (const f of model.form1099INTs) {
+    const fields: Array<[string, number]> = [
+      ['box1', f.box1],
+      ['box4', f.box4],
+      ['box8', f.box8],
+    ]
+    for (const [field, amount] of fields) {
+      values.set(`1099int:${f.id}:${field}`, {
+        amount,
+        source: {
+          kind: 'document',
+          documentType: '1099-INT',
+          documentId: f.id,
+          field: boxLabel(field),
+          description: `1099-INT from ${f.payerName} (${boxLabel(field)})`,
+        },
+        confidence: 1.0,
+      })
+    }
+  }
+
+  // 1099-DIVs
+  for (const f of model.form1099DIVs) {
+    const fields: Array<[string, number]> = [
+      ['box1a', f.box1a],
+      ['box1b', f.box1b],
+      ['box2a', f.box2a],
+      ['box4', f.box4],
+    ]
+    for (const [field, amount] of fields) {
+      values.set(`1099div:${f.id}:${field}`, {
+        amount,
+        source: {
+          kind: 'document',
+          documentType: '1099-DIV',
+          documentId: f.id,
+          field: boxLabel(field),
+          description: `1099-DIV from ${f.payerName} (${boxLabel(field)})`,
+        },
+        confidence: 1.0,
+      })
+    }
+  }
+
+  // 1099-Bs
+  for (const f of model.form1099Bs) {
+    if (f.federalTaxWithheld > 0) {
+      values.set(`1099b:${f.id}:federalTaxWithheld`, {
+        amount: f.federalTaxWithheld,
+        source: {
+          kind: 'document',
+          documentType: '1099-B',
+          documentId: f.id,
+          field: 'Federal tax withheld',
+          description: `1099-B from ${f.brokerName} (Federal tax withheld)`,
+        },
+        confidence: 1.0,
+      })
+    }
+  }
+
+  // Capital transactions
+  for (const tx of model.capitalTransactions) {
+    values.set(`tx:${tx.id}`, {
+      amount: tx.gainLoss,
+      source: {
+        kind: 'document',
+        documentType: 'Transaction',
+        documentId: tx.id,
+        field: 'Gain/Loss',
+        description: `Sale of ${tx.description}`,
+      },
+      confidence: 1.0,
+    })
+  }
+
+  // Standard deduction pseudo-node
+  values.set('standardDeduction', tracedFromComputation(
+    STANDARD_DEDUCTION[model.filingStatus],
+    'standardDeduction',
+    [],
+    'Standard Deduction',
+  ))
+
+  // Itemized deduction pseudo-nodes
+  if (model.deductions.itemized) {
+    const d = model.deductions.itemized
+    const items: Array<[string, number]> = [
+      ['itemized.medicalExpenses', d.medicalExpenses],
+      ['itemized.stateLocalTaxes', d.stateLocalTaxes],
+      ['itemized.mortgageInterest', d.mortgageInterest],
+      ['itemized.charitableCash', d.charitableCash],
+      ['itemized.charitableNoncash', d.charitableNoncash],
+      ['itemized.otherDeductions', d.otherDeductions],
+    ]
+    for (const [nodeId, amount] of items) {
+      values.set(nodeId, tracedFromComputation(
+        amount,
+        nodeId,
+        [],
+        NODE_LABELS[nodeId] ?? nodeId,
+      ))
+    }
+  }
+
+  return values
+}
+
+// ── buildTrace ───────────────────────────────────────────────────
+
+export function buildTrace(result: ComputeResult, nodeId: string): ComputeTrace {
+  const tv = result.values.get(nodeId)
+
+  if (!tv) {
+    return {
+      nodeId,
+      label: NODE_LABELS[nodeId] ?? `Unknown (${nodeId})`,
+      output: tracedZero(nodeId),
+      inputs: [],
+    }
+  }
+
+  if (tv.source.kind === 'document') {
+    return {
+      nodeId,
+      label: tv.source.description ?? NODE_LABELS[nodeId] ?? nodeId,
+      output: tv,
+      inputs: [],
+      irsCitation: tv.irsCitation,
+    }
+  }
+
+  if (tv.source.kind === 'computed') {
+    const inputs = tv.source.inputs.map(inputId => buildTrace(result, inputId))
+    return {
+      nodeId,
+      label: NODE_LABELS[nodeId] ?? nodeId,
+      output: tv,
+      inputs,
+      irsCitation: tv.irsCitation,
+    }
+  }
+
+  // user-entry
+  return {
+    nodeId,
+    label: NODE_LABELS[nodeId] ?? nodeId,
+    output: tv,
+    inputs: [],
+    irsCitation: tv.irsCitation,
+  }
+}
+
+// ── explainLine ──────────────────────────────────────────────────
+
+export function explainLine(result: ComputeResult, nodeId: string): string {
+  const trace = buildTrace(result, nodeId)
+  return formatTrace(trace, 0)
+}
+
+function formatTrace(trace: ComputeTrace, depth: number): string {
+  const prefix = depth === 0 ? '' : '  '.repeat(depth) + '|- '
+  const amount = formatDollars(trace.output.amount)
+  const citation = trace.irsCitation ? ` [${trace.irsCitation}]` : ''
+  const line = `${prefix}${trace.label}: ${amount}${citation}`
+
+  if (trace.inputs.length === 0) return line
+
+  const children = trace.inputs.map(child => formatTrace(child, depth + 1))
+  return [line, ...children].join('\n')
+}
+
+function formatDollars(amountInCents: number): string {
+  const d = amountInCents / 100
+  const abs = Math.abs(d)
+  const formatted = abs.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  return d < 0 ? `-$${formatted}` : `$${formatted}`
+}
+
+// ── topologicalSort ──────────────────────────────────────────────
+
+export function topologicalSort(values: Map<string, TracedValue>): string[] {
+  const inDegree = new Map<string, number>()
+  const dependents = new Map<string, string[]>()
+
+  for (const nodeId of values.keys()) {
+    inDegree.set(nodeId, 0)
+    dependents.set(nodeId, [])
+  }
+
+  for (const [nodeId, tv] of values) {
+    if (tv.source.kind === 'computed') {
+      let count = 0
+      for (const inputId of tv.source.inputs) {
+        if (values.has(inputId)) {
+          count++
+          dependents.get(inputId)!.push(nodeId)
+        }
+      }
+      inDegree.set(nodeId, count)
+    }
+  }
+
+  const queue: string[] = []
+  for (const [nodeId, deg] of inDegree) {
+    if (deg === 0) queue.push(nodeId)
+  }
+
+  const sorted: string[] = []
+  while (queue.length > 0) {
+    const node = queue.shift()!
+    sorted.push(node)
+    for (const dep of dependents.get(node) ?? []) {
+      const newDeg = inDegree.get(dep)! - 1
+      inDegree.set(dep, newDeg)
+      if (newDeg === 0) queue.push(dep)
+    }
+  }
+
+  if (sorted.length !== values.size) {
+    const remaining = [...values.keys()].filter(k => !sorted.includes(k))
+    throw new Error(`Cycle detected involving: ${remaining.join(', ')}`)
+  }
+
+  return sorted
+}
+
+// ── resolveDocumentRef ───────────────────────────────────────────
+
+export function resolveDocumentRef(
+  model: TaxReturn,
+  refId: string,
+): { label: string; amount: number } {
+  // W-2: w2:{id}:{field}
+  let m = refId.match(/^w2:(.+?):(.+)$/)
+  if (m) {
+    const w2 = model.w2s.find(w => w.id === m![1])
+    if (!w2) return { label: `Unknown W-2 (${m[1]})`, amount: 0 }
+    const field = m[2]
+    const amount = (w2 as unknown as Record<string, number>)[field] ?? 0
+    return {
+      label: `W-2 from ${w2.employerName} (${boxLabel(field)})`,
+      amount,
+    }
+  }
+
+  // 1099-INT: 1099int:{id}:{field}
+  m = refId.match(/^1099int:(.+?):(.+)$/)
+  if (m) {
+    const f = model.form1099INTs.find(f => f.id === m![1])
+    if (!f) return { label: `Unknown 1099-INT (${m[1]})`, amount: 0 }
+    const field = m[2]
+    const amount = (f as unknown as Record<string, number>)[field] ?? 0
+    return {
+      label: `1099-INT from ${f.payerName} (${boxLabel(field)})`,
+      amount,
+    }
+  }
+
+  // 1099-DIV: 1099div:{id}:{field}
+  m = refId.match(/^1099div:(.+?):(.+)$/)
+  if (m) {
+    const f = model.form1099DIVs.find(f => f.id === m![1])
+    if (!f) return { label: `Unknown 1099-DIV (${m[1]})`, amount: 0 }
+    const field = m[2]
+    const amount = (f as unknown as Record<string, number>)[field] ?? 0
+    return {
+      label: `1099-DIV from ${f.payerName} (${boxLabel(field)})`,
+      amount,
+    }
+  }
+
+  // 1099-B: 1099b:{id}:{field}
+  m = refId.match(/^1099b:(.+?):(.+)$/)
+  if (m) {
+    const f = model.form1099Bs.find(b => b.id === m![1])
+    if (!f) return { label: `Unknown 1099-B (${m[1]})`, amount: 0 }
+    const field = m[2]
+    const fieldLabels: Record<string, string> = {
+      federalTaxWithheld: 'Federal tax withheld',
+    }
+    const amount = (f as unknown as Record<string, number>)[field] ?? 0
+    return {
+      label: `1099-B from ${f.brokerName} (${fieldLabels[field] ?? field})`,
+      amount,
+    }
+  }
+
+  // Transaction: tx:{id}
+  m = refId.match(/^tx:(.+)$/)
+  if (m) {
+    const tx = model.capitalTransactions.find(t => t.id === m![1])
+    if (!tx) return { label: `Unknown transaction (${m[1]})`, amount: 0 }
+    return {
+      label: `Sale of ${tx.description}`,
+      amount: tx.gainLoss,
+    }
+  }
+
+  // Standard deduction
+  if (refId === 'standardDeduction') {
+    return {
+      label: `Standard deduction (${model.filingStatus})`,
+      amount: STANDARD_DEDUCTION[model.filingStatus],
+    }
+  }
+
+  // Itemized: itemized.{key}
+  if (refId.startsWith('itemized.') && model.deductions.itemized) {
+    const key = refId.slice('itemized.'.length) as keyof ItemizedDeductions
+    const labels: Record<string, string> = {
+      medicalExpenses: 'Medical expenses',
+      stateLocalTaxes: 'State and local taxes',
+      mortgageInterest: 'Mortgage interest',
+      charitableCash: 'Charitable contributions (cash)',
+      charitableNoncash: 'Charitable contributions (non-cash)',
+      otherDeductions: 'Other deductions',
+    }
+    return {
+      label: labels[key] ?? refId,
+      amount: model.deductions.itemized[key] ?? 0,
+    }
+  }
+
+  return { label: `Unknown (${refId})`, amount: 0 }
+}
+
+// ── Helpers ──────────────────────────────────────────────────────
+
+function boxLabel(field: string): string {
+  // 'box1' → 'Box 1', 'box1a' → 'Box 1a', 'box2a' → 'Box 2a'
+  return field.replace(/^box/, 'Box ')
+}

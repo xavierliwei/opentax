@@ -1,0 +1,153 @@
+/**
+ * Cover sheet generator for the filing package.
+ *
+ * Creates a single-page cover sheet from scratch using PDFDocument.create()
+ * with taxpayer info, key figures, forms included, and mailing address.
+ */
+
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
+import type { ReturnSummary, FormSummary } from '../types'
+import { formatDollars, formatSSN, filingStatusLabel } from '../helpers'
+import type { TaxReturn } from '../../model/types'
+
+/** IRS mailing addresses for paper filing (2025 tax year). */
+const IRS_MAILING: Record<string, { withPayment: string; withoutPayment: string }> = {
+  // Default (most states)
+  default: {
+    withoutPayment: 'Department of the Treasury\nInternal Revenue Service\nAustin, TX 73301-0002',
+    withPayment: 'Internal Revenue Service\nP.O. Box 1303\nCharlotte, NC 28201-1303',
+  },
+}
+
+function getMailingAddress(hasPayment: boolean): string {
+  const addr = IRS_MAILING.default
+  return hasPayment ? addr.withPayment : addr.withoutPayment
+}
+
+export async function generateCoverSheet(
+  taxReturn: TaxReturn,
+  summary: ReturnSummary,
+  formsIncluded: FormSummary[],
+): Promise<PDFDocument> {
+  const pdfDoc = await PDFDocument.create()
+  const page = pdfDoc.addPage([612, 792]) // US Letter
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
+
+  const black = rgb(0, 0, 0)
+  const gray = rgb(0.4, 0.4, 0.4)
+  let y = 740
+
+  const drawText = (text: string, x: number, size: number, options?: { font?: typeof font; color?: typeof black }) => {
+    page.drawText(text, { x, y, size, font: options?.font ?? font, color: options?.color ?? black })
+  }
+
+  // ── Title ────────────────────────────────────────────────
+  drawText('Federal Tax Return — Filing Cover Sheet', 72, 16, { font: fontBold })
+  y -= 10
+  drawText(`Tax Year ${summary.taxYear}`, 72, 10, { color: gray })
+  y -= 30
+
+  // ── Taxpayer Info ────────────────────────────────────────
+  drawText('Taxpayer Information', 72, 12, { font: fontBold })
+  y -= 18
+
+  const tp = taxReturn.taxpayer
+  const lines = [
+    `Name:           ${tp.firstName} ${tp.lastName}`,
+    `SSN:            ${formatSSN(tp.ssn || '000000000')}`,
+    `Filing Status:  ${filingStatusLabel(taxReturn.filingStatus)}`,
+    `Address:        ${tp.address.street}`,
+    `                ${tp.address.city}, ${tp.address.state} ${tp.address.zip}`,
+  ]
+  if (taxReturn.spouse) {
+    lines.push(`Spouse:         ${taxReturn.spouse.firstName} ${taxReturn.spouse.lastName}`)
+    lines.push(`Spouse SSN:     ${formatSSN(taxReturn.spouse.ssn)}`)
+  }
+
+  for (const line of lines) {
+    drawText(line, 72, 10)
+    y -= 15
+  }
+
+  y -= 15
+
+  // ── Key Figures ──────────────────────────────────────────
+  drawText('Key Figures', 72, 12, { font: fontBold })
+  y -= 18
+
+  const figures = [
+    ['Adjusted Gross Income (Line 11)', formatDollars(summary.agi)],
+    ['Total Tax (Line 24)', formatDollars(summary.totalTax)],
+    ['Total Payments (Line 33)', formatDollars(summary.totalPayments)],
+  ]
+  if (summary.refund > 0) {
+    figures.push(['Refund (Line 34)', formatDollars(summary.refund)])
+  }
+  if (summary.amountOwed > 0) {
+    figures.push(['Amount You Owe (Line 37)', formatDollars(summary.amountOwed)])
+  }
+
+  for (const [label, value] of figures) {
+    drawText(label, 90, 10)
+    drawText(`$${value}`, 380, 10, { font: fontBold })
+    y -= 15
+  }
+
+  y -= 15
+
+  // ── Forms Included ───────────────────────────────────────
+  drawText('Forms Included', 72, 12, { font: fontBold })
+  y -= 18
+
+  for (const f of formsIncluded) {
+    const pageLabel = f.pageCount === 1 ? '1 page' : `${f.pageCount} pages`
+    drawText(`${f.formId}  (Seq. ${f.sequenceNumber}, ${pageLabel})`, 90, 10)
+    y -= 15
+  }
+
+  y -= 15
+
+  // ── Mailing Instructions ─────────────────────────────────
+  const hasPayment = summary.amountOwed > 0
+  drawText('Mailing Instructions', 72, 12, { font: fontBold })
+  y -= 18
+
+  if (hasPayment) {
+    drawText('A payment is due. Make check payable to "United States Treasury".', 90, 10)
+    y -= 15
+    drawText(`Write SSN and "2025 Form 1040" on check.`, 90, 10)
+    y -= 15
+  }
+
+  drawText('Mail to:', 90, 10, { font: fontBold })
+  y -= 15
+  for (const line of getMailingAddress(hasPayment).split('\n')) {
+    drawText(line, 108, 10)
+    y -= 15
+  }
+
+  y -= 20
+
+  // ── Checklist ────────────────────────────────────────────
+  drawText('Before Mailing Checklist', 72, 12, { font: fontBold })
+  y -= 18
+
+  const checklist = [
+    'Sign and date Form 1040 on page 2',
+    'Attach W-2s to front of Form 1040',
+    'Include all schedules and forms in attachment sequence order',
+    ...(hasPayment ? ['Include check or money order'] : []),
+    'Keep a copy for your records',
+  ]
+
+  for (const item of checklist) {
+    drawText(`[ ]  ${item}`, 90, 10)
+    y -= 15
+  }
+
+  y -= 25
+  drawText('Generated by OpenTax', 72, 8, { color: gray })
+
+  return pdfDoc
+}

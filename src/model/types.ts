@@ -1,0 +1,288 @@
+/**
+ * Canonical tax model — the single source of truth for a tax return.
+ *
+ * All UI, rules, and form compilers read from / write to this model.
+ * Monetary values are in integer cents unless noted otherwise.
+ */
+
+// ── Filing status ──────────────────────────────────────────────
+
+export type FilingStatus = 'single' | 'mfj' | 'mfs' | 'hoh' | 'qw'
+
+// ── People ─────────────────────────────────────────────────────
+
+export interface Address {
+  street: string
+  apartment?: string
+  city: string
+  state: string          // 2-letter code
+  zip: string
+}
+
+export interface Taxpayer {
+  firstName: string
+  middleInitial?: string
+  lastName: string
+  ssn: string            // 9 digits, no dashes (formatted on output only)
+  dateOfBirth?: string   // ISO date
+  address: Address
+}
+
+export interface Dependent {
+  firstName: string
+  lastName: string
+  ssn: string
+  relationship: string   // e.g., "son", "daughter", "parent"
+  monthsLived: number    // months lived with taxpayer (0–12)
+}
+
+// ── W-2 ────────────────────────────────────────────────────────
+
+/** W-2 Box 12 code + amount pair (up to 4 per W-2: 12a–12d) */
+export interface W2Box12Entry {
+  code: string           // e.g., "D", "DD", "W", "AA"
+  amount: number         // cents
+}
+
+export interface W2 {
+  id: string             // unique within the return
+
+  // Employer info
+  employerEin: string    // XX-XXXXXXX
+  employerName: string
+  employerAddress?: Address
+
+  // Income boxes
+  box1: number           // Wages, tips, other compensation (cents)
+  box2: number           // Federal income tax withheld (cents)
+  box3: number           // Social security wages (cents)
+  box4: number           // Social security tax withheld (cents)
+  box5: number           // Medicare wages and tips (cents)
+  box6: number           // Medicare tax withheld (cents)
+  box7: number           // Social security tips (cents)
+  box8: number           // Allocated tips (cents)
+  box10: number          // Dependent care benefits (cents)
+  box11: number          // Nonqualified plans (cents)
+
+  // Box 12: coded entries (up to 4)
+  box12: W2Box12Entry[]
+
+  // Box 13: checkboxes
+  box13StatutoryEmployee: boolean
+  box13RetirementPlan: boolean
+  box13ThirdPartySickPay: boolean
+
+  // Box 14: other (free-form, employer-specific)
+  box14: string
+
+  // State/local (boxes 15–20)
+  box15State?: string        // 2-letter state code
+  box15EmployerStateId?: string
+  box16StateWages?: number   // cents
+  box17StateIncomeTax?: number  // cents
+  box18LocalWages?: number   // cents
+  box19LocalIncomeTax?: number  // cents
+  box20LocalityName?: string
+}
+
+// ── 1099-B ─────────────────────────────────────────────────────
+
+export interface Form1099B {
+  id: string
+
+  // Broker info
+  brokerName: string
+  brokerTin?: string
+
+  // Transaction
+  description: string          // security name/description
+  cusip?: string               // CUSIP number for matching
+  dateAcquired: string | null  // ISO date, null if "Various"
+  dateSold: string             // ISO date
+  proceeds: number             // cents
+  costBasis: number | null     // cents, null if not reported
+  washSaleLossDisallowed: number  // cents (0 if none)
+  gainLoss: number             // cents (proceeds - basis - wash adj)
+
+  // Classification
+  basisReportedToIrs: boolean  // Box 12 checked = basis reported
+  longTerm: boolean | null     // true=long-term, false=short-term, null=unknown
+  noncoveredSecurity: boolean  // true if non-covered (basis not reported)
+
+  // Federal withholding (rare for 1099-B)
+  federalTaxWithheld: number   // cents
+}
+
+// ── 1099-INT ───────────────────────────────────────────────────
+
+export interface Form1099INT {
+  id: string
+  payerName: string
+  payerTin?: string
+
+  box1: number    // Interest income (cents)
+  box2: number    // Early withdrawal penalty (cents)
+  box3: number    // Interest on U.S. savings bonds and Treasury obligations (cents)
+  box4: number    // Federal income tax withheld (cents)
+  box8: number    // Tax-exempt interest (cents)
+}
+
+// ── 1099-DIV ───────────────────────────────────────────────────
+
+export interface Form1099DIV {
+  id: string
+  payerName: string
+  payerTin?: string
+
+  box1a: number   // Total ordinary dividends (cents)
+  box1b: number   // Qualified dividends (cents)
+  box2a: number   // Total capital gain distributions (cents)
+  box3: number    // Nondividend distributions (cents)
+  box4: number    // Federal income tax withheld (cents)
+  box5: number    // Section 199A dividends (cents)
+  box11: number   // Exempt-interest dividends (cents)
+}
+
+// ── RSU vest events ────────────────────────────────────────────
+
+export interface RSUVestEvent {
+  id: string
+  vestDate: string           // ISO date
+  symbol: string             // stock ticker
+  cusip?: string             // for matching to 1099-B
+  sharesVested: number       // total shares that vested
+  sharesWithheldForTax: number  // shares sold to cover taxes
+  sharesDelivered: number    // net shares received
+  fmvAtVest: number          // fair market value per share at vest (cents)
+  totalFmv: number           // sharesVested × fmvAtVest (cents)
+  linkedW2Id?: string        // which W-2 includes this income
+}
+
+// ── Capital transactions (derived) ─────────────────────────────
+
+/**
+ * Form 8949 category codes:
+ * A = short-term, basis reported to IRS
+ * B = short-term, basis NOT reported to IRS
+ * D = long-term, basis reported to IRS
+ * E = long-term, basis NOT reported to IRS
+ */
+export type Form8949Category = 'A' | 'B' | 'D' | 'E'
+
+/**
+ * Form 8949 adjustment codes (column f):
+ * B = basis incorrect on 1099-B (common for RSU)
+ * W = wash sale
+ * (others exist but not needed for MVP)
+ */
+export type AdjustmentCode = 'B' | 'W' | null
+
+export interface CapitalTransaction {
+  id: string
+  description: string            // security description
+  dateAcquired: string | null    // ISO date or null
+  dateSold: string               // ISO date
+  proceeds: number               // cents
+  reportedBasis: number          // basis as reported on 1099-B (cents)
+  adjustedBasis: number          // corrected basis after adjustments (cents)
+  adjustmentCode: AdjustmentCode
+  adjustmentAmount: number       // cents (adjustedBasis - reportedBasis)
+  gainLoss: number               // proceeds - adjustedBasis (cents)
+  washSaleLossDisallowed: number // cents
+  longTerm: boolean
+  category: Form8949Category
+
+  // Linkage
+  source1099BId: string          // which 1099-B this came from
+  linkedRsuVestId?: string       // if this sale is linked to an RSU vest
+}
+
+// ── Adjustments to income ──────────────────────────────────────
+
+export interface Adjustment {
+  id: string
+  type: string            // e.g., "ira_deduction", "student_loan_interest"
+  description: string
+  amount: number          // cents
+}
+
+// ── Deductions ─────────────────────────────────────────────────
+
+export interface ItemizedDeductions {
+  medicalExpenses: number         // cents (subject to 7.5% AGI floor)
+  stateLocalTaxes: number         // cents (SALT, capped at $10,000)
+  mortgageInterest: number        // cents
+  charitableCash: number          // cents
+  charitableNoncash: number       // cents
+  otherDeductions: number         // cents
+}
+
+// ── Credits ────────────────────────────────────────────────────
+
+export interface Credit {
+  id: string
+  type: string            // e.g., "child_tax_credit", "education"
+  description: string
+  amount: number          // cents
+}
+
+// ── Tax Return (top-level) ─────────────────────────────────────
+
+export interface TaxReturn {
+  taxYear: number
+  filingStatus: FilingStatus
+  taxpayer: Taxpayer
+  spouse?: Taxpayer
+  dependents: Dependent[]
+
+  // Source documents
+  w2s: W2[]
+  form1099Bs: Form1099B[]
+  form1099INTs: Form1099INT[]
+  form1099DIVs: Form1099DIV[]
+
+  // RSU data
+  rsuVestEvents: RSUVestEvent[]
+
+  // Derived / processed data
+  capitalTransactions: CapitalTransaction[]
+
+  // Adjustments, deductions, credits
+  adjustments: Adjustment[]
+  deductions: {
+    method: 'standard' | 'itemized'
+    itemized?: ItemizedDeductions
+  }
+  credits: Credit[]
+}
+
+// ── Factory ────────────────────────────────────────────────────
+
+/** Create a blank TaxReturn with sensible defaults. */
+export function emptyTaxReturn(taxYear: number): TaxReturn {
+  return {
+    taxYear,
+    filingStatus: 'single',
+    taxpayer: {
+      firstName: '',
+      lastName: '',
+      ssn: '',
+      address: {
+        street: '',
+        city: '',
+        state: '',
+        zip: '',
+      },
+    },
+    dependents: [],
+    w2s: [],
+    form1099Bs: [],
+    form1099INTs: [],
+    form1099DIVs: [],
+    rsuVestEvents: [],
+    capitalTransactions: [],
+    adjustments: [],
+    deductions: { method: 'standard' },
+    credits: [],
+  }
+}
