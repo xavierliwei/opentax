@@ -7,6 +7,8 @@ import {
   MEDICAL_AGI_FLOOR_RATE,
   CHARITABLE_CASH_AGI_LIMIT,
   CHARITABLE_NONCASH_AGI_LIMIT,
+  MORTGAGE_LIMIT_POST_TCJA,
+  MORTGAGE_LIMIT_PRE_TCJA,
 } from '../../rules/2025/constants.ts'
 import { computeSaltCap } from '../../rules/2025/scheduleA.ts'
 import { dollars } from '../../model/traced.ts'
@@ -17,6 +19,15 @@ function formatCurrency(cents: number): string {
     currency: 'USD',
     minimumFractionDigits: 0,
   })
+}
+
+function LimitedBadge({ entered, deductible }: { entered: number; deductible: number }) {
+  if (!entered || deductible >= entered) return null
+  return (
+    <p className="text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+      Limited to {formatCurrency(deductible)} (you entered {formatCurrency(entered)})
+    </p>
+  )
 }
 
 export function DeductionsPage() {
@@ -77,6 +88,26 @@ export function DeductionsPage() {
   const diff = Math.abs(standardAmount - itemizedTotal)
   const standardBetter = standardAmount >= itemizedTotal
 
+  // scheduleA data (only present when method=itemized)
+  const scheduleA = computeResult.form1040.scheduleA
+  const medicalDeductible    = scheduleA?.line4.amount  ?? 0
+  const saltDeductible       = scheduleA?.line7.amount  ?? 0
+  const interestDeductible   = scheduleA?.line10.amount ?? 0
+  const charitableDeductible = scheduleA?.line14.amount ?? 0
+  const otherDeductible      = scheduleA?.line16.amount ?? 0
+
+  // SALT total before cap
+  const totalSalt =
+    Math.max(itemized.stateLocalIncomeTaxes, itemized.stateLocalSalesTaxes) +
+    itemized.realEstateTaxes +
+    itemized.personalPropertyTaxes
+
+  // Mortgage loan limit check
+  const loanLimit = itemized.mortgagePreTCJA
+    ? MORTGAGE_LIMIT_PRE_TCJA[filingStatus]
+    : MORTGAGE_LIMIT_POST_TCJA[filingStatus]
+  const mortgageLimited = itemized.mortgagePrincipal > 0 && itemized.mortgagePrincipal > loanLimit
+
   return (
     <div data-testid="page-deductions" className="max-w-xl mx-auto">
       <h1 className="text-2xl font-bold text-gray-900">Deductions</h1>
@@ -105,6 +136,11 @@ export function DeductionsPage() {
           <span className="text-lg font-bold text-gray-700">
             {formatCurrency(standardAmount)}
           </span>
+          {standardBetter && diff > 0 && (
+            <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
+              Best choice
+            </span>
+          )}
         </label>
         <label
           className={`flex flex-col items-center gap-1 border rounded-lg p-4 cursor-pointer transition-colors ${
@@ -125,25 +161,55 @@ export function DeductionsPage() {
           <span className="text-lg font-bold text-gray-700">
             {formatCurrency(itemizedTotal)}
           </span>
+          {!standardBetter && diff > 0 && (
+            <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
+              Best choice
+            </span>
+          )}
         </label>
       </div>
 
       {/* Itemized detail form */}
       {deductions.method === 'itemized' && (
-        <div className="mt-6 flex flex-col gap-6">
-          {/* Medical */}
-          <CurrencyInput
-            label="Medical expenses"
-            value={itemized.medicalExpenses}
-            onChange={(v) => setItemizedDeductions({ medicalExpenses: v })}
-            helperText={`Only the amount above 7.5% of your AGI (${formatCurrency(medicalFloor)}) is deductible.`}
-          />
+        <div className="mt-6 flex flex-col gap-4">
+
+          {/* Medical & Dental */}
+          <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
+            <div className="flex items-baseline justify-between">
+              <div>
+                <span className="text-sm font-semibold text-gray-800">Medical &amp; Dental</span>
+                <span className="ml-2 text-xs text-gray-400">Lines 1–4</span>
+              </div>
+              {scheduleA && (
+                <span className="text-sm font-semibold text-gray-700">
+                  {formatCurrency(medicalDeductible)}
+                </span>
+              )}
+            </div>
+            <CurrencyInput
+              label="Medical expenses"
+              value={itemized.medicalExpenses}
+              onChange={(v) => setItemizedDeductions({ medicalExpenses: v })}
+              helperText={`Only the amount above 7.5% of your AGI (${formatCurrency(medicalFloor)}) is deductible.`}
+            />
+            {scheduleA && (
+              <LimitedBadge entered={itemized.medicalExpenses} deductible={medicalDeductible} />
+            )}
+          </div>
 
           {/* State & Local Taxes */}
-          <div className="flex flex-col gap-3">
-            <p className="text-sm font-semibold text-gray-700 border-t border-gray-100 pt-4">
-              State &amp; Local Taxes
-            </p>
+          <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
+            <div className="flex items-baseline justify-between">
+              <div>
+                <span className="text-sm font-semibold text-gray-800">State &amp; Local Taxes</span>
+                <span className="ml-2 text-xs text-gray-400">Lines 5a–7</span>
+              </div>
+              {scheduleA && (
+                <span className="text-sm font-semibold text-gray-700">
+                  {formatCurrency(saltDeductible)}
+                </span>
+              )}
+            </div>
             <CurrencyInput
               label="State/local income taxes (Line 5a)"
               value={itemized.stateLocalIncomeTaxes}
@@ -155,6 +221,12 @@ export function DeductionsPage() {
               value={itemized.stateLocalSalesTaxes}
               onChange={(v) => setItemizedDeductions({ stateLocalSalesTaxes: v })}
             />
+            {(itemized.stateLocalIncomeTaxes > 0 || itemized.stateLocalSalesTaxes > 0) && (
+              <p className="text-xs text-blue-600">
+                Using {itemized.stateLocalIncomeTaxes >= itemized.stateLocalSalesTaxes ? 'income taxes' : 'sales taxes'} for Line 5a
+                ({formatCurrency(Math.max(itemized.stateLocalIncomeTaxes, itemized.stateLocalSalesTaxes))})
+              </p>
+            )}
             <CurrencyInput
               label="Real estate taxes (property taxes) (Line 5b)"
               value={itemized.realEstateTaxes}
@@ -166,22 +238,24 @@ export function DeductionsPage() {
               onChange={(v) => setItemizedDeductions({ personalPropertyTaxes: v })}
               helperText="e.g., vehicle registration fees based on value"
             />
-            <p className="text-xs text-gray-500">
-              Combined SALT deductible:{' '}
-              {formatCurrency(Math.min(
-                Math.max(itemized.stateLocalIncomeTaxes, itemized.stateLocalSalesTaxes) +
-                  itemized.realEstateTaxes + itemized.personalPropertyTaxes,
-                effectiveSaltCap,
-              ))}{' '}
-              (cap: {formatCurrency(effectiveSaltCap)})
-            </p>
+            {scheduleA && (
+              <LimitedBadge entered={totalSalt} deductible={saltDeductible} />
+            )}
           </div>
 
           {/* Interest */}
-          <div className="flex flex-col gap-3">
-            <p className="text-sm font-semibold text-gray-700 border-t border-gray-100 pt-4">
-              Interest
-            </p>
+          <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
+            <div className="flex items-baseline justify-between">
+              <div>
+                <span className="text-sm font-semibold text-gray-800">Interest</span>
+                <span className="ml-2 text-xs text-gray-400">Lines 8–10</span>
+              </div>
+              {scheduleA && (
+                <span className="text-sm font-semibold text-gray-700">
+                  {formatCurrency(interestDeductible)}
+                </span>
+              )}
+            </div>
             <CurrencyInput
               label="Home mortgage interest (Line 8a)"
               value={itemized.mortgageInterest}
@@ -194,6 +268,11 @@ export function DeductionsPage() {
               onChange={(v) => setItemizedDeductions({ mortgagePrincipal: v })}
               helperText="From Form 1098 Box 2 — used to check the $750K/$1M limit"
             />
+            {mortgageLimited && (
+              <p className="text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                Loan balance exceeds {formatCurrency(loanLimit)} limit — only the proportional share of interest is deductible.
+              </p>
+            )}
             <label className="flex items-start gap-2">
               <input
                 type="checkbox"
@@ -217,10 +296,18 @@ export function DeductionsPage() {
           </div>
 
           {/* Charitable Contributions */}
-          <div className="flex flex-col gap-3">
-            <p className="text-sm font-semibold text-gray-700 border-t border-gray-100 pt-4">
-              Charitable Contributions
-            </p>
+          <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
+            <div className="flex items-baseline justify-between">
+              <div>
+                <span className="text-sm font-semibold text-gray-800">Charitable Contributions</span>
+                <span className="ml-2 text-xs text-gray-400">Lines 11–14</span>
+              </div>
+              {scheduleA && (
+                <span className="text-sm font-semibold text-gray-700">
+                  {formatCurrency(charitableDeductible)}
+                </span>
+              )}
+            </div>
             <CurrencyInput
               label="Cash / check donations (Line 11)"
               value={itemized.charitableCash}
@@ -233,32 +320,93 @@ export function DeductionsPage() {
               onChange={(v) => setItemizedDeductions({ charitableNoncash: v })}
               helperText={`Limited to 30% of AGI (${formatCurrency(noncashAgiLimit)})`}
             />
+            {scheduleA && (
+              <LimitedBadge
+                entered={itemized.charitableCash + itemized.charitableNoncash}
+                deductible={charitableDeductible}
+              />
+            )}
           </div>
 
-          {/* Other */}
-          <CurrencyInput
-            label="Other deductions"
-            value={itemized.otherDeductions}
-            onChange={(v) => setItemizedDeductions({ otherDeductions: v })}
-          />
+          {/* Other Deductions */}
+          <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
+            <div className="flex items-baseline justify-between">
+              <div>
+                <span className="text-sm font-semibold text-gray-800">Other Deductions</span>
+                <span className="ml-2 text-xs text-gray-400">Line 16</span>
+              </div>
+              {scheduleA && (
+                <span className="text-sm font-semibold text-gray-700">
+                  {formatCurrency(otherDeductible)}
+                </span>
+              )}
+            </div>
+            <CurrencyInput
+              label="Other deductions"
+              value={itemized.otherDeductions}
+              onChange={(v) => setItemizedDeductions({ otherDeductions: v })}
+            />
+          </div>
         </div>
       )}
 
       {/* Comparison */}
       <div className="mt-6 bg-gray-50 border border-gray-200 rounded-md p-4 text-sm">
-        <div className="flex justify-between">
-          <span className="text-gray-600">Standard deduction:</span>
-          <span className="font-medium">{formatCurrency(standardAmount)}</span>
-        </div>
-        <div className="flex justify-between mt-1">
-          <span className="text-gray-600">Total itemized:</span>
-          <span className="font-medium">{formatCurrency(itemizedTotal)}</span>
-        </div>
-        <div className="mt-2 pt-2 border-t border-gray-200 font-medium text-gray-900">
-          {standardBetter
-            ? `Standard is better by ${formatCurrency(diff)}`
-            : `Itemized is better by ${formatCurrency(diff)}`}
-        </div>
+        {deductions.method === 'itemized' && scheduleA ? (
+          <>
+            <div className="flex flex-col gap-1">
+              <div className="flex justify-between text-gray-600">
+                <span>Medical (after 7.5% floor):</span>
+                <span className="font-medium text-gray-700">{formatCurrency(medicalDeductible)}</span>
+              </div>
+              <div className="flex justify-between text-gray-600">
+                <span>State &amp; Local Taxes (capped):</span>
+                <span className="font-medium text-gray-700">{formatCurrency(saltDeductible)}</span>
+              </div>
+              <div className="flex justify-between text-gray-600">
+                <span>Interest:</span>
+                <span className="font-medium text-gray-700">{formatCurrency(interestDeductible)}</span>
+              </div>
+              <div className="flex justify-between text-gray-600">
+                <span>Charitable:</span>
+                <span className="font-medium text-gray-700">{formatCurrency(charitableDeductible)}</span>
+              </div>
+              <div className="flex justify-between text-gray-600">
+                <span>Other:</span>
+                <span className="font-medium text-gray-700">{formatCurrency(otherDeductible)}</span>
+              </div>
+            </div>
+            <div className="mt-2 pt-2 border-t border-gray-200 flex justify-between font-semibold text-gray-800">
+              <span>Total Itemized:</span>
+              <span>{formatCurrency(itemizedTotal)}</span>
+            </div>
+            <div className="flex justify-between text-gray-600 mt-1">
+              <span>Standard Deduction:</span>
+              <span className="font-medium">{formatCurrency(standardAmount)}</span>
+            </div>
+            <div className={`mt-2 pt-2 border-t border-gray-200 font-semibold ${standardBetter ? 'text-amber-700' : 'text-emerald-700'}`}>
+              {standardBetter
+                ? `Standard is better by ${formatCurrency(diff)}`
+                : `Itemized is better by ${formatCurrency(diff)}`}
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Standard deduction:</span>
+              <span className="font-medium">{formatCurrency(standardAmount)}</span>
+            </div>
+            <div className="flex justify-between mt-1">
+              <span className="text-gray-600">Total itemized:</span>
+              <span className="font-medium">{formatCurrency(itemizedTotal)}</span>
+            </div>
+            <div className="mt-2 pt-2 border-t border-gray-200 font-medium text-gray-900">
+              {standardBetter
+                ? `Standard is better by ${formatCurrency(diff)}`
+                : `Itemized is better by ${formatCurrency(diff)}`}
+            </div>
+          </>
+        )}
       </div>
 
       <InterviewNav interview={interview} />
