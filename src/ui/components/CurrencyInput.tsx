@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useId, useState, useCallback } from 'react'
 import type { ReactNode } from 'react'
 import { cents, dollars } from '../../model/traced.ts'
 
@@ -9,6 +9,7 @@ interface CurrencyInputProps {
   placeholder?: string
   required?: boolean
   helperText?: string
+  disabled?: boolean
 }
 
 function formatDisplay(valueInCents: number): string {
@@ -36,7 +37,9 @@ export function CurrencyInput({
   placeholder,
   required,
   helperText,
+  disabled,
 }: CurrencyInputProps) {
+  const helperId = useId()
   const [focused, setFocused] = useState(false)
   const [rawText, setRawText] = useState('')
 
@@ -64,23 +67,29 @@ export function CurrencyInput({
 
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-sm font-medium text-gray-700 flex items-center">
+      <label className={`text-sm font-medium flex items-center ${disabled ? 'text-gray-400' : 'text-gray-700'}`}>
         {label}
         {required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
       <input
         type="text"
         inputMode="decimal"
-        className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-tax-blue focus:border-transparent"
+        className={`border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-tax-blue focus:border-transparent ${
+          disabled
+            ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
+            : 'border-gray-300 bg-white text-gray-900'
+        }`}
         value={displayValue}
         onChange={handleChange}
         onFocus={handleFocus}
         onBlur={handleBlur}
         placeholder={placeholder}
         required={required}
+        disabled={disabled}
+        aria-describedby={helperText ? helperId : undefined}
       />
       {helperText && (
-        <span className="text-xs text-gray-500">{helperText}</span>
+        <span id={helperId} className="text-xs text-gray-500">{helperText}</span>
       )}
     </div>
   )

@@ -4,6 +4,8 @@ import { CurrencyInput } from '../components/CurrencyInput.tsx'
 import { InfoTooltip } from '../components/InfoTooltip.tsx'
 import { InterviewNav } from './InterviewNav.tsx'
 import { dollars } from '../../model/traced.ts'
+import { SAVERS_CREDIT_THRESHOLDS } from '../../rules/2025/constants.ts'
+import type { FilingStatus } from '../../model/types.ts'
 
 function formatCurrency(cents: number): string {
   return dollars(cents).toLocaleString('en-US', {
@@ -14,6 +16,7 @@ function formatCurrency(cents: number): string {
 }
 
 export function CreditDetailsPage() {
+  const filingStatus = useTaxStore((s) => s.taxReturn.filingStatus) as FilingStatus
   const dependentCare = useTaxStore((s) => s.taxReturn.dependentCare)
   const retirementContributions = useTaxStore((s) => s.taxReturn.retirementContributions)
   const energyCredits = useTaxStore((s) => s.taxReturn.energyCredits)
@@ -45,6 +48,16 @@ export function CreditDetailsPage() {
   const dcCredit = form1040.dependentCareCredit
   const scCredit = form1040.saversCredit
   const ecCredit = form1040.energyCredit
+
+  // Saver's Credit AGI eligibility
+  const agi = form1040.line11.amount
+  const saversMaxAGI = SAVERS_CREDIT_THRESHOLDS[filingStatus].rate10
+  const saversIneligible = agi > saversMaxAGI
+
+  const STATUS_LABELS: Record<string, string> = {
+    single: 'Single', mfj: 'Married Filing Jointly', mfs: 'Married Filing Separately',
+    hoh: 'Head of Household', qw: 'Qualifying Surviving Spouse',
+  }
 
   return (
     <div data-testid="page-credit-details" className="max-w-xl mx-auto">
@@ -100,10 +113,14 @@ export function CreditDetailsPage() {
       </div>
 
       {/* ── Retirement Savings (Form 8880) ───────────────── */}
-      <div className="mt-4 bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
+      <div className={`mt-4 rounded-xl border p-4 flex flex-col gap-3 ${
+        saversIneligible ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-200'
+      }`}>
         <div className="flex items-baseline justify-between">
           <div className="flex items-center gap-1">
-            <span className="text-sm font-semibold text-gray-800">Retirement Savings</span>
+            <span className={`text-sm font-semibold ${saversIneligible ? 'text-gray-400' : 'text-gray-800'}`}>
+              Retirement Savings
+            </span>
             <InfoTooltip
               explanation="The Saver's Credit rewards low- and moderate-income taxpayers for contributing to retirement accounts. It applies to IRA contributions and elective deferrals (401(k), 403(b), SIMPLE, etc.). The credit rate (50%, 20%, or 10%) depends on your AGI and filing status."
               pubName="IRS Form 8880 — Credit for Qualified Retirement Savings"
@@ -111,11 +128,21 @@ export function CreditDetailsPage() {
             />
             <span className="text-xs text-gray-400">Form 8880</span>
           </div>
-          {scCredit && scCredit.creditAmount > 0 && (
+          {saversIneligible ? (
+            <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+              Not eligible
+            </span>
+          ) : scCredit && scCredit.creditAmount > 0 ? (
             <span className="text-sm font-semibold text-tax-green">{formatCurrency(scCredit.creditAmount)}</span>
-          )}
+          ) : null}
         </div>
-        {electiveDeferrals > 0 && (
+        {saversIneligible && (
+          <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+            Your AGI of {formatCurrency(agi)} exceeds the {formatCurrency(saversMaxAGI)} limit
+            for {STATUS_LABELS[filingStatus]} filers. The Saver's Credit is not available.
+          </div>
+        )}
+        {!saversIneligible && electiveDeferrals > 0 && (
           <div className="text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded px-2 py-1">
             W-2 Box 12 elective deferrals: {formatCurrency(electiveDeferrals)} (auto-derived)
           </div>
@@ -131,20 +158,21 @@ export function CreditDetailsPage() {
             {iraDeduction.phaseOutApplies && ' (phase-out applied)'}
           </div>
         )}
+        {iraDeduction && iraDeduction.contribution > 0 && iraDeduction.deductibleAmount === 0 && iraDeduction.phaseOutApplies && (
+          <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+            IRA deduction fully phased out &mdash; MAGI exceeds {formatCurrency(iraDeduction.phaseOutEnd)} for {STATUS_LABELS[filingStatus]} filers covered by an employer plan.
+          </div>
+        )}
         <CurrencyInput
           label="Roth IRA contributions"
           value={retire.rothIRA}
           onChange={(v) => setRetirementContributions({ rothIRA: v })}
+          disabled={saversIneligible}
         />
-        {scCredit && scCredit.creditAmount > 0 && (
+        {!saversIneligible && scCredit && scCredit.creditAmount > 0 && (
           <div className="text-xs text-gray-500 bg-gray-50 rounded px-2 py-1">
             Eligible: {formatCurrency(scCredit.eligibleContributions)}
             {' '}&middot; Rate {Math.round(scCredit.creditRate * 100)}%
-          </div>
-        )}
-        {scCredit && scCredit.totalContributions > 0 && scCredit.creditRate === 0 && (
-          <div className="text-xs text-gray-500">
-            AGI too high for the Saver's Credit at your filing status.
           </div>
         )}
       </div>
