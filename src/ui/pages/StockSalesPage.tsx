@@ -291,7 +291,7 @@ function ManualEntryForm({
       <h3 className="text-sm font-semibold text-gray-800 mb-3">Add transaction</h3>
 
       <div className="flex flex-col gap-3">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-gray-700">Security description</label>
             <input
@@ -315,7 +315,7 @@ function ManualEntryForm({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-gray-700">Date acquired</label>
             <input
@@ -339,7 +339,7 @@ function ManualEntryForm({
 
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-gray-700">Holding period</label>
-          <div className="flex gap-4 mt-1">
+          <div className="flex flex-wrap gap-x-4 gap-y-2 mt-1">
             {(
               [
                 { label: 'Short-term (≤ 1 year)', value: false as boolean },
@@ -359,7 +359,7 @@ function ManualEntryForm({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <CurrencyInput label="Proceeds" value={form.proceeds} onChange={updateProceeds} />
           <CurrencyInput
             label="Cost basis"
@@ -550,8 +550,8 @@ export function StockSalesPage() {
                     ({catForms.length} trade{catForms.length !== 1 ? 's' : ''})
                   </span>
                 </h3>
-                <div className="rounded-lg border border-gray-200 overflow-hidden">
-                  <table className="w-full">
+                <div className="rounded-lg border border-gray-200 overflow-x-auto">
+                  <table className="w-full min-w-[480px]">
                     <thead>
                       <tr className="bg-gray-50 text-xs text-gray-500">
                         <th className="py-2 px-2 text-left font-medium">Security</th>

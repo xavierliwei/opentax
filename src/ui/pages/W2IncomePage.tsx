@@ -59,7 +59,7 @@ function W2Card({ w2, index }: { w2: W2; index: number }) {
         </span>
       </div>
       {/* Employer info */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-gray-700">Employer name</label>
           <input
@@ -83,7 +83,7 @@ function W2Card({ w2, index }: { w2: W2; index: number }) {
       </div>
 
       {/* Primary boxes */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <CurrencyInput
           label="Box 1 — Wages"
           value={w2.box1}
@@ -130,7 +130,7 @@ function W2Card({ w2, index }: { w2: W2; index: number }) {
 
       {showAdvanced && (
         <div className="flex flex-col gap-3 border-t border-gray-100 pt-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <CurrencyInput
               label="Box 7 — Social Security tips"
               value={w2.box7}
@@ -156,7 +156,7 @@ function W2Card({ w2, index }: { w2: W2; index: number }) {
           {/* Box 13 checkboxes */}
           <div className="flex flex-col gap-2">
             <span className="text-sm font-medium text-gray-700">Box 13</span>
-            <div className="flex gap-4">
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
               <label className="flex items-center gap-1.5 text-sm text-gray-700">
                 <input
                   type="checkbox"
@@ -199,7 +199,7 @@ function W2Card({ w2, index }: { w2: W2; index: number }) {
           </div>
 
           {/* State/local boxes 15-20 */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-gray-700">Box 15 — State</label>
               <input

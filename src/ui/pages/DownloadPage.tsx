@@ -167,12 +167,12 @@ export function DownloadPage() {
       )}
 
       {/* Download buttons */}
-      <div className="mt-6 flex gap-4">
+      <div className="mt-6 flex flex-col sm:flex-row gap-3">
         <button
           type="button"
           onClick={handleDownloadPDF}
           disabled={generating}
-          className="px-6 py-3 text-sm font-medium text-white bg-brand rounded-md hover:bg-blue-900 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full sm:w-auto px-6 py-3 text-sm font-medium text-white bg-brand rounded-md hover:bg-blue-900 disabled:opacity-50 disabled:cursor-not-allowed"
           data-testid="download-pdf-btn"
         >
           {generating ? 'Generating...' : 'Download PDF'}
@@ -180,7 +180,7 @@ export function DownloadPage() {
         <button
           type="button"
           onClick={handleExportJSON}
-          className="px-6 py-3 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+          className="w-full sm:w-auto px-6 py-3 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
           data-testid="export-json-btn"
         >
           Export JSON

@@ -21,9 +21,9 @@ interface LineItemProps {
 
 function LineItem({ label, nodeId, amount }: LineItemProps) {
   return (
-    <div className="flex items-center justify-between py-1">
-      <span className="text-sm text-gray-700">{label}</span>
-      <div className="flex items-center gap-2">
+    <div className="flex items-center justify-between gap-3 py-1">
+      <span className="text-sm text-gray-700 min-w-0">{label}</span>
+      <div className="flex items-center gap-2 shrink-0">
         <span className="text-sm font-medium tabular-nums">{formatCurrency(amount)}</span>
         <Link
           to={`/explain/${nodeId}`}
@@ -60,19 +60,19 @@ export function ReviewPage() {
 
       {/* Filing info */}
       <div className="mt-6 flex flex-col gap-2">
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-600">Filing Status:</span>
-          <div className="flex items-center gap-2">
-            <span className="font-medium">{FILING_STATUS_LABELS[taxReturn.filingStatus]}</span>
+        <div className="flex justify-between gap-2 text-sm">
+          <span className="text-gray-600 shrink-0">Filing Status:</span>
+          <div className="flex items-center gap-2 justify-end">
+            <span className="font-medium text-right">{FILING_STATUS_LABELS[taxReturn.filingStatus]}</span>
             <Link to="/interview/filing-status" className="text-xs text-tax-blue hover:text-blue-700">
               Edit
             </Link>
           </div>
         </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-600">Taxpayer:</span>
-          <div className="flex items-center gap-2">
-            <span className="font-medium">
+        <div className="flex justify-between gap-2 text-sm">
+          <span className="text-gray-600 shrink-0">Taxpayer:</span>
+          <div className="flex items-center gap-2 justify-end min-w-0">
+            <span className="font-medium text-right truncate">
               {taxReturn.taxpayer.firstName} {taxReturn.taxpayer.lastName}
               {taxReturn.taxpayer.ssn && ` (${maskSSN(taxReturn.taxpayer.ssn)})`}
             </span>

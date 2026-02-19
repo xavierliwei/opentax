@@ -51,7 +51,7 @@ export function PersonalInfoPage() {
         </div>
 
         {/* SSN + DOB */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <SSNInput
             label="Social Security Number"
             value={taxpayer.ssn}
@@ -67,7 +67,7 @@ export function PersonalInfoPage() {
         {/* Address */}
         <h2 className="text-sm font-semibold text-gray-800 mt-2">Address</h2>
 
-        <div className="grid grid-cols-[2fr_1fr] gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-[2fr_1fr] gap-3">
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-gray-700">Street address</label>
             <input
@@ -92,8 +92,8 @@ export function PersonalInfoPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-[2fr_1fr_1fr] gap-3">
-          <div className="flex flex-col gap-1">
+        <div className="grid grid-cols-2 sm:grid-cols-[2fr_1fr_1fr] gap-3">
+          <div className="flex flex-col gap-1 col-span-2 sm:col-span-1">
             <label className="text-sm font-medium text-gray-700">City</label>
             <input
               type="text"
