@@ -131,8 +131,12 @@ export function analyzeGaps(taxReturn: TaxReturn, computeResult: ComputeResult):
     } else {
       const total =
         itemized.medicalExpenses +
-        itemized.stateLocalTaxes +
+        itemized.stateLocalIncomeTaxes +
+        itemized.stateLocalSalesTaxes +
+        itemized.realEstateTaxes +
+        itemized.personalPropertyTaxes +
         itemized.mortgageInterest +
+        itemized.investmentInterest +
         itemized.charitableCash +
         itemized.charitableNoncash +
         itemized.otherDeductions

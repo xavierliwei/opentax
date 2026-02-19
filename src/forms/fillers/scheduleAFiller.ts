@@ -31,14 +31,22 @@ export async function fillScheduleA(
   setDollarField(form, SCHA_MEDICAL.line3, result.line3.amount)
   setDollarField(form, SCHA_MEDICAL.line4, result.line4.amount)
 
-  // SALT (Lines 5e, 7)
+  // SALT (Lines 5a–5e, 7)
+  // line5a holds the elected amount (max of income/sales taxes)
+  setDollarField(form, SCHA_TAXES.line5a, result.line5a.amount)
+  setDollarField(form, SCHA_TAXES.line5c, result.line5b.amount)   // real estate → PDF field 5c
+  setDollarField(form, SCHA_TAXES.line5d, result.line5c.amount)   // personal property → PDF field 5d
   setDollarField(form, SCHA_TAXES.line5e, result.line5e.amount)
   setDollarField(form, SCHA_TAXES.line7, result.line7.amount)
 
-  // Interest (Line 10)
+  // Interest (Lines 8a, 9, 10)
+  setDollarField(form, SCHA_INTEREST.line8a, result.line8a.amount)
+  setDollarField(form, SCHA_INTEREST.line9,  result.line9.amount)
   setDollarField(form, SCHA_INTEREST.line10, result.line10.amount)
 
-  // Charitable (Line 14)
+  // Charitable (Lines 11, 12, 14)
+  setDollarField(form, SCHA_CHARITY.line11, result.line11.amount)
+  setDollarField(form, SCHA_CHARITY.line12, result.line12.amount)
   setDollarField(form, SCHA_CHARITY.line14, result.line14.amount)
 
   // Other (Line 16)

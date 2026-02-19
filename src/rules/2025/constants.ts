@@ -195,6 +195,31 @@ export const SALT_FLOOR: Record<FilingStatus, number> = {
   qw:     c(10000),
 }
 
+// ── Home Mortgage Interest Limit — IRC §163(h)(3) ──────────────
+// Loans originating after Dec 15, 2017 (post-TCJA): $750K limit ($375K MFS)
+// Grandfathered loans from Dec 15, 2017 or earlier: $1M limit ($500K MFS)
+
+export const MORTGAGE_LIMIT_POST_TCJA: Record<FilingStatus, number> = {
+  single: c(750_000),
+  mfj:    c(750_000),
+  mfs:    c(375_000),
+  hoh:    c(750_000),
+  qw:     c(750_000),
+}
+
+export const MORTGAGE_LIMIT_PRE_TCJA: Record<FilingStatus, number> = {
+  single: c(1_000_000),
+  mfj:    c(1_000_000),
+  mfs:    c(500_000),
+  hoh:    c(1_000_000),
+  qw:     c(1_000_000),
+}
+
+// ── Charitable Contribution AGI Limits — IRC §170(b) ───────────
+
+export const CHARITABLE_CASH_AGI_LIMIT    = 0.60  // 60% of AGI (cash to 50% orgs)
+export const CHARITABLE_NONCASH_AGI_LIMIT = 0.30  // 30% of AGI (capital gain property)
+
 // ── Capital Loss Deduction Limit ───────────────────────────────
 // Source: IRC §1211(b)
 

@@ -7,6 +7,7 @@ import type {
   W2,
   Form1099INT,
   Form1099DIV,
+  Form1099B,
   CapitalTransaction,
   Taxpayer,
   Dependent,
@@ -16,6 +17,7 @@ import type {
 import { emptyTaxReturn } from '../model/types.ts'
 import { computeAll } from '../rules/engine.ts'
 import type { ComputeResult } from '../rules/engine.ts'
+import { processRSUAdjustments } from '../rules/2025/rsuAdjustment.ts'
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -40,6 +42,10 @@ export interface TaxStoreState {
   addForm1099DIV: (form: Form1099DIV) => void
   updateForm1099DIV: (id: string, form: Partial<Form1099DIV>) => void
   removeForm1099DIV: (id: string) => void
+  setForm1099Bs: (forms: Form1099B[]) => void
+  addForm1099B: (form: Form1099B) => void
+  updateForm1099B: (id: string, form: Partial<Form1099B>) => void
+  removeForm1099B: (id: string) => void
   addRSUVestEvent: (event: RSUVestEvent) => void
   removeRSUVestEvent: (id: string) => void
   setCapitalTransactions: (txns: CapitalTransaction[]) => void
@@ -90,6 +96,18 @@ const idbStorage = {
 }
 
 // ── Helpers ────────────────────────────────────────────────────
+
+/**
+ * Re-derive capitalTransactions from form1099Bs + rsuVestEvents.
+ * Called any time either collection changes so the rules engine stays in sync.
+ */
+function withDerivedCapital(taxReturn: TaxReturn): TaxReturn {
+  const { transactions } = processRSUAdjustments(
+    taxReturn.form1099Bs,
+    taxReturn.rsuVestEvents,
+  )
+  return { ...taxReturn, capitalTransactions: transactions }
+}
 
 function recompute(taxReturn: TaxReturn): Pick<TaxStoreState, 'taxReturn' | 'computeResult'> {
   return { taxReturn, computeResult: computeAll(taxReturn) }
@@ -251,19 +269,53 @@ export const useTaxStore = create<TaxStoreState>()(
         set(recompute(tr))
       },
 
+      setForm1099Bs: (forms) => {
+        const tr = withDerivedCapital({ ...get().taxReturn, form1099Bs: forms })
+        set(recompute(tr))
+      },
+
+      addForm1099B: (form) => {
+        const prev = get().taxReturn
+        const tr = withDerivedCapital({
+          ...prev,
+          form1099Bs: [...prev.form1099Bs, form],
+        })
+        set(recompute(tr))
+      },
+
+      updateForm1099B: (id, updates) => {
+        const prev = get().taxReturn
+        const tr = withDerivedCapital({
+          ...prev,
+          form1099Bs: prev.form1099Bs.map((f) => (f.id === id ? { ...f, ...updates } : f)),
+        })
+        set(recompute(tr))
+      },
+
+      removeForm1099B: (id) => {
+        const prev = get().taxReturn
+        const tr = withDerivedCapital({
+          ...prev,
+          form1099Bs: prev.form1099Bs.filter((f) => f.id !== id),
+        })
+        set(recompute(tr))
+      },
+
       addRSUVestEvent: (event) => {
-        const tr = {
-          ...get().taxReturn,
-          rsuVestEvents: [...get().taxReturn.rsuVestEvents, event],
-        }
+        const prev = get().taxReturn
+        const tr = withDerivedCapital({
+          ...prev,
+          rsuVestEvents: [...prev.rsuVestEvents, event],
+        })
         set(recompute(tr))
       },
 
       removeRSUVestEvent: (id) => {
-        const tr = {
-          ...get().taxReturn,
-          rsuVestEvents: get().taxReturn.rsuVestEvents.filter((e) => e.id !== id),
-        }
+        const prev = get().taxReturn
+        const tr = withDerivedCapital({
+          ...prev,
+          rsuVestEvents: prev.rsuVestEvents.filter((e) => e.id !== id),
+        })
         set(recompute(tr))
       },
 
@@ -284,8 +336,14 @@ export const useTaxStore = create<TaxStoreState>()(
         const prev = get().taxReturn
         const existing = prev.deductions.itemized ?? {
           medicalExpenses: 0,
-          stateLocalTaxes: 0,
+          stateLocalIncomeTaxes: 0,
+          stateLocalSalesTaxes: 0,
+          realEstateTaxes: 0,
+          personalPropertyTaxes: 0,
           mortgageInterest: 0,
+          mortgagePrincipal: 0,
+          mortgagePreTCJA: false,
+          investmentInterest: 0,
           charitableCash: 0,
           charitableNoncash: 0,
           otherDeductions: 0,

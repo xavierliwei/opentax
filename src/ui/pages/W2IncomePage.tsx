@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import { useTaxStore } from '../../store/taxStore.ts'
 import { useInterview } from '../../interview/useInterview.ts'
 import { RepeatableSection } from '../components/RepeatableSection.tsx'
 import { CurrencyInput } from '../components/CurrencyInput.tsx'
 import { OCRUpload } from '../components/OCRUpload.tsx'
+import { Button } from '../components/Button.tsx'
 import { InterviewNav } from './InterviewNav.tsx'
 import type { W2 } from '../../model/types.ts'
 
@@ -115,13 +117,16 @@ function W2Card({ w2, index }: { w2: W2; index: number }) {
       </div>
 
       {/* Advanced boxes toggle */}
-      <button
+      <Button
         type="button"
-        className="text-sm text-tax-blue hover:text-blue-700 text-left"
+        variant="ghost"
+        size="sm"
+        className="self-start -ml-2 text-gray-500"
         onClick={() => setShowAdvanced(!showAdvanced)}
       >
-        {showAdvanced ? '▾ Hide' : '▸ Show'} Box 7–20 (advanced)
-      </button>
+        {showAdvanced ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        Box 7–20 (advanced)
+      </Button>
 
       {showAdvanced && (
         <div className="flex flex-col gap-3 border-t border-gray-100 pt-3">

@@ -8,6 +8,7 @@ import { DependentsPage } from '../ui/pages/DependentsPage.tsx'
 import { W2IncomePage } from '../ui/pages/W2IncomePage.tsx'
 import { InterestIncomePage } from '../ui/pages/InterestIncomePage.tsx'
 import { DividendIncomePage } from '../ui/pages/DividendIncomePage.tsx'
+import { StockSalesPage } from '../ui/pages/StockSalesPage.tsx'
 import { RSUIncomePage } from '../ui/pages/RSUIncomePage.tsx'
 import { DeductionsPage } from '../ui/pages/DeductionsPage.tsx'
 import { ReviewPage } from '../ui/pages/ReviewPage.tsx'
@@ -20,11 +21,6 @@ export interface InterviewStep {
   isVisible: (tr: TaxReturn) => boolean
   isComplete: (tr: TaxReturn) => boolean
   component: ComponentType
-}
-
-// Placeholder for pages not yet implemented (P2.4+)
-function PlaceholderPage() {
-  return null
 }
 
 export const STEPS: InterviewStep[] = [
@@ -109,7 +105,7 @@ export const STEPS: InterviewStep[] = [
     path: '/interview/stock-sales',
     isVisible: () => true,
     isComplete: () => true,
-    component: PlaceholderPage,
+    component: StockSalesPage,
   },
   {
     id: 'rsu-income',

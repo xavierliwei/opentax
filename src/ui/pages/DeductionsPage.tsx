@@ -27,17 +27,30 @@ export function DeductionsPage() {
 
   const itemized = deductions.itemized ?? {
     medicalExpenses: 0,
-    stateLocalTaxes: 0,
+    stateLocalIncomeTaxes: 0,
+    stateLocalSalesTaxes: 0,
+    realEstateTaxes: 0,
+    personalPropertyTaxes: 0,
     mortgageInterest: 0,
+    mortgagePrincipal: 0,
+    mortgagePreTCJA: false,
+    investmentInterest: 0,
     charitableCash: 0,
     charitableNoncash: 0,
     otherDeductions: 0,
   }
 
+  // SALT: system uses max(income, sales) + real estate + personal property
+  const salt =
+    Math.max(itemized.stateLocalIncomeTaxes, itemized.stateLocalSalesTaxes) +
+    itemized.realEstateTaxes +
+    itemized.personalPropertyTaxes
+
   const itemizedTotal =
     itemized.medicalExpenses +
-    itemized.stateLocalTaxes +
+    salt +
     itemized.mortgageInterest +
+    itemized.investmentInterest +
     itemized.charitableCash +
     itemized.charitableNoncash +
     itemized.otherDeductions
@@ -106,10 +119,22 @@ export function DeductionsPage() {
             helperText={`Only the amount above 7.5% of your AGI (${formatCurrency(medicalFloor)}) is deductible.`}
           />
           <CurrencyInput
-            label="State and local taxes (SALT)"
-            value={itemized.stateLocalTaxes}
-            onChange={(v) => setItemizedDeductions({ stateLocalTaxes: v })}
-            helperText={`Capped at ${formatCurrency(saltCap)} for ${filingStatus === 'mfj' ? 'married filing jointly' : 'your filing status'}.`}
+            label="State and local income taxes (SALT)"
+            value={itemized.stateLocalIncomeTaxes}
+            onChange={(v) => setItemizedDeductions({ stateLocalIncomeTaxes: v })}
+            helperText={`Capped at ${formatCurrency(saltCap)} for ${filingStatus === 'mfj' ? 'married filing jointly' : 'your filing status'}. Also add real estate and personal property taxes below.`}
+          />
+          <CurrencyInput
+            label="Real estate taxes"
+            value={itemized.realEstateTaxes}
+            onChange={(v) => setItemizedDeductions({ realEstateTaxes: v })}
+            helperText="State and local real estate taxes on property you own."
+          />
+          <CurrencyInput
+            label="Personal property taxes"
+            value={itemized.personalPropertyTaxes}
+            onChange={(v) => setItemizedDeductions({ personalPropertyTaxes: v })}
+            helperText="Value-based taxes on vehicles or other personal property."
           />
           <CurrencyInput
             label="Mortgage interest"

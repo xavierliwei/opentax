@@ -64,9 +64,16 @@ export const NODE_LABELS: Record<string, string> = {
   'scheduleA.line2': 'AGI (from Form 1040)',
   'scheduleA.line3': 'AGI x 7.5%',
   'scheduleA.line4': 'Medical deduction (excess over floor)',
+  'scheduleA.line5a': 'State/local income or sales taxes (elected)',
+  'scheduleA.line5b': 'Real estate taxes',
+  'scheduleA.line5c': 'Personal property taxes',
   'scheduleA.line5e': 'State and local taxes (before cap)',
   'scheduleA.line7': 'State and local taxes (after cap)',
-  'scheduleA.line10': 'Mortgage interest',
+  'scheduleA.line8a': 'Home mortgage interest (after limit)',
+  'scheduleA.line9': 'Investment interest',
+  'scheduleA.line10': 'Total interest you paid',
+  'scheduleA.line11': 'Cash charitable contributions',
+  'scheduleA.line12': 'Non-cash charitable contributions',
   'scheduleA.line14': 'Charitable contributions',
   'scheduleA.line16': 'Other itemized deductions',
   'scheduleA.line17': 'Total itemized deductions',
@@ -107,8 +114,12 @@ export const NODE_LABELS: Record<string, string> = {
   // Pseudo-nodes
   'standardDeduction': 'Standard deduction',
   'itemized.medicalExpenses': 'Medical expenses',
-  'itemized.stateLocalTaxes': 'State and local taxes',
+  'itemized.stateLocalIncomeTaxes': 'State/local income taxes',
+  'itemized.stateLocalSalesTaxes': 'General sales taxes',
+  'itemized.realEstateTaxes': 'Real estate taxes',
+  'itemized.personalPropertyTaxes': 'Personal property taxes',
   'itemized.mortgageInterest': 'Mortgage interest',
+  'itemized.investmentInterest': 'Investment interest',
   'itemized.charitableCash': 'Charitable contributions (cash)',
   'itemized.charitableNoncash': 'Charitable contributions (non-cash)',
   'itemized.otherDeductions': 'Other deductions',
@@ -172,9 +183,16 @@ export function collectAllValues(
     add(sa.line2)
     add(sa.line3)
     add(sa.line4)
+    add(sa.line5a)
+    add(sa.line5b)
+    add(sa.line5c)
     add(sa.line5e)
     add(sa.line7)
+    add(sa.line8a)
+    add(sa.line9)
     add(sa.line10)
+    add(sa.line11)
+    add(sa.line12)
     add(sa.line14)
     add(sa.line16)
     add(sa.line17)
@@ -318,8 +336,12 @@ export function collectAllValues(
     const d = model.deductions.itemized
     const items: Array<[string, number]> = [
       ['itemized.medicalExpenses', d.medicalExpenses],
-      ['itemized.stateLocalTaxes', d.stateLocalTaxes],
+      ['itemized.stateLocalIncomeTaxes', d.stateLocalIncomeTaxes],
+      ['itemized.stateLocalSalesTaxes', d.stateLocalSalesTaxes],
+      ['itemized.realEstateTaxes', d.realEstateTaxes],
+      ['itemized.personalPropertyTaxes', d.personalPropertyTaxes],
       ['itemized.mortgageInterest', d.mortgageInterest],
+      ['itemized.investmentInterest', d.investmentInterest],
       ['itemized.charitableCash', d.charitableCash],
       ['itemized.charitableNoncash', d.charitableNoncash],
       ['itemized.otherDeductions', d.otherDeductions],
@@ -541,15 +563,20 @@ export function resolveDocumentRef(
     const key = refId.slice('itemized.'.length) as keyof ItemizedDeductions
     const labels: Record<string, string> = {
       medicalExpenses: 'Medical expenses',
-      stateLocalTaxes: 'State and local taxes',
+      stateLocalIncomeTaxes: 'State/local income taxes',
+      stateLocalSalesTaxes: 'General sales taxes',
+      realEstateTaxes: 'Real estate taxes',
+      personalPropertyTaxes: 'Personal property taxes',
       mortgageInterest: 'Mortgage interest',
+      investmentInterest: 'Investment interest',
       charitableCash: 'Charitable contributions (cash)',
       charitableNoncash: 'Charitable contributions (non-cash)',
       otherDeductions: 'Other deductions',
     }
+    const val = model.deductions.itemized[key]
     return {
       label: labels[key] ?? refId,
-      amount: model.deductions.itemized[key] ?? 0,
+      amount: typeof val === 'number' ? val : 0,
     }
   }
 

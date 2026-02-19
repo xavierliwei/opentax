@@ -187,11 +187,12 @@ export function computeLine11(line9: TracedValue, line10: TracedValue): TracedVa
 export function computeLine12(
   model: TaxReturn,
   agi: number,
+  netInvestmentIncome: number,
 ): { deduction: TracedValue; scheduleA: ScheduleAResult | null } {
   const standardAmount = STANDARD_DEDUCTION[model.filingStatus]
 
   if (model.deductions.method === 'itemized' && model.deductions.itemized) {
-    const scheduleA = computeScheduleA(model, agi)
+    const scheduleA = computeScheduleA(model, agi, netInvestmentIncome)
     const itemizedTotal = scheduleA.line17.amount
 
     if (itemizedTotal > standardAmount) {
@@ -466,7 +467,13 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   const line11 = computeLine11(line9, line10)
 
   // ── Deductions ──────────────────────────────────────────
-  const { deduction: line12, scheduleA } = computeLine12(model, line11.amount)
+  // Net investment income for Form 4952 investment interest limit.
+  // Includes: taxable interest + non-qualified dividends + net ST capital gains.
+  const nonQualifiedDivs = Math.max(0, line3b.amount - line3a.amount)
+  const netSTGain = Math.max(0, scheduleD?.line7.amount ?? 0)
+  const netInvestmentIncome = line2b.amount + nonQualifiedDivs + netSTGain
+
+  const { deduction: line12, scheduleA } = computeLine12(model, line11.amount, netInvestmentIncome)
   const line13 = computeLine13()
   const line14 = computeLine14(line12, line13)
   const line15 = computeLine15(line11, line14)

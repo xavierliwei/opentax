@@ -209,12 +209,29 @@ export interface Adjustment {
 // ── Deductions ─────────────────────────────────────────────────
 
 export interface ItemizedDeductions {
-  medicalExpenses: number         // cents (subject to 7.5% AGI floor)
-  stateLocalTaxes: number         // cents (SALT, capped at $10,000)
-  mortgageInterest: number        // cents
-  charitableCash: number          // cents
-  charitableNoncash: number       // cents
-  otherDeductions: number         // cents
+  // Medical (Line 1)
+  medicalExpenses: number           // cents (7.5% AGI floor)
+
+  // SALT (Lines 5a-5e) — system takes max(income, sales) for line 5a
+  stateLocalIncomeTaxes: number     // cents — state/local income taxes (Line 5a option A)
+  stateLocalSalesTaxes: number      // cents — OR general sales taxes (Line 5a option B)
+  realEstateTaxes: number           // cents — real property taxes (Line 5b)
+  personalPropertyTaxes: number     // cents — value-based personal property taxes (Line 5c)
+
+  // Mortgage Interest (Line 8a)
+  mortgageInterest: number          // cents — total interest paid (from Form 1098 Box 1)
+  mortgagePrincipal: number         // cents — outstanding loan balance (Form 1098 Box 2)
+  mortgagePreTCJA: boolean          // true = originated ≤ Dec 15 2017 → $1M limit; false → $750K
+
+  // Investment Interest (Line 9, Form 4952)
+  investmentInterest: number        // cents — margin interest + other investment interest
+
+  // Charitable (Lines 11-14)
+  charitableCash: number            // cents (60% AGI limit)
+  charitableNoncash: number         // cents (30% AGI limit)
+
+  // Other (Line 16)
+  otherDeductions: number           // cents
 }
 
 // ── Credits ────────────────────────────────────────────────────
