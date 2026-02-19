@@ -328,8 +328,14 @@ export class TaxService extends EventEmitter {
     const prev = this.taxReturn
     const existing = prev.deductions.itemized ?? {
       medicalExpenses: 0,
-      stateLocalTaxes: 0,
+      stateLocalIncomeTaxes: 0,
+      stateLocalSalesTaxes: 0,
+      realEstateTaxes: 0,
+      personalPropertyTaxes: 0,
       mortgageInterest: 0,
+      mortgagePrincipal: 0,
+      mortgagePreTCJA: false,
+      investmentInterest: 0,
       charitableCash: 0,
       charitableNoncash: 0,
       otherDeductions: 0,

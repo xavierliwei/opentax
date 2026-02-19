@@ -312,8 +312,14 @@ export function createDataEntryTools(service: TaxService): ToolDef[] {
         properties: {
           method: { type: 'string', enum: ['standard', 'itemized'], description: 'Deduction method' },
           medicalExpenses: { type: 'number', description: 'Medical and dental expenses (dollars, optional)' },
-          stateLocalTaxes: { type: 'number', description: 'State and local taxes (dollars, optional)' },
+          stateLocalIncomeTaxes: { type: 'number', description: 'State and local income taxes (dollars, optional)' },
+          stateLocalSalesTaxes: { type: 'number', description: 'State and local sales taxes (dollars, optional)' },
+          realEstateTaxes: { type: 'number', description: 'Real property taxes (dollars, optional)' },
+          personalPropertyTaxes: { type: 'number', description: 'Personal property taxes (dollars, optional)' },
           mortgageInterest: { type: 'number', description: 'Mortgage interest (dollars, optional)' },
+          mortgagePrincipal: { type: 'number', description: 'Mortgage principal balance (dollars, optional)' },
+          mortgagePreTCJA: { type: 'boolean', description: 'Mortgage originated before Dec 16, 2017 (optional)' },
+          investmentInterest: { type: 'number', description: 'Investment interest / margin interest (dollars, optional)' },
           charitableCash: { type: 'number', description: 'Charitable contributions - cash (dollars, optional)' },
           charitableNoncash: { type: 'number', description: 'Charitable contributions - noncash (dollars, optional)' },
           otherDeductions: { type: 'number', description: 'Other deductions (dollars, optional)' },
@@ -325,10 +331,16 @@ export function createDataEntryTools(service: TaxService): ToolDef[] {
         service.setDeductionMethod(method)
 
         if (method === 'itemized') {
-          const itemized: Record<string, number> = {}
+          const itemized: Record<string, number | boolean> = {}
           if (args.medicalExpenses != null) itemized.medicalExpenses = cents(args.medicalExpenses as number)
-          if (args.stateLocalTaxes != null) itemized.stateLocalTaxes = cents(args.stateLocalTaxes as number)
+          if (args.stateLocalIncomeTaxes != null) itemized.stateLocalIncomeTaxes = cents(args.stateLocalIncomeTaxes as number)
+          if (args.stateLocalSalesTaxes != null) itemized.stateLocalSalesTaxes = cents(args.stateLocalSalesTaxes as number)
+          if (args.realEstateTaxes != null) itemized.realEstateTaxes = cents(args.realEstateTaxes as number)
+          if (args.personalPropertyTaxes != null) itemized.personalPropertyTaxes = cents(args.personalPropertyTaxes as number)
           if (args.mortgageInterest != null) itemized.mortgageInterest = cents(args.mortgageInterest as number)
+          if (args.mortgagePrincipal != null) itemized.mortgagePrincipal = cents(args.mortgagePrincipal as number)
+          if (args.mortgagePreTCJA != null) itemized.mortgagePreTCJA = args.mortgagePreTCJA as boolean
+          if (args.investmentInterest != null) itemized.investmentInterest = cents(args.investmentInterest as number)
           if (args.charitableCash != null) itemized.charitableCash = cents(args.charitableCash as number)
           if (args.charitableNoncash != null) itemized.charitableNoncash = cents(args.charitableNoncash as number)
           if (args.otherDeductions != null) itemized.otherDeductions = cents(args.otherDeductions as number)
