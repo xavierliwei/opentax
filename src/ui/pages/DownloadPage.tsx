@@ -1,0 +1,166 @@
+import { useState } from 'react'
+import { useTaxStore } from '../../store/taxStore.ts'
+import { useInterview } from '../../interview/useInterview.ts'
+import { InterviewNav } from './InterviewNav.tsx'
+import { compileFilingPackage } from '../../forms/compiler.ts'
+import type { FormTemplates } from '../../forms/types.ts'
+import { dollars } from '../../model/traced.ts'
+
+function formatCurrency(cents: number): string {
+  return dollars(cents).toLocaleString('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+  })
+}
+
+const FILING_STATUS_LABELS: Record<string, string> = {
+  single: 'Single',
+  mfj: 'Married Filing Jointly',
+  mfs: 'Married Filing Separately',
+  hoh: 'Head of Household',
+  qw: 'Qualifying Surviving Spouse',
+}
+
+async function loadTemplate(path: string): Promise<Uint8Array> {
+  const resp = await fetch(`/${path}`)
+  if (!resp.ok) throw new Error(`Failed to load ${path}`)
+  return new Uint8Array(await resp.arrayBuffer())
+}
+
+export function DownloadPage() {
+  const taxReturn = useTaxStore((s) => s.taxReturn)
+  const form1040 = useTaxStore((s) => s.computeResult.form1040)
+  const executedSchedules = useTaxStore((s) => s.computeResult.executedSchedules)
+  const interview = useInterview()
+  const [generating, setGenerating] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleDownloadPDF = async () => {
+    setGenerating(true)
+    setError(null)
+    try {
+      const templates: FormTemplates = {
+        f1040: await loadTemplate('forms/f1040.pdf'),
+        f1040sa: await loadTemplate('forms/f1040sa.pdf'),
+        f1040sb: await loadTemplate('forms/f1040sb.pdf'),
+        f1040sd: await loadTemplate('forms/f1040sd.pdf'),
+        f8949: await loadTemplate('forms/f8949.pdf'),
+      }
+
+      const compiled = await compileFilingPackage(taxReturn, templates)
+
+      const blob = new Blob([compiled.pdfBytes as BlobPart], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `OpenTax-2025-${taxReturn.taxpayer.lastName || 'Return'}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to generate PDF')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  const handleExportJSON = () => {
+    const json = JSON.stringify(taxReturn, null, 2)
+    const blob = new Blob([json], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `OpenTax-2025-${taxReturn.taxpayer.lastName || 'Return'}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  return (
+    <div data-testid="page-download" className="max-w-xl mx-auto">
+      <h1 className="text-2xl font-bold text-gray-900">Download Your Return</h1>
+
+      {/* Summary card */}
+      <div className="mt-6 border border-gray-200 rounded-lg p-6 flex flex-col gap-3">
+        <h2 className="font-semibold text-gray-900">Return Summary</h2>
+        <div className="flex flex-col gap-1 text-sm">
+          <div className="flex justify-between">
+            <span className="text-gray-600">Tax Year:</span>
+            <span className="font-medium">{taxReturn.taxYear}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Filing Status:</span>
+            <span className="font-medium">{FILING_STATUS_LABELS[taxReturn.filingStatus]}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Name:</span>
+            <span className="font-medium">
+              {taxReturn.taxpayer.firstName} {taxReturn.taxpayer.lastName}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">AGI:</span>
+            <span className="font-medium">{formatCurrency(form1040.line11.amount)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Total Tax:</span>
+            <span className="font-medium">{formatCurrency(form1040.line24.amount)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Total Payments:</span>
+            <span className="font-medium">{formatCurrency(form1040.line33.amount)}</span>
+          </div>
+          {form1040.line34.amount > 0 && (
+            <div className="flex justify-between">
+              <span className="text-tax-green font-medium">Refund:</span>
+              <span className="font-bold text-tax-green">{formatCurrency(form1040.line34.amount)}</span>
+            </div>
+          )}
+          {form1040.line37.amount > 0 && (
+            <div className="flex justify-between">
+              <span className="text-tax-red font-medium">Amount Owed:</span>
+              <span className="font-bold text-tax-red">{formatCurrency(form1040.line37.amount)}</span>
+            </div>
+          )}
+        </div>
+        {executedSchedules.length > 0 && (
+          <div className="text-xs text-gray-500 pt-2 border-t border-gray-100">
+            Forms: 1040{executedSchedules.length > 0 ? `, ${executedSchedules.join(', ')}` : ''}
+          </div>
+        )}
+      </div>
+
+      {/* Download buttons */}
+      <div className="mt-6 flex gap-4">
+        <button
+          type="button"
+          onClick={handleDownloadPDF}
+          disabled={generating}
+          className="px-6 py-3 text-sm font-medium text-white bg-brand rounded-md hover:bg-blue-900 disabled:opacity-50 disabled:cursor-not-allowed"
+          data-testid="download-pdf-btn"
+        >
+          {generating ? 'Generating...' : 'Download PDF'}
+        </button>
+        <button
+          type="button"
+          onClick={handleExportJSON}
+          className="px-6 py-3 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+          data-testid="export-json-btn"
+        >
+          Export JSON
+        </button>
+      </div>
+
+      {error && (
+        <div className="mt-4 bg-red-50 border border-red-200 rounded-md p-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
+      <div className="mt-4 bg-blue-50 border border-blue-200 rounded-md p-3 text-sm text-blue-800">
+        This PDF is for review only. E-file via IRS Free File or print and mail.
+      </div>
+
+      <InterviewNav interview={interview} />
+    </div>
+  )
+}

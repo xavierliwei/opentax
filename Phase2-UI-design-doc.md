@@ -2292,7 +2292,7 @@ package.json                            # Add new dependencies
 | **Store tests** | Vitest | All store actions trigger `computeAll()`, persist/rehydrate cycle |
 | **Integration tests** | RTL | Full interview flow: Welcome → Filing Status → W-2 → Review → Download |
 
-### Key Test Scenarios
+### Unit Test Scenarios
 
 **Store recompute:**
 ```ts
@@ -2354,28 +2354,400 @@ TOTAL,...`
 })
 ```
 
-**Interview flow integration:**
+### End-to-End Test Scenarios — `tests/scenarios/interviewFlow.test.ts`
+
+E2E tests render the full `<App />` and drive through the interview using React Testing Library + `userEvent`. They verify the complete pipeline: user input → Zustand store → `computeAll()` → LiveBalance + Review page values.
+
+**File: `tests/scenarios/interviewFlow.test.ts`**
+
+#### E2E Scenario 1: Single filer, one W-2 — amount owed
+
+Tests the happy path for the simplest return.
+
 ```ts
-test('full flow: welcome → filing status → W-2 → review shows tax', async () => {
-  render(<App />)
+describe('E2E: Single filer, one W-2', () => {
+  test('complete flow produces correct tax and amount owed', async () => {
+    render(<App />)
 
-  // Welcome page
-  await userEvent.click(screen.getByText("Let's Start"))
+    // ── Welcome ──
+    await userEvent.click(screen.getByText("Let's Start"))
 
-  // Filing status
-  await userEvent.click(screen.getByLabelText('Single'))
-  await userEvent.click(screen.getByText('Next'))
+    // ── Filing Status ──
+    await userEvent.click(screen.getByLabelText('Single'))
+    await userEvent.click(screen.getByText('Next'))
 
-  // ... fill personal info, W-2 ...
+    // ── Personal Info ──
+    await userEvent.type(screen.getByLabelText(/first name/i), 'John')
+    await userEvent.type(screen.getByLabelText(/last name/i), 'Doe')
+    await userEvent.type(screen.getByLabelText(/ssn/i), '123456789')
+    await userEvent.type(screen.getByLabelText(/street/i), '123 Main St')
+    await userEvent.type(screen.getByLabelText(/city/i), 'Anytown')
+    await userEvent.selectOptions(screen.getByLabelText(/state/i), 'CA')
+    await userEvent.type(screen.getByLabelText(/zip/i), '90210')
+    await userEvent.click(screen.getByText('Next'))
 
-  // Review page should show computed tax
-  expect(screen.getByText(/Total tax/)).toBeInTheDocument()
+    // ── Dependents ── (skip — no dependents)
+    await userEvent.click(screen.getByText('Next'))
+
+    // ── W-2 Income ──
+    await userEvent.click(screen.getByText(/add.*w-2/i))
+    await userEvent.type(screen.getByLabelText(/employer name/i), 'Acme Corp')
+    await userEvent.type(screen.getByLabelText(/box 1.*wages/i), '60000')
+    await userEvent.type(screen.getByLabelText(/box 2.*withheld/i), '6000')
+    await userEvent.tab()  // trigger blur → store update
+
+    // ── LiveBalance check (visible on page) ──
+    // Tax on $45,000 taxable ($60K - $15K std ded) = $5,147
+    // Withheld $6,000 → overpaid by $853 → expect refund
+    // (Note: exact amount depends on constants; assert refund badge shows)
+    expect(await screen.findByText(/amount you owe/i)).toBeInTheDocument()
+
+    await userEvent.click(screen.getByText('Next'))
+
+    // ── Interest ── (skip)
+    await userEvent.click(screen.getByText('Next'))
+    // ── Dividends ── (skip)
+    await userEvent.click(screen.getByText('Next'))
+    // ── Stock Sales ── (skip)
+    await userEvent.click(screen.getByText('Next'))
+    // ── Deductions ── (keep standard)
+    await userEvent.click(screen.getByText('Next'))
+
+    // ── Review ──
+    expect(screen.getByText(/wages/i)).toBeInTheDocument()
+    expect(screen.getByText('$60,000.00')).toBeInTheDocument()
+    expect(screen.getByText(/standard deduction/i)).toBeInTheDocument()
+    expect(screen.getByText('$15,000.00')).toBeInTheDocument()
+    // Total tax, withheld, and result should all be displayed
+    expect(screen.getByText(/total tax/i)).toBeInTheDocument()
+    expect(screen.getByText(/withheld/i)).toBeInTheDocument()
+
+    await userEvent.click(screen.getByText('Continue'))
+
+    // ── Download ──
+    expect(screen.getByText(/download pdf/i)).toBeInTheDocument()
+    expect(screen.getByText(/export json/i)).toBeInTheDocument()
+    // Summary should show AGI, tax, and result
+    expect(screen.getByText(/agi/i)).toBeInTheDocument()
+  })
 })
 ```
 
+#### E2E Scenario 2: MFJ filer — spouse step appears, correct brackets
+
+Verifies that selecting MFJ reveals the Spouse Info step and uses MFJ brackets/deduction.
+
+```ts
+describe('E2E: MFJ filer with two W-2s', () => {
+  test('spouse step appears for MFJ and standard deduction is $30,000', async () => {
+    render(<App />)
+    await userEvent.click(screen.getByText("Let's Start"))
+
+    // Select MFJ
+    await userEvent.click(screen.getByLabelText(/married filing jointly/i))
+    await userEvent.click(screen.getByText('Next'))
+
+    // Fill primary taxpayer info
+    await fillPersonalInfo(screen, { first: 'John', last: 'Doe', ssn: '123456789' })
+    await userEvent.click(screen.getByText('Next'))
+
+    // ── Spouse step should now be visible ──
+    expect(screen.getByText(/spouse info/i)).toBeInTheDocument()
+    await fillPersonalInfo(screen, { first: 'Jane', last: 'Doe', ssn: '987654321' })
+    await userEvent.click(screen.getByText('Next'))
+
+    // Skip to deductions
+    // ... navigate through income pages ...
+
+    // ── Deductions page should show MFJ standard deduction ──
+    expect(screen.getByText('$30,000')).toBeInTheDocument()
+  })
+
+  test('switching from MFJ to Single removes spouse step', async () => {
+    render(<App />)
+    await userEvent.click(screen.getByText("Let's Start"))
+
+    // Select MFJ first
+    await userEvent.click(screen.getByLabelText(/married filing jointly/i))
+    // Sidebar should show "Spouse Info" step
+    expect(screen.getByText(/spouse info/i)).toBeInTheDocument()
+
+    // Switch to Single
+    await userEvent.click(screen.getByLabelText(/^single$/i))
+    // Spouse step should disappear from sidebar
+    expect(screen.queryByText(/spouse info/i)).not.toBeInTheDocument()
+  })
+})
+```
+
+#### E2E Scenario 3: W-2 + Interest + Dividends — LiveBalance updates in real time
+
+Verifies that the LiveBalance component updates as the user adds income across multiple pages.
+
+```ts
+describe('E2E: LiveBalance updates across pages', () => {
+  test('balance updates when W-2 added, again when 1099-INT added', async () => {
+    render(<App />)
+    // ... navigate to W-2 page as Single filer ...
+
+    // Add W-2: $80,000 wages, $12,000 withheld
+    await addW2(screen, { employer: 'BigCo', box1: '80000', box2: '12000' })
+
+    // LiveBalance should show a result (either refund or owed)
+    const balanceBar = screen.getByTestId('live-balance')
+    expect(balanceBar).toBeInTheDocument()
+    const balanceText1 = balanceBar.textContent
+
+    // Navigate to Interest page and add 1099-INT
+    await userEvent.click(screen.getByText('Next'))
+    await addForm1099INT(screen, { payer: 'Savings Bank', box1: '5000' })
+
+    // LiveBalance should have changed (more income → more tax)
+    const balanceText2 = screen.getByTestId('live-balance').textContent
+    expect(balanceText2).not.toBe(balanceText1)
+  })
+})
+```
+
+#### E2E Scenario 4: CSV import → wash sale detection → Review
+
+Tests the full CSV upload pipeline including auto-detection, wash sale flagging, and correct totals on the Review page.
+
+```ts
+describe('E2E: CSV import with wash sale', () => {
+  test('uploads Robinhood CSV, detects wash sale, shows on review', async () => {
+    render(<App />)
+    // ... navigate to Stock Sales page ...
+
+    // Upload a CSV file
+    const csvContent = generateTestCSV([
+      { desc: 'AAPL', acquired: '2025-01-15', sold: '2025-06-10', proceeds: 6500, basis: 5000 },
+      { desc: 'MSFT', acquired: '2025-02-01', sold: '2025-07-01', proceeds: 2500, basis: 3000 },
+      { desc: 'MSFT', acquired: '2025-07-15', sold: '2025-12-01', proceeds: 3500, basis: 3200 },
+      // MSFT: sold at loss on 07/01, bought again 07/15 (within 30 days) → wash sale
+    ])
+    const file = new File([csvContent], 'robinhood.csv', { type: 'text/csv' })
+    const dropZone = screen.getByTestId('csv-upload')
+    await userEvent.upload(dropZone, file)
+
+    // Should detect broker
+    expect(await screen.findByText(/robinhood/i)).toBeInTheDocument()
+    expect(screen.getByText(/3 parsed/i)).toBeInTheDocument()
+
+    // Should flag wash sale on MSFT
+    expect(screen.getByText(/wash sale detected/i)).toBeInTheDocument()
+    expect(screen.getByText(/MSFT/)).toBeInTheDocument()
+
+    // Accept wash sale
+    await userEvent.click(screen.getByText(/accept/i))
+
+    // Import transactions
+    await userEvent.click(screen.getByText(/import all/i))
+
+    // Navigate to Review — verify capital gain/loss line reflects wash sale
+    // ... navigate to review ...
+    // The MSFT loss ($500) should be disallowed, net gain should reflect that
+    expect(screen.getByText(/capital gain/i)).toBeInTheDocument()
+  })
+})
+```
+
+#### E2E Scenario 5: Itemized vs Standard deduction comparison
+
+Tests the deduction page toggle and comparison logic.
+
+```ts
+describe('E2E: Deduction method comparison', () => {
+  test('shows standard vs itemized comparison and switches correctly', async () => {
+    render(<App />)
+    // ... navigate to Deductions page with some income entered ...
+
+    // Default is Standard
+    expect(screen.getByText(/standard/i)).toBeInTheDocument()
+    expect(screen.getByText('$15,000')).toBeInTheDocument()  // single std deduction
+
+    // Switch to Itemized
+    await userEvent.click(screen.getByLabelText(/itemized/i))
+
+    // Enter itemized deductions
+    await userEvent.type(screen.getByLabelText(/state.*local.*tax/i), '8000')
+    await userEvent.type(screen.getByLabelText(/mortgage interest/i), '12000')
+    await userEvent.type(screen.getByLabelText(/charitable.*cash/i), '3000')
+    await userEvent.tab()
+
+    // Total itemized = $23,000 > $15,000 standard
+    expect(screen.getByText(/itemized is better/i)).toBeInTheDocument()
+
+    // LiveBalance should reflect the higher deduction (lower tax)
+    expect(screen.getByTestId('live-balance')).toBeInTheDocument()
+  })
+})
+```
+
+#### E2E Scenario 6: Explainability — "Why this number?" link
+
+Tests the link from LiveBalance/Review into the explainability graph.
+
+```ts
+describe('E2E: Explainability navigation', () => {
+  test('"Why this number?" navigates to explain view with correct trace', async () => {
+    render(<App />)
+    // ... set up return with W-2 income, navigate to any page ...
+
+    // Click "Why this number?" on LiveBalance
+    await userEvent.click(screen.getByText(/why this number/i))
+
+    // Should navigate to /explain/form1040.line34 or line37
+    expect(screen.getByText(/overpaid|amount you owe/i)).toBeInTheDocument()
+
+    // Trace tree should show the computation breakdown
+    expect(screen.getByText(/total payments/i)).toBeInTheDocument()
+    expect(screen.getByText(/total tax/i)).toBeInTheDocument()
+    expect(screen.getByText(/wages/i)).toBeInTheDocument()
+
+    // Text fallback should also be available
+    await userEvent.click(screen.getByText(/show text trace/i))
+    expect(screen.getByText(/\$60,000\.00/)).toBeInTheDocument()
+  })
+
+  test('Review page [?] links navigate to correct node', async () => {
+    render(<App />)
+    // ... navigate to Review page with a filled return ...
+
+    // Click the [?] icon next to "Line 16 Tax"
+    const taxExplainLink = screen.getByTestId('explain-form1040.line16')
+    await userEvent.click(taxExplainLink)
+
+    // Should be on the explain page for form1040.line16
+    expect(window.location.pathname).toBe('/explain/form1040.line16')
+    expect(screen.getByText(/tax/i)).toBeInTheDocument()
+  })
+})
+```
+
+#### E2E Scenario 7: JSON export/import round-trip
+
+Tests that a return can be exported, the app reset, then imported with identical results.
+
+```ts
+describe('E2E: JSON export/import', () => {
+  test('export and re-import produces identical review page', async () => {
+    render(<App />)
+    // ... fill in a complete return ...
+    // ... navigate to Download page ...
+
+    // Capture the return summary values before export
+    const agiText = screen.getByTestId('summary-agi').textContent
+    const taxText = screen.getByTestId('summary-total-tax').textContent
+
+    // Click Export JSON — capture the blob
+    const exportButton = screen.getByText(/export json/i)
+    const downloadSpy = vi.spyOn(URL, 'createObjectURL')
+    await userEvent.click(exportButton)
+    expect(downloadSpy).toHaveBeenCalled()
+
+    // Reset the store
+    useTaxStore.getState().resetReturn()
+
+    // Navigate to Welcome, click Import
+    // ... navigate to welcome page ...
+    // Re-import the JSON
+    const importInput = screen.getByTestId('import-json')
+    const jsonFile = new File([capturedJSON], 'return.json', { type: 'application/json' })
+    await userEvent.upload(importInput, jsonFile)
+
+    // Navigate to Download page — values should match
+    // ... navigate to download page ...
+    expect(screen.getByTestId('summary-agi').textContent).toBe(agiText)
+    expect(screen.getByTestId('summary-total-tax').textContent).toBe(taxText)
+  })
+})
+```
+
+#### E2E Scenario 8: Persistence — reload preserves state
+
+Tests that IndexedDB persistence survives a simulated page reload.
+
+```ts
+describe('E2E: Persistence', () => {
+  test('store rehydrates from IndexedDB after unmount/remount', async () => {
+    const { unmount } = render(<App />)
+    // ... fill in filing status + W-2 ...
+
+    // Capture state
+    const taxReturn = useTaxStore.getState().taxReturn
+    expect(taxReturn.w2s.length).toBe(1)
+
+    // Simulate page close
+    unmount()
+
+    // Re-render (simulates new page load — Zustand rehydrates from IndexedDB)
+    render(<App />)
+
+    // Wait for rehydration
+    await waitFor(() => {
+      const rehydrated = useTaxStore.getState().taxReturn
+      expect(rehydrated.w2s.length).toBe(1)
+      expect(rehydrated.filingStatus).toBe('single')
+    })
+
+    // LiveBalance should show the same result
+    expect(screen.getByTestId('live-balance')).toBeInTheDocument()
+  })
+})
+```
+
+### E2E Test Helpers
+
+Shared helpers for E2E tests to reduce boilerplate:
+
+```ts
+// tests/scenarios/helpers.ts
+
+/** Fill the Personal Info page fields */
+async function fillPersonalInfo(screen, data: {
+  first: string, last: string, ssn: string,
+  street?: string, city?: string, state?: string, zip?: string,
+}) { ... }
+
+/** Add a W-2 on the W-2 Income page */
+async function addW2(screen, data: {
+  employer: string, box1: string, box2: string,
+}) { ... }
+
+/** Add a 1099-INT on the Interest Income page */
+async function addForm1099INT(screen, data: {
+  payer: string, box1: string,
+}) { ... }
+
+/** Navigate from Welcome through to a specific step */
+async function navigateToStep(screen, stepId: string) { ... }
+
+/** Generate a test CSV string matching Robinhood format */
+function generateTestCSV(trades: Array<{
+  desc: string, acquired: string, sold: string,
+  proceeds: number, basis: number,
+}>): string { ... }
+```
+
+### E2E vs Unit Test Boundary
+
+| What to test E2E | What to test as unit |
+|---|---|
+| Full interview navigation (Next/Back, step visibility) | `useInterview()` hook logic in isolation |
+| LiveBalance reacting to store mutations across pages | `LiveBalance` render with mocked store values |
+| CSV upload → parse → wash sale → store | `FidelityParser.parse()` with raw CSV strings |
+| Explainability link navigation | `useTraceLayout()` position calculations |
+| JSON export/import round-trip | `validateTaxReturn()` shape validation |
+| IndexedDB persist/rehydrate | Store recompute on `addW2()` call |
+| Deduction method toggle + comparison | `computeAll()` with itemized vs standard |
+| MFJ spouse step visibility toggle | `isVisible()` predicates on step definitions |
+
+E2E tests cover **user-facing workflows** (click → type → navigate → assert visible result). Unit tests cover **logic correctness** (function input → output). Both are needed; they don't overlap.
+
 ### Existing Tests Must Pass
 
-All 623 existing tests (rules engine, PDF compiler, Robinhood parser, integration scenarios) must continue to pass. Phase 2 adds ~115 new tests for a target of ~738 total.
+All 623 existing tests (rules engine, PDF compiler, Robinhood parser, integration scenarios) must continue to pass. Phase 2 adds ~135 new tests (up from ~115 estimate, with expanded E2E coverage) for a target of ~758 total.
 
 The existing test command (`npm test` / `vitest run`) runs all tests including the new ones. No test configuration changes needed.
 

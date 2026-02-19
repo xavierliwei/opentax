@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+@theme {
+  --color-tax-green: #16a34a;
+  --color-tax-red: #dc2626;
+  --color-tax-blue: #2563eb;
+  --color-tax-gray: #6b7280;
+  --color-brand: #1e40af;
+  --color-sidebar: #f8fafc;
+  --font-sans: "Inter", system-ui, sans-serif;
+}

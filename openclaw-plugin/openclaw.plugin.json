@@ -1,0 +1,24 @@
+{
+  "id": "openclaw-plugin-opentax",
+  "name": "OpenTax",
+  "description": "Conversational tax filing assistant for US federal income taxes (2025).",
+  "skills": ["./SKILL.md"],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "workspace": {
+        "type": "string",
+        "description": "Directory for state persistence (defaults to current workspace)"
+      },
+      "httpPort": {
+        "type": "number",
+        "description": "Port for the dashboard HTTP API (default: 7890)"
+      },
+      "staticDir": {
+        "type": "string",
+        "description": "Path to built frontend assets to serve (default: ./dist)"
+      }
+    }
+  }
+}

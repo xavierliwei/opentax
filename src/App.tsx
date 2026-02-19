@@ -1,27 +1,29 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
-import { Layout } from './components/Layout'
-import { IntakePage } from './pages/IntakePage'
-import { InterviewPage } from './pages/InterviewPage'
-import { SummaryPage } from './pages/SummaryPage'
-import { ReviewPage } from './pages/ReviewPage'
-import { OpenTaxProvider } from './state/OpenTaxContext'
-import './styles.css'
+import { AppShell } from './ui/components/AppShell.tsx'
+import { InterviewRouter } from './ui/pages/InterviewRouter.tsx'
+import { WelcomePage } from './ui/pages/WelcomePage.tsx'
+import { ExplainView } from './ui/pages/ExplainView.tsx'
+import { DashboardLayout } from './ui/pages/DashboardLayout.tsx'
+import { DashboardPage } from './ui/pages/DashboardPage.tsx'
+import './index.css'
 
 function App() {
   return (
-    <OpenTaxProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Layout />}>
-            <Route index element={<Navigate to="/intake" replace />} />
-            <Route path="intake" element={<IntakePage />} />
-            <Route path="interview" element={<InterviewPage />} />
-            <Route path="summary" element={<SummaryPage />} />
-            <Route path="review" element={<ReviewPage />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </OpenTaxProvider>
+    <BrowserRouter>
+      <Routes>
+        <Route element={<AppShell />}>
+          <Route index element={<WelcomePage />} />
+          <Route path="interview/:stepId" element={<InterviewRouter />} />
+          <Route path="review" element={<InterviewRouter />} />
+          <Route path="download" element={<InterviewRouter />} />
+          <Route path="explain/:nodeId" element={<ExplainView />} />
+        </Route>
+        <Route path="dashboard" element={<DashboardLayout />}>
+          <Route index element={<DashboardPage />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 

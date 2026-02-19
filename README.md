@@ -40,6 +40,27 @@ npm run build
 npm run preview
 ```
 
+## Testing setup
+
+Unit tests (Vitest):
+
+```bash
+npm test
+```
+
+E2E tests (Playwright):
+
+```bash
+# one-time browser install
+npx playwright install
+
+# run headless e2e
+npm run test:e2e
+
+# optional interactive runner
+npm run test:e2e:ui
+```
+
 ## Notes
 
 - This MVP is for product flow and explainability demo only.
