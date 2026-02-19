@@ -3,7 +3,7 @@ import { createHttpService } from '../openclaw-plugin/http/httpService.ts'
 
 const workspace = process.env.OPENTAX_WORKSPACE ?? '.'
 const staticDir = process.env.OPENTAX_STATIC_DIR ?? './dist'
-const port = parseInt(process.env.OPENTAX_PORT ?? '7890', 10)
+const port = parseInt(process.env.OPENTAX_PORT ?? '7891', 10)
 
 const service = new TaxService(workspace)
 const http = createHttpService(service, { port, staticDir })

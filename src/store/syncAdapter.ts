@@ -142,7 +142,7 @@ export function autoConnect(serverUrl?: string): () => void {
     activeDisconnect = null
   }
 
-  const url = serverUrl ?? (import.meta.env.VITE_DASHBOARD_API as string | undefined) ?? 'http://localhost:7890'
+  const url = serverUrl ?? (import.meta.env.VITE_DASHBOARD_API as string | undefined) ?? 'http://localhost:7891'
   let aborted = false
 
   fetch(`${url}/api/gap-analysis`, { signal: AbortSignal.timeout(2000) })

@@ -4,8 +4,8 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "start": "tsx server/main.ts",
-    "dev": "concurrently -n fe,be -c blue,green \"vite\" \"tsx watch server/main.ts\"",
+    "start": "tsx --import ./server/resolve-hook.ts server/main.ts",
+    "dev": "concurrently -n fe,be -c blue,green \"vite\" \"tsx watch --import ./server/resolve-hook.ts server/main.ts\"",
     "dev:fe": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
@@ -18,11 +18,15 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "idb": "^8.0.2",
+    "lucide-react": "^0.574.0",
     "pdf-lib": "^1.17.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.9.4",
+    "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.1.18",
     "tesseract.js": "^7.0.0",
     "zustand": "^5.0.11"

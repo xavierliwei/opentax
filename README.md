@@ -1,67 +1,65 @@
-# OpenTax Frontend MVP
+# OpenTax
 
-Frontend MVP for OpenTax focused on transparent workflow and deterministic mock outputs.
+Open-source tax preparation with transparent computation and full explainability.
 
-## Scope implemented
+## Quick start
 
-- Intake uploads page with W-2 / 1099 / RSU placeholders
-- Guided interview flow page
-- Compute + explain summary page
-- Review / print checklist page
-- Canonical frontend model in state for:
-  - taxpayer profile
-  - income events
-  - documents
-  - adjustments
-  - form mappings
-  - computation nodes
-- Deterministic **mock** computation pipeline (explicitly not real tax calc)
-- Clean routing + lightweight UI
-
-## Tech
-
-- React + TypeScript + Vite
-- React Router
-
-## Run locally
+### Standalone (no OpenClaw needed)
 
 ```bash
-cd /Users/weili/opentax
 npm install
 npm run dev
 ```
 
-Then open the local Vite URL (usually http://localhost:5173).
+This starts the Vite frontend (:5173) and backend API (:7891) together with hot reload on both. Open http://localhost:5173.
 
-## Build
+### Production
 
 ```bash
 npm run build
-npm run preview
+npm start
 ```
 
-## Testing setup
+Backend serves the built frontend at http://localhost:7891.
 
-Unit tests (Vitest):
+### As an OpenClaw plugin
+
+The `openclaw-plugin/` directory works as a standalone OpenClaw extension. The plugin runs the backend on port 7890. See `openclaw-plugin/README.md` for details.
+
+## Configuration
+
+Environment variables for `npm start` / `npm run dev`:
+
+| Variable | Default | Description |
+|---|---|---|
+| `OPENTAX_PORT` | `7891` | Backend API port |
+| `OPENTAX_WORKSPACE` | `.` | Directory for SQLite database |
+| `OPENTAX_STATIC_DIR` | `./dist` | Built frontend directory |
+
+## Scripts
+
+| Command | Description |
+|---|---|
+| `npm run dev` | Frontend + backend with hot reload |
+| `npm run dev:fe` | Frontend only (no backend) |
+| `npm start` | Production backend (serves built frontend) |
+| `npm run build` | TypeScript check + Vite build |
+| `npm test` | Unit tests (Vitest) |
+| `npm run test:e2e` | E2E tests (Playwright) |
+
+## Testing
 
 ```bash
-npm test
+npm test                # unit tests
+npm run test:e2e        # headless e2e (requires: npx playwright install)
+npm run test:e2e:ui     # interactive e2e runner
 ```
 
-E2E tests (Playwright):
+## Architecture
 
-```bash
-# one-time browser install
-npx playwright install
+- `src/` — React frontend (Vite + Tailwind + Zustand)
+- `src/rules/engine.ts` — deterministic tax computation engine
+- `openclaw-plugin/` — OpenClaw plugin (TaxService, HTTP API, tool definitions)
+- `server/main.ts` — standalone entry point reusing the plugin's TaxService + HTTP layer
 
-# run headless e2e
-npm run test:e2e
-
-# optional interactive runner
-npm run test:e2e:ui
-```
-
-## Notes
-
-- This MVP is for product flow and explainability demo only.
-- It does **not** implement IRS-accurate tax computation.
+State is persisted to SQLite. The frontend auto-connects to the backend API and syncs via REST + SSE.
