@@ -154,6 +154,18 @@ export function ReviewPage() {
           Deductions
         </h2>
         <div className="mt-2 flex flex-col">
+          {form1040.line10.amount > 0 && (
+            <LineItem
+              label="Line 10 — Adjustments"
+              nodeId="form1040.line10"
+              amount={form1040.line10.amount}
+              tooltip={{
+                explanation: 'Line 10 is the total of above-the-line adjustments from Schedule 1 Part II. These include the Traditional IRA deduction, student loan interest, educator expenses, and HSA contributions. These adjustments reduce your total income to arrive at AGI.',
+                pubName: 'IRS Form 1040 Instructions — Line 10',
+                pubUrl: 'https://www.irs.gov/instructions/i1040gi',
+              }}
+            />
+          )}
           <LineItem
             label="Line 11 — AGI"
             nodeId="form1040.line11"

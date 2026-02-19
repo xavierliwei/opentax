@@ -41,6 +41,7 @@ export function CreditDetailsPage() {
     }
   }
 
+  const iraDeduction = form1040.iraDeduction
   const dcCredit = form1040.dependentCareCredit
   const scCredit = form1040.saversCredit
   const ecCredit = form1040.energyCredit
@@ -124,6 +125,12 @@ export function CreditDetailsPage() {
           value={retire.traditionalIRA}
           onChange={(v) => setRetirementContributions({ traditionalIRA: v })}
         />
+        {iraDeduction && iraDeduction.deductibleAmount > 0 && (
+          <div className="text-xs text-gray-500 bg-gray-50 rounded px-2 py-1">
+            IRA deduction: {formatCurrency(iraDeduction.deductibleAmount)}
+            {iraDeduction.phaseOutApplies && ' (phase-out applied)'}
+          </div>
+        )}
         <CurrencyInput
           label="Roth IRA contributions"
           value={retire.rothIRA}
