@@ -219,16 +219,31 @@ function parseTxnRow(line: Line): TxnFields | null {
   // Robinhood PDFs sometimes emit numbers as two separate text items, e.g.:
   //   "200" + ".000"  →  "200.000"
   //   "28,287" + ".87"  →  "28,287.87"
-  const tokens: string[] = []
+  const merged: string[] = []
   for (let i = 0; i < collapsed.length; ) {
     const cur = collapsed[i]
     const next = collapsed[i + 1] ?? ''
     if (/^-?[\d,]+$/.test(cur) && /^\.\d+$/.test(next)) {
-      tokens.push(cur + next)
+      merged.push(cur + next)
       i += 2
     } else {
-      tokens.push(cur)
+      merged.push(cur)
       i++
+    }
+  }
+
+  // Split tokens that contain an embedded flag character.
+  // The PDF sometimes emits proceeds and wash-sale amounts with their flag
+  // letter fused into a single text item:
+  //   "28,287.87 N"  →  ["28,287.87", "N"]   (proceeds + net flag)
+  //   "1,197.02 W"   →  ["1,197.02",  "W"]   (wash-sale + disallowed flag)
+  const tokens: string[] = []
+  for (const tok of merged) {
+    const m = tok.match(/^(-?[\d,]+\.\d{2})\s+([NGWD])$/)
+    if (m) {
+      tokens.push(m[1], m[2])
+    } else {
+      tokens.push(tok)
     }
   }
 
@@ -364,11 +379,17 @@ export async function parseRobinhoodPdf(data: ArrayBuffer): Promise<ParseResult>
       // ── Transaction row (first token is MM/DD/YY) ─────────
       const firstToken = line.items[0]?.str?.trim() ?? ''
       if (DATE_RE.test(firstToken)) {
+        // Non-1099-B rows (dividends, interest, margin interest) also start
+        // with a date but have far fewer tokens — skip them silently.
+        const rawItemCount = line.items.filter((it) => it.str.trim()).length
+        if (rawItemCount < 5) continue
+
         total++
 
         const fields = parseTxnRow(line)
         if (!fields) {
-          errors.push(`Page ${line.page}: could not parse row — "${text.slice(0, 70)}"`)
+          const rawToks = line.items.map((it) => JSON.stringify(it.str.trim())).join(', ')
+          errors.push(`Page ${line.page}: could not parse row — tokens: [${rawToks}]`)
           skipped++
           continue
         }
