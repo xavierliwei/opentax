@@ -19,6 +19,7 @@ import type {
   RetirementContributions,
   EnergyCredits,
   EducationExpenses,
+  HSAInfo,
 } from '../model/types.ts'
 import { emptyTaxReturn } from '../model/types.ts'
 import { computeAll } from '../rules/engine.ts'
@@ -72,6 +73,8 @@ export interface TaxStoreState {
   setRetirementContributions: (updates: Partial<RetirementContributions>) => void
   setEnergyCredits: (updates: Partial<EnergyCredits>) => void
   setEducationExpenses: (expenses: EducationExpenses) => void
+  setStudentLoanInterest: (cents: number) => void
+  setHSA: (updates: Partial<HSAInfo>) => void
   importReturn: (taxReturn: TaxReturn) => void
   resetReturn: () => void
 }
@@ -522,6 +525,27 @@ export const useTaxStore = create<TaxStoreState>()(
 
       setEducationExpenses: (expenses) => {
         const tr = { ...get().taxReturn, educationExpenses: expenses }
+        set(recompute(tr))
+      },
+
+      setStudentLoanInterest: (cents) => {
+        const tr = { ...get().taxReturn, studentLoanInterest: cents || undefined }
+        set(recompute(tr))
+      },
+
+      setHSA: (updates) => {
+        const prev = get().taxReturn
+        const existing = prev.hsa ?? {
+          coverageType: 'self-only' as const,
+          contributions: 0,
+          qualifiedExpenses: 0,
+          age55OrOlder: false,
+          age65OrDisabled: false,
+        }
+        const tr = {
+          ...prev,
+          hsa: { ...existing, ...updates },
+        }
         set(recompute(tr))
       },
 

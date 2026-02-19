@@ -535,7 +535,206 @@ export function DeductionsPage() {
         )}
       </div>
 
+      {/* ── Above-the-line adjustments ─────────────────────────── */}
+      <h2 className="mt-8 text-lg font-bold text-gray-900">Adjustments to Income</h2>
+      <p className="mt-1 text-sm text-gray-600">
+        These reduce your AGI regardless of standard or itemized deduction.
+      </p>
+
+      <StudentLoanSection />
+      <HSASection />
+
       <InterviewNav interview={interview} />
+    </div>
+  )
+}
+
+// ── Student Loan Interest ──────────────────────────────────
+
+function StudentLoanSection() {
+  const filingStatus = useTaxStore((s) => s.taxReturn.filingStatus)
+  const studentLoanInterest = useTaxStore((s) => s.taxReturn.studentLoanInterest ?? 0)
+  const studentLoanDeduction = useTaxStore((s) => s.computeResult.form1040.studentLoanDeduction)
+  const setStudentLoanInterest = useTaxStore((s) => s.setStudentLoanInterest)
+
+  const phaseOut = STUDENT_LOAN_PHASEOUT[filingStatus]
+  const isMFS = phaseOut === null
+
+  return (
+    <div className={`mt-4 rounded-xl border p-4 flex flex-col gap-3 ${
+      isMFS ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-200'
+    }`}>
+      <div className="flex items-baseline justify-between">
+        <div className="flex items-center gap-1">
+          <span className={`text-sm font-semibold ${isMFS ? 'text-gray-400' : 'text-gray-800'}`}>
+            Student Loan Interest
+          </span>
+          <InfoTooltip
+            explanation="Deduct up to $2,500 of interest paid on qualified education loans (Form 1098-E). This is an above-the-line deduction — you can claim it even if you take the standard deduction. The deduction phases out at higher income levels and is not available for Married Filing Separately."
+            pubName="IRS Publication 970 — Tax Benefits for Education"
+            pubUrl="https://www.irs.gov/publications/p970"
+          />
+          <span className="text-xs text-gray-400">Schedule 1, Line 21</span>
+        </div>
+        {studentLoanDeduction && studentLoanDeduction.deductibleAmount > 0 && (
+          <span className="text-sm font-semibold text-gray-700">
+            {formatCurrency(studentLoanDeduction.deductibleAmount)}
+          </span>
+        )}
+      </div>
+
+      {isMFS ? (
+        <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+          Not available for Married Filing Separately.
+        </div>
+      ) : (
+        <>
+          <CurrencyInput
+            label="Interest paid (Form 1098-E, Box 1)"
+            value={studentLoanInterest}
+            onChange={(v) => setStudentLoanInterest(v)}
+            helperText={`Maximum deduction: ${formatCurrency(STUDENT_LOAN_DEDUCTION_MAX)}`}
+          />
+          {studentLoanDeduction && studentLoanDeduction.phaseOutApplies && studentLoanDeduction.deductibleAmount > 0 && (
+            <div className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+              Phase-out applied — MAGI {formatCurrency(studentLoanDeduction.magi)} is above {formatCurrency(studentLoanDeduction.phaseOutStart)}.
+              Deduction reduced to {formatCurrency(studentLoanDeduction.deductibleAmount)}.
+            </div>
+          )}
+          {studentLoanDeduction && studentLoanDeduction.phaseOutApplies && studentLoanDeduction.deductibleAmount === 0 && (
+            <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+              Fully phased out — MAGI {formatCurrency(studentLoanDeduction.magi)} exceeds {formatCurrency(studentLoanDeduction.phaseOutEnd)}.
+            </div>
+          )}
+          {phaseOut && (
+            <div className="text-xs text-gray-500 bg-gray-50 rounded px-2 py-1">
+              Phase-out range: {formatCurrency(phaseOut.start)}–{formatCurrency(phaseOut.end)}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+// ── HSA Section ────────────────────────────────────────────
+
+function HSASection() {
+  const hsa = useTaxStore((s) => s.taxReturn.hsa)
+  const hsaResult = useTaxStore((s) => s.computeResult.form1040.hsaResult)
+  const w2s = useTaxStore((s) => s.taxReturn.w2s)
+  const setHSA = useTaxStore((s) => s.setHSA)
+
+  const coverageType = hsa?.coverageType ?? 'self-only'
+  const contributions = hsa?.contributions ?? 0
+  const qualifiedExpenses = hsa?.qualifiedExpenses ?? 0
+  const age55OrOlder = hsa?.age55OrOlder ?? false
+  const age65OrDisabled = hsa?.age65OrDisabled ?? false
+
+  // Employer contributions from W-2 Box 12 code W
+  let employerContributions = 0
+  for (const w2 of w2s) {
+    for (const entry of w2.box12) {
+      if (entry.code === 'W') employerContributions += entry.amount
+    }
+  }
+
+  const limit = coverageType === 'family' ? HSA_LIMIT_FAMILY : HSA_LIMIT_SELF_ONLY
+  const catchUp = age55OrOlder ? HSA_CATCHUP_AMOUNT : 0
+  const totalLimit = limit + catchUp
+
+  return (
+    <div className="mt-4 bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
+      <div className="flex items-baseline justify-between">
+        <div className="flex items-center gap-1">
+          <span className="text-sm font-semibold text-gray-800">Health Savings Account</span>
+          <InfoTooltip
+            explanation="Contributions to an HSA are an above-the-line deduction. Employer contributions (W-2 Box 12 code W) count toward the limit but are not deductible by you. Non-qualified distributions are taxable and subject to a 20% penalty unless you are age 65+ or disabled."
+            pubName="IRS Form 8889 — Health Savings Accounts"
+            pubUrl="https://www.irs.gov/forms-pubs/about-form-8889"
+          />
+          <span className="text-xs text-gray-400">Form 8889</span>
+        </div>
+        {hsaResult && hsaResult.deductibleAmount > 0 && (
+          <span className="text-sm font-semibold text-gray-700">
+            {formatCurrency(hsaResult.deductibleAmount)}
+          </span>
+        )}
+      </div>
+
+      {/* Coverage type */}
+      <div className="flex flex-col gap-1">
+        <label className="text-sm font-medium text-gray-700">Coverage type</label>
+        <select
+          className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-tax-blue focus:border-transparent"
+          value={coverageType}
+          onChange={(e) => setHSA({ coverageType: e.target.value as 'self-only' | 'family' })}
+        >
+          <option value="self-only">Self-only ({formatCurrency(HSA_LIMIT_SELF_ONLY)} limit)</option>
+          <option value="family">Family ({formatCurrency(HSA_LIMIT_FAMILY)} limit)</option>
+        </select>
+      </div>
+
+      {/* Contributions */}
+      <CurrencyInput
+        label="Your HSA contributions"
+        value={contributions}
+        onChange={(v) => setHSA({ contributions: v })}
+        helperText={`Limit: ${formatCurrency(totalLimit)}${catchUp > 0 ? ` (includes ${formatCurrency(HSA_CATCHUP_AMOUNT)} catch-up)` : ''}`}
+      />
+
+      {employerContributions > 0 && (
+        <div className="text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded px-2 py-1">
+          Employer HSA contributions (W-2 code W): {formatCurrency(employerContributions)} — counts toward limit, not deductible by you
+        </div>
+      )}
+
+      {/* Qualified expenses */}
+      <CurrencyInput
+        label="Qualified medical expenses paid from HSA"
+        value={qualifiedExpenses}
+        onChange={(v) => setHSA({ qualifiedExpenses: v })}
+        helperText="Distributions used for qualified expenses are tax-free"
+      />
+
+      {/* Age flags */}
+      <label className="flex items-center gap-2 text-sm text-gray-700">
+        <input
+          type="checkbox"
+          checked={age55OrOlder}
+          onChange={(e) => setHSA({ age55OrOlder: e.target.checked })}
+          className="rounded border-gray-300"
+        />
+        Age 55 or older (extra {formatCurrency(HSA_CATCHUP_AMOUNT)} catch-up contribution)
+      </label>
+      <label className="flex items-center gap-2 text-sm text-gray-700">
+        <input
+          type="checkbox"
+          checked={age65OrDisabled}
+          onChange={(e) => setHSA({ age65OrDisabled: e.target.checked })}
+          className="rounded border-gray-300"
+        />
+        Age 65+ or disabled (exempt from 20% distribution penalty)
+      </label>
+
+      {/* Result details */}
+      {hsaResult && hsaResult.deductibleAmount > 0 && (
+        <div className="text-xs text-gray-500 bg-gray-50 rounded px-2 py-1">
+          HSA deduction: {formatCurrency(hsaResult.deductibleAmount)}
+          {hsaResult.excessContributions > 0 && ` · Excess: ${formatCurrency(hsaResult.excessContributions)}`}
+        </div>
+      )}
+      {hsaResult && hsaResult.taxableDistributions > 0 && (
+        <div className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+          Taxable distributions: {formatCurrency(hsaResult.taxableDistributions)}
+          {hsaResult.distributionPenalty > 0 && ` + ${formatCurrency(hsaResult.distributionPenalty)} penalty (20%)`}
+        </div>
+      )}
+      {hsaResult && hsaResult.excessPenalty > 0 && (
+        <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded px-2 py-1">
+          Excess contribution penalty (6%): {formatCurrency(hsaResult.excessPenalty)}
+        </div>
+      )}
     </div>
   )
 }
