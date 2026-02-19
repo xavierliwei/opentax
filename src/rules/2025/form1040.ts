@@ -33,6 +33,8 @@ import { computeSaversCredit } from './saversCredit'
 import type { SaversCreditResult } from './saversCredit'
 import { computeEnergyCredit } from './energyCredit'
 import type { EnergyCreditResult } from './energyCredit'
+import { computeEducationCredit } from './educationCredit'
+import type { EducationCreditResult } from './educationCredit'
 import { TAX_YEAR } from './constants'
 import { computeIRADeduction } from './iraDeduction'
 import type { IRADeductionResult } from './iraDeduction'
@@ -486,10 +488,13 @@ export function computeLine25(model: TaxReturn): TracedValue {
 // Computed by childTaxCredit module; set externally in orchestrator.
 
 // ── Line 29 — American opportunity credit (refundable) ────────
-// Placeholder $0 — AOTC not implemented yet.
+// 40% of AOTC is refundable (max $1,000 per student).
 
-export function computeLine29(): TracedValue {
-  return tracedZero('form1040.line29', 'Form 1040, Line 29')
+export function computeLine29(educationCredit: EducationCreditResult | null): TracedValue {
+  const amount = educationCredit?.totalRefundable ?? 0
+  return amount > 0
+    ? tracedFromComputation(amount, 'form1040.line29', ['credits.aotcRefundable'], 'Form 1040, Line 29')
+    : tracedZero('form1040.line29', 'Form 1040, Line 29')
 }
 
 // ── Line 31 — Other refundable credits ─────────────────────────
@@ -617,6 +622,7 @@ export interface Form1040Result {
   dependentCareCredit: DependentCareCreditResult | null
   saversCredit: SaversCreditResult | null
   energyCredit: EnergyCreditResult | null
+  educationCredit: EducationCreditResult | null
 
   // IRA deduction detail (Schedule 1, Line 20)
   iraDeduction: IRADeductionResult | null
@@ -745,15 +751,21 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     ? computeEnergyCredit(model.energyCredits)
     : null
 
+  const educationCredit = model.educationExpenses?.students.length
+    ? computeEducationCredit(model.educationExpenses, model.filingStatus, line11.amount)
+    : null
+
   const line20amount =
     (dependentCareCredit?.creditAmount ?? 0) +
     (saversCredit?.creditAmount ?? 0) +
-    (energyCreditResult?.totalCredit ?? 0)
+    (energyCreditResult?.totalCredit ?? 0) +
+    (educationCredit?.totalNonRefundable ?? 0)
 
   const line20inputs: string[] = []
   if (dependentCareCredit && dependentCareCredit.creditAmount > 0) line20inputs.push('credits.dependentCare')
   if (saversCredit && saversCredit.creditAmount > 0) line20inputs.push('credits.savers')
   if (energyCreditResult && energyCreditResult.totalCredit > 0) line20inputs.push('credits.energy')
+  if (educationCredit && educationCredit.totalNonRefundable > 0) line20inputs.push('credits.education')
 
   const line20 = line20amount > 0
     ? tracedFromComputation(line20amount, 'form1040.line20', line20inputs, 'Form 1040, Line 20')
@@ -805,7 +817,7 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
       )
     : tracedZero('form1040.line28', 'Form 1040, Line 28')
 
-  const line29 = computeLine29()
+  const line29 = computeLine29(educationCredit)
   const line31 = computeLine31()
   const line32 = computeLine32(line27, line28, line29, line31)
   const line33 = computeLine33(line25, line32)
@@ -826,6 +838,7 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     dependentCareCredit,
     saversCredit,
     energyCredit: energyCreditResult,
+    educationCredit,
     iraDeduction,
     studentLoanDeduction,
     hsaResult,

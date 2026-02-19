@@ -152,6 +152,8 @@ export const NODE_LABELS: Record<string, string> = {
   'credits.dependentCare': 'Dependent care credit (Form 2441)',
   'credits.savers': "Saver's credit (Form 8880)",
   'credits.energy': 'Residential energy credit (Form 5695)',
+  'credits.education': 'Education credits (Form 8863)',
+  'credits.aotcRefundable': 'AOTC refundable (Line 29)',
 
   // AMT (Form 6251)
   'amt.amti': 'Alternative minimum taxable income (AMTI)',
@@ -365,6 +367,20 @@ export function collectAllValues(
       [],
       'Residential energy credit (Form 5695)',
     ))
+  }
+  if (form1040.educationCredit) {
+    if (form1040.educationCredit.totalNonRefundable > 0) {
+      values.set('credits.education', tracedFromComputation(
+        form1040.educationCredit.totalNonRefundable,
+        'credits.education', [], 'Education credits (Form 8863)',
+      ))
+    }
+    if (form1040.educationCredit.totalRefundable > 0) {
+      values.set('credits.aotcRefundable', tracedFromComputation(
+        form1040.educationCredit.totalRefundable,
+        'credits.aotcRefundable', [], 'AOTC refundable (Line 29)',
+      ))
+    }
   }
 
   // AMT detail nodes (Form 6251)

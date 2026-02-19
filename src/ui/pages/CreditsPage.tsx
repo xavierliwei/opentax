@@ -4,8 +4,9 @@ import { useInterview } from '../../interview/useInterview.ts'
 import { CurrencyInput } from '../components/CurrencyInput.tsx'
 import { InfoTooltip } from '../components/InfoTooltip.tsx'
 import { InterviewNav } from './InterviewNav.tsx'
-import { SAVERS_CREDIT_THRESHOLDS, CTC_PHASEOUT_THRESHOLD } from '../../rules/2025/constants.ts'
-import type { FilingStatus } from '../../model/types.ts'
+import { SAVERS_CREDIT_THRESHOLDS, CTC_PHASEOUT_THRESHOLD, EDUCATION_CREDIT_PHASEOUT } from '../../rules/2025/constants.ts'
+import type { FilingStatus, StudentEducationExpense } from '../../model/types.ts'
+import { RepeatableSection } from '../components/RepeatableSection.tsx'
 
 function formatCurrency(cents: number): string {
   const d = Math.abs(cents) / 100
@@ -19,11 +20,13 @@ export function CreditsPage() {
   const dependentCare = useTaxStore((s) => s.taxReturn.dependentCare)
   const retirementContributions = useTaxStore((s) => s.taxReturn.retirementContributions)
   const energyCredits = useTaxStore((s) => s.taxReturn.energyCredits)
+  const educationExpenses = useTaxStore((s) => s.taxReturn.educationExpenses)
   const w2s = useTaxStore((s) => s.taxReturn.w2s)
   const form1040 = useTaxStore((s) => s.computeResult.form1040)
   const setDependentCare = useTaxStore((s) => s.setDependentCare)
   const setRetirementContributions = useTaxStore((s) => s.setRetirementContributions)
   const setEnergyCredits = useTaxStore((s) => s.setEnergyCredits)
+  const setEducationExpenses = useTaxStore((s) => s.setEducationExpenses)
   const interview = useInterview()
 
   const care = dependentCare ?? { totalExpenses: 0, numQualifyingPersons: 0 }
@@ -33,6 +36,9 @@ export function CreditsPage() {
     insulation: 0, windows: 0, exteriorDoors: 0, centralAC: 0,
     waterHeater: 0, heatPump: 0, homeEnergyAudit: 0, biomassStove: 0,
   }
+
+  const students = educationExpenses?.students ?? []
+  const eduCredit = form1040.educationCredit
 
   const ctc = form1040.childTaxCredit
   const eic = form1040.earnedIncomeCredit
@@ -338,6 +344,198 @@ export function CreditsPage() {
         )}
       </div>
 
+      {/* ── Education Credits (Form 8863) ────────────────── */}
+      <div className={`mt-4 rounded-xl border p-4 flex flex-col gap-3 ${
+        filingStatus === 'mfs' ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-200'
+      }`}>
+        <div className="flex items-baseline justify-between">
+          <div className="flex items-center gap-1">
+            <span className={`text-sm font-semibold ${filingStatus === 'mfs' ? 'text-gray-400' : 'text-gray-800'}`}>
+              Education Credits
+            </span>
+            <InfoTooltip
+              explanation="American Opportunity Credit (AOTC): up to $2,500/student, 40% refundable, max 4 years. Lifetime Learning Credit (LLC): up to $2,000/return, non-refundable. Both phase out based on MAGI. You can claim both on the same return but not for the same student."
+              pubName="IRS Form 8863 — Education Credits"
+              pubUrl="https://www.irs.gov/forms-pubs/about-form-8863"
+            />
+            <span className="text-xs text-gray-400">Form 8863</span>
+          </div>
+          {eduCredit && (eduCredit.totalNonRefundable > 0 || eduCredit.totalRefundable > 0) && (
+            <span className="text-sm font-semibold text-tax-green">
+              {formatCurrency(eduCredit.totalNonRefundable + eduCredit.totalRefundable)}
+            </span>
+          )}
+        </div>
+
+        {filingStatus === 'mfs' ? (
+          <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+            Education credits are not available for Married Filing Separately.
+          </div>
+        ) : (
+          <>
+            <RepeatableSection<StudentEducationExpense>
+              label="Students"
+              items={students}
+              addLabel="Add student"
+              emptyMessage="No students added. Add a student to claim education credits."
+              onAdd={() => {
+                const newStudent: StudentEducationExpense = {
+                  studentName: '',
+                  creditType: 'aotc',
+                  qualifiedExpenses: 0,
+                  isAtLeastHalfTime: true,
+                  hasCompletedFourYears: false,
+                  priorYearsAOTCClaimed: 0,
+                }
+                setEducationExpenses({ students: [...students, newStudent] })
+              }}
+              onRemove={(index) => {
+                setEducationExpenses({ students: students.filter((_, i) => i !== index) })
+              }}
+              renderItem={(student, index) => (
+                <div className="flex flex-col gap-2 pr-6">
+                  <input
+                    type="text"
+                    placeholder="Student name"
+                    className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-tax-blue focus:border-transparent"
+                    value={student.studentName}
+                    onChange={(e) => {
+                      const updated = [...students]
+                      updated[index] = { ...student, studentName: e.target.value }
+                      setEducationExpenses({ students: updated })
+                    }}
+                  />
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-gray-600">Credit type</label>
+                    <select
+                      className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-tax-blue focus:border-transparent"
+                      value={student.creditType}
+                      onChange={(e) => {
+                        const updated = [...students]
+                        updated[index] = { ...student, creditType: e.target.value as 'aotc' | 'llc' }
+                        setEducationExpenses({ students: updated })
+                      }}
+                    >
+                      <option value="aotc">American Opportunity (AOTC) — up to $2,500</option>
+                      <option value="llc">Lifetime Learning (LLC) — up to $2,000/return</option>
+                    </select>
+                  </div>
+                  <CurrencyInput
+                    label="Qualified expenses (tuition, fees, materials)"
+                    value={student.qualifiedExpenses}
+                    onChange={(v) => {
+                      const updated = [...students]
+                      updated[index] = { ...student, qualifiedExpenses: v }
+                      setEducationExpenses({ students: updated })
+                    }}
+                  />
+                  {student.creditType === 'aotc' && (
+                    <div className="flex flex-col gap-2">
+                      <label className="flex items-center gap-2 text-sm text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={student.isAtLeastHalfTime}
+                          onChange={(e) => {
+                            const updated = [...students]
+                            updated[index] = { ...student, isAtLeastHalfTime: e.target.checked }
+                            setEducationExpenses({ students: updated })
+                          }}
+                          className="rounded border-gray-300"
+                        />
+                        Enrolled at least half-time
+                      </label>
+                      <label className="flex items-center gap-2 text-sm text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={student.hasCompletedFourYears}
+                          onChange={(e) => {
+                            const updated = [...students]
+                            updated[index] = { ...student, hasCompletedFourYears: e.target.checked }
+                            setEducationExpenses({ students: updated })
+                          }}
+                          className="rounded border-gray-300"
+                        />
+                        Already completed 4 years of post-secondary education
+                      </label>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs font-medium text-gray-600">
+                          Prior years AOTC was claimed for this student
+                        </label>
+                        <select
+                          className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-tax-blue focus:border-transparent"
+                          value={student.priorYearsAOTCClaimed}
+                          onChange={(e) => {
+                            const updated = [...students]
+                            updated[index] = { ...student, priorYearsAOTCClaimed: parseInt(e.target.value, 10) }
+                            setEducationExpenses({ students: updated })
+                          }}
+                        >
+                          <option value={0}>0 years</option>
+                          <option value={1}>1 year</option>
+                          <option value={2}>2 years</option>
+                          <option value={3}>3 years</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                  {/* Per-student AOTC result */}
+                  {student.creditType === 'aotc' && eduCredit && (() => {
+                    const match = eduCredit.aotcStudents.find(s => s.studentName === student.studentName)
+                    if (!match) {
+                      if (!student.isAtLeastHalfTime || student.hasCompletedFourYears || student.priorYearsAOTCClaimed >= 4) {
+                        return (
+                          <div className="text-xs text-amber-700 bg-amber-50 rounded px-2 py-1">
+                            Not eligible for AOTC
+                            {!student.isAtLeastHalfTime && ' — must be enrolled at least half-time'}
+                            {student.hasCompletedFourYears && ' — completed 4+ years'}
+                            {student.priorYearsAOTCClaimed >= 4 && ' — AOTC already claimed for 4 years'}
+                          </div>
+                        )
+                      }
+                      return null
+                    }
+                    return match.creditAfterPhaseOut > 0 ? (
+                      <div className="text-xs text-gray-500 bg-gray-50 rounded px-2 py-1">
+                        Credit: {formatCurrency(match.creditAfterPhaseOut)}
+                        {eduCredit.phaseOutApplies && ` (${formatCurrency(match.rawCredit)} before phase-out)`}
+                        {' '}&middot; {formatCurrency(match.nonRefundable)} non-refundable
+                        {' '}&middot; {formatCurrency(match.refundable)} refundable
+                      </div>
+                    ) : null
+                  })()}
+                </div>
+              )}
+            />
+
+            {/* Phase-out info */}
+            {(() => {
+              const po = EDUCATION_CREDIT_PHASEOUT[filingStatus]
+              return (
+                <div className="text-xs text-gray-500 bg-gray-50 rounded px-2 py-1">
+                  MAGI phase-out: {formatCurrency(po.start)}–{formatCurrency(po.end)} for {STATUS_LABELS[filingStatus]} filers.
+                  {agi > 0 && (
+                    agi <= po.start
+                      ? <> Your MAGI: {formatCurrency(agi)} — within the limit.</>
+                      : agi >= po.end
+                        ? <> Your MAGI: {formatCurrency(agi)} — <span className="text-amber-700">above the limit, credit fully phased out.</span></>
+                        : <> Your MAGI: {formatCurrency(agi)} — <span className="text-amber-700">partially phased out.</span></>
+                  )}
+                </div>
+              )
+            })()}
+
+            {/* LLC summary */}
+            {eduCredit && eduCredit.llcCreditAfterPhaseOut > 0 && (
+              <div className="text-xs text-gray-500 bg-gray-50 rounded px-2 py-1">
+                LLC: {formatCurrency(eduCredit.llcQualifiedExpenses)} qualified expenses
+                {' '}&middot; {formatCurrency(eduCredit.llcCreditAfterPhaseOut)} credit
+                {eduCredit.phaseOutApplies && ` (${formatCurrency(eduCredit.llcRawCredit)} before phase-out)`}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
       {/* ── Retirement Savings (Form 8880) ───────────────── */}
       <div className={`mt-4 rounded-xl border p-4 flex flex-col gap-3 ${
         saversIneligible ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-200'
@@ -527,12 +725,38 @@ export function CreditsPage() {
                 <span className="font-medium tabular-nums">{formatCurrency(ecCredit.totalCredit)}</span>
               </div>
             )}
+            {eduCredit && eduCredit.totalNonRefundable > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-700">Education credits (Form 8863)</span>
+                <span className="font-medium tabular-nums">{formatCurrency(eduCredit.totalNonRefundable)}</span>
+              </div>
+            )}
             <div className="flex items-center justify-between text-sm border-t border-gray-200 pt-1">
               <span className="text-gray-700 font-medium">Line 20 — Total other credits</span>
               <div className="flex items-center gap-2 shrink-0">
                 <span className="font-medium tabular-nums">{formatCurrency(form1040.line20.amount)}</span>
                 <Link to="/explain/form1040.line20" className="text-xs text-tax-blue hover:text-blue-700" title="Why this number?">?</Link>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── AOTC Refundable (Line 29) ───────────────────── */}
+      {form1040.line29.amount > 0 && (
+        <div className="mt-4 bg-gray-50 rounded-xl border border-gray-200 p-4 flex flex-col gap-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-700 font-medium flex items-center">
+              Line 29 — American opportunity credit (refundable)
+              <InfoTooltip
+                explanation="40% of the American Opportunity Credit is refundable — it can result in a refund even if you owe no tax. The maximum refundable amount is $1,000 per student."
+                pubName="Form 1040, Line 29"
+                pubUrl="https://www.irs.gov/instructions/i1040gi"
+              />
+            </span>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="font-medium tabular-nums text-tax-green">{formatCurrency(form1040.line29.amount)}</span>
+              <Link to="/explain/form1040.line29" className="text-xs text-tax-blue hover:text-blue-700" title="Why this number?">?</Link>
             </div>
           </div>
         </div>

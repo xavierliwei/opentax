@@ -308,6 +308,26 @@ export const SAVERS_CREDIT_THRESHOLDS: Record<FilingStatus, SaversCreditThreshol
 
 export const SAVERS_CREDIT_MAX_CONTRIBUTION = c(2000)  // per person
 
+// ── Education Credits (Form 8863, IRC §25A) ───────────────────
+export const AOTC_FIRST_TIER = c(2000)          // 100% of first $2,000
+export const AOTC_SECOND_TIER = c(2000)          // 25% of next $2,000
+export const AOTC_MAX_CREDIT = c(2500)           // per student
+export const AOTC_REFUNDABLE_RATE = 0.40         // 40% refundable (max $1,000)
+export const AOTC_MAX_YEARS = 4
+
+export const LLC_EXPENSE_LIMIT = c(10000)        // per return (not per student)
+export const LLC_CREDIT_RATE = 0.20              // 20%
+export const LLC_MAX_CREDIT = c(2000)            // per return
+
+// Phase-out ranges (same for both AOTC and LLC in 2025)
+export const EDUCATION_CREDIT_PHASEOUT: Record<FilingStatus, { start: number; end: number }> = {
+  single: { start: c(80000),  end: c(90000) },
+  hoh:    { start: c(80000),  end: c(90000) },
+  mfj:    { start: c(160000), end: c(180000) },
+  mfs:    { start: c(0),      end: c(0) },        // MFS ineligible
+  qw:     { start: c(160000), end: c(180000) },
+}
+
 // ── Energy Credit (Form 5695) ───────────────────────────────────
 // Source: IRC §25C, §25D (IRA 2022)
 

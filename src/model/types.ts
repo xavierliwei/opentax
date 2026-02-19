@@ -323,6 +323,23 @@ export interface EnergyCredits {
   biomassStove: number
 }
 
+// ── Education Credits (Form 8863) ────────────────────────────
+
+export type EducationCreditType = 'aotc' | 'llc'
+
+export interface StudentEducationExpense {
+  studentName: string                   // free text (or dependent name)
+  creditType: EducationCreditType       // which credit to claim for this student
+  qualifiedExpenses: number             // cents — tuition, fees, course materials
+  isAtLeastHalfTime: boolean            // required for AOTC (not for LLC)
+  hasCompletedFourYears: boolean        // if true, AOTC not available (LLC only)
+  priorYearsAOTCClaimed: number         // 0–3; AOTC max 4 years total
+}
+
+export interface EducationExpenses {
+  students: StudentEducationExpense[]
+}
+
 // ── Credits ────────────────────────────────────────────────────
 
 export interface Credit {
@@ -379,6 +396,7 @@ export interface TaxReturn {
   dependentCare?: DependentCareExpenses
   retirementContributions?: RetirementContributions
   energyCredits?: EnergyCredits
+  educationExpenses?: EducationExpenses
 }
 
 // ── Factory ────────────────────────────────────────────────────
