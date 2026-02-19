@@ -231,6 +231,26 @@ export const CAPITAL_LOSS_LIMIT: Record<FilingStatus, number> = {
   qw:     c(3000),
 }
 
+// ── Child Tax Credit ─────────────────────────────────────────
+// Source: IRC §24, as modified by Tax Cuts and Jobs Act (2017)
+// One Big Beautiful Bill Act extended CTC provisions through 2028
+
+export const CTC_PER_QUALIFYING_CHILD    = c(2000)   // $2,000 per child under 17
+export const CTC_PER_OTHER_DEPENDENT     = c(500)    // $500 per other dependent
+export const CTC_REFUNDABLE_MAX_PER_CHILD = c(1700)  // Max refundable per child (Form 8812)
+export const CTC_EARNED_INCOME_THRESHOLD = c(2500)   // Earned income floor for refundable calc
+export const CTC_REFUNDABLE_RATE         = 0.15      // 15% of earned income above threshold
+
+export const CTC_PHASEOUT_THRESHOLD: Record<FilingStatus, number> = {
+  single: c(200000),
+  mfj:    c(400000),
+  mfs:    c(200000),
+  hoh:    c(200000),
+  qw:     c(400000),
+}
+
+export const CTC_PHASEOUT_RATE_PER_1000 = c(50)      // $50 per $1K of AGI over threshold
+
 // ── Tax Year ───────────────────────────────────────────────────
 
 export const TAX_YEAR = 2025

@@ -7,7 +7,7 @@
 
 import { emptyTaxReturn } from '../../src/model/types'
 import { cents } from '../../src/model/traced'
-import type { TaxReturn, W2, Form1099INT, Form1099DIV, CapitalTransaction } from '../../src/model/types'
+import type { TaxReturn, W2, Form1099INT, Form1099DIV, CapitalTransaction, Dependent } from '../../src/model/types'
 
 // ── Helper: make a W-2 with defaults ───────────────────────────
 
@@ -913,6 +913,71 @@ export function multipleTradesReturn(): TaxReturn {
     // Net ST: 1700 + (−300) = 1400 ($1,400)
     // Net LT: 6200 + 3000 = 9200 ($9,200)
     // Combined: 10600 ($10,600)
+  }
+}
+
+// ── Helper: make a Dependent with defaults ──────────────────
+
+export function makeDependent(overrides: Partial<Dependent> & { firstName: string; dateOfBirth: string }): Dependent {
+  return {
+    lastName: 'Doe',
+    ssn: '987654321',
+    relationship: 'son',
+    monthsLived: 12,
+    ...overrides,
+  }
+}
+
+// ── Fixture: family with two qualifying children ─────────────
+
+export function familyWithChildrenReturn(): TaxReturn {
+  return {
+    ...emptyTaxReturn(2025),
+    filingStatus: 'mfj',
+    w2s: [
+      makeW2({
+        id: 'w2-1',
+        employerName: 'Acme Corp',
+        box1: cents(80000),
+        box2: cents(8000),
+      }),
+      makeW2({
+        id: 'w2-2',
+        employerName: 'Beta Inc',
+        box1: cents(40000),
+        box2: cents(4000),
+      }),
+    ],
+    dependents: [
+      makeDependent({ firstName: 'Alice', dateOfBirth: '2015-03-15', relationship: 'daughter' }),
+      makeDependent({ firstName: 'Bob', dateOfBirth: '2018-07-22', ssn: '987654322' }),
+    ],
+    // AGI = $120,000 (well below $400K MFJ threshold)
+    // 2 qualifying children → $4,000 CTC
+    // Tax liability > $4,000 → all non-refundable, no ACTC
+  }
+}
+
+// ── Fixture: high income with child (phase-out) ──────────────
+
+export function highIncomeWithChildReturn(): TaxReturn {
+  return {
+    ...emptyTaxReturn(2025),
+    filingStatus: 'single',
+    w2s: [
+      makeW2({
+        id: 'w2-1',
+        employerName: 'BigCo',
+        box1: cents(250000),
+        box2: cents(50000),
+      }),
+    ],
+    dependents: [
+      makeDependent({ firstName: 'Charlie', dateOfBirth: '2012-06-01', relationship: 'son' }),
+    ],
+    // AGI = $250,000 (single threshold = $200,000)
+    // Excess = $50,000 → 50 × $50 = $2,500 phase-out
+    // Initial = $2,000 → after phase-out = max(0, 2000 - 2500) = $0
   }
 }
 

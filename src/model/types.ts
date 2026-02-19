@@ -34,6 +34,7 @@ export interface Dependent {
   ssn: string
   relationship: string   // e.g., "son", "daughter", "parent"
   monthsLived: number    // months lived with taxpayer (0–12)
+  dateOfBirth: string    // ISO date (YYYY-MM-DD), empty if unknown
 }
 
 // ── W-2 ────────────────────────────────────────────────────────

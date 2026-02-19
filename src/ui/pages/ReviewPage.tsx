@@ -203,6 +203,18 @@ export function ReviewPage() {
               pubUrl: 'https://www.irs.gov/instructions/i1040gi',
             }}
           />
+          {form1040.line19.amount > 0 && (
+            <LineItem
+              label="Line 19 — Child tax credit"
+              nodeId="form1040.line19"
+              amount={form1040.line19.amount}
+              tooltip={{
+                explanation: 'Line 19 is the non-refundable Child Tax Credit ($2,000 per qualifying child under 17) plus the Credit for Other Dependents ($500 per other dependent). This credit directly reduces your tax but cannot reduce it below zero. Any excess may be claimed as the refundable Additional Child Tax Credit on Line 28.',
+                pubName: 'IRS Schedule 8812 — Child Tax Credit',
+                pubUrl: 'https://www.irs.gov/instructions/i1040s8',
+              }}
+            />
+          )}
           <LineItem
             label="Line 24 — Total tax"
             nodeId="form1040.line24"
@@ -223,6 +235,18 @@ export function ReviewPage() {
               pubUrl: 'https://www.irs.gov/instructions/i1040gi',
             }}
           />
+          {form1040.line28.amount > 0 && (
+            <LineItem
+              label="Line 28 — Additional child tax credit"
+              nodeId="form1040.line28"
+              amount={form1040.line28.amount}
+              tooltip={{
+                explanation: 'Line 28 is the refundable Additional Child Tax Credit from Form 8812. It equals the lesser of $1,700 per qualifying child, or 15% of earned income above $2,500, capped at the unused portion of the child tax credit. This amount is added to your total payments even if you owe no tax.',
+                pubName: 'Schedule 8812 — Additional CTC',
+                pubUrl: 'https://www.irs.gov/instructions/i1040s8',
+              }}
+            />
+          )}
           <LineItem
             label="Line 33 — Total payments"
             nodeId="form1040.line33"

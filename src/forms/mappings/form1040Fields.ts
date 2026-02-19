@@ -67,14 +67,22 @@ export const F1040_PAGE2 = {
   line14:  `${P2}f2_05[0]`,  // Total deductions
   line15:  `${P2}f2_06[0]`,  // Taxable income
   line16:  `${P2}f2_08[0]`,  // Tax
-  line17:  `${P2}f2_09[0]`,  // Schedule 2 line 3
+  line17:  `${P2}f2_09[0]`,  // Schedule 2, Part I, line 4
   line18:  `${P2}f2_10[0]`,  // Lines 16+17
-  line19:  `${P2}f2_11[0]`,  // Child tax credit
+  line19:  `${P2}f2_11[0]`,  // Child tax credit / credit for other dependents
+  line20:  `${P2}f2_12[0]`,  // Other nonrefundable credits (Sched 3 line 8)
+  line21:  `${P2}f2_13[0]`,  // Total credits (line 19 + line 20)
   line22:  `${P2}f2_14[0]`,  // Line 18 - line 21
+  line23:  `${P2}f2_15[0]`,  // Other taxes (Schedule 2, Part II)
   line24:  `${P2}f2_16[0]`,  // Total tax
   line25a: `${P2}f2_17[0]`,  // W-2 withholding
   line25b: `${P2}f2_18[0]`,  // 1099 withholding
   line25d: `${P2}f2_20[0]`,  // Total withholding
+  line27:  `${P2}f2_22[0]`,  // Earned income credit
+  line28:  `${P2}f2_23[0]`,  // Additional child tax credit (Form 8812)
+  line29:  `${P2}f2_24[0]`,  // American opportunity credit
+  line31:  `${P2}f2_26[0]`,  // Other refundable credits
+  line32:  `${P2}f2_28[0]`,  // Total other payments and refundable credits
   line33:  `${P2}f2_29[0]`,  // Total payments
   line34:  `${P2}f2_30[0]`,  // Overpaid
   line35a: `${P2}f2_31[0]`,  // Refund amount

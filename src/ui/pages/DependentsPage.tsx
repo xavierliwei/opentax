@@ -24,6 +24,7 @@ function emptyDependent(): Dependent {
     ssn: '',
     relationship: '',
     monthsLived: 12,
+    dateOfBirth: '',
   }
 }
 
@@ -76,12 +77,33 @@ export function DependentsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <SSNInput
                   label="SSN"
                   value={dep.ssn}
                   onChange={(ssn) => updateDependent(index, { ssn })}
                 />
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-medium text-gray-700 flex items-center">
+                    Date of birth
+                    <InfoTooltip
+                      explanation="Date of birth is used to determine if a dependent qualifies for the Child Tax Credit ($2,000 per child under 17 at end of tax year). Children who turn 17 during 2025 do not qualify for the full CTC but may qualify for the $500 Other Dependent Credit."
+                      pubName="IRS Publication 972 — Child Tax Credit"
+                      pubUrl="https://www.irs.gov/publications/p972"
+                    />
+                  </label>
+                  <input
+                    type="date"
+                    className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-tax-blue focus:border-transparent"
+                    value={dep.dateOfBirth}
+                    onChange={(e) =>
+                      updateDependent(index, { dateOfBirth: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
                   <label className="text-sm font-medium text-gray-700 flex items-center">
                     Relationship

@@ -21,6 +21,8 @@ import type { ScheduleAResult } from './scheduleA'
 import { computeScheduleD } from './scheduleD'
 import type { ScheduleDResult } from './scheduleD'
 import { computeOrdinaryTax, computeQDCGTax, netCapGainForQDCG } from './taxComputation'
+import { computeChildTaxCredit } from './childTaxCredit'
+import type { ChildTaxCreditResult } from './childTaxCredit'
 
 // ── Line 1a — Wages, salaries, tips ────────────────────────────
 // Sum of all W-2 Box 1 values.
@@ -294,14 +296,73 @@ export function computeLine16(
   )
 }
 
-// ── Line 24 — Total tax ────────────────────────────────────────
-// Line 16 + SE tax + AMT + etc. — all $0 for MVP, so Line 24 = Line 16.
+// ── Line 17 — Amount from Schedule 2, Part I, line 4 ──────────
+// Placeholder $0 — no AMT or other Schedule 2 taxes for now.
 
-export function computeLine24(line16: TracedValue): TracedValue {
+export function computeLine17(): TracedValue {
+  return tracedZero('form1040.line17', 'Form 1040, Line 17')
+}
+
+// ── Line 18 — Tax + Schedule 2 ─────────────────────────────────
+// Line 16 + Line 17
+
+export function computeLine18(line16: TracedValue, line17: TracedValue): TracedValue {
   return tracedFromComputation(
-    line16.amount,
+    line16.amount + line17.amount,
+    'form1040.line18',
+    ['form1040.line16', 'form1040.line17'],
+    'Form 1040, Line 18',
+  )
+}
+
+// ── Line 19 — Child tax credit (non-refundable) ───────────────
+// Computed by childTaxCredit module; set externally in orchestrator.
+
+// ── Line 20 — Other non-refundable credits ─────────────────────
+// Placeholder $0 — no education credits, foreign tax credit, etc.
+
+export function computeLine20(): TracedValue {
+  return tracedZero('form1040.line20', 'Form 1040, Line 20')
+}
+
+// ── Line 21 — Total credits (Line 19 + Line 20) ───────────────
+
+export function computeLine21(line19: TracedValue, line20: TracedValue): TracedValue {
+  return tracedFromComputation(
+    line19.amount + line20.amount,
+    'form1040.line21',
+    ['form1040.line19', 'form1040.line20'],
+    'Form 1040, Line 21',
+  )
+}
+
+// ── Line 22 — Tax after credits ────────────────────────────────
+// max(0, Line 18 − Line 21)
+
+export function computeLine22(line18: TracedValue, line21: TracedValue): TracedValue {
+  return tracedFromComputation(
+    Math.max(0, line18.amount - line21.amount),
+    'form1040.line22',
+    ['form1040.line18', 'form1040.line21'],
+    'Form 1040, Line 22',
+  )
+}
+
+// ── Line 23 — Other taxes (Schedule 2, Part II) ────────────────
+// Placeholder $0 — no SE tax, NIIT, etc.
+
+export function computeLine23(): TracedValue {
+  return tracedZero('form1040.line23', 'Form 1040, Line 23')
+}
+
+// ── Line 24 — Total tax ────────────────────────────────────────
+// Line 22 + Line 23
+
+export function computeLine24(line22: TracedValue, line23: TracedValue): TracedValue {
+  return tracedFromComputation(
+    line22.amount + line23.amount,
     'form1040.line24',
-    ['form1040.line16'],
+    ['form1040.line22', 'form1040.line23'],
     'Form 1040, Line 24',
   )
 }
@@ -347,14 +408,55 @@ export function computeLine25(model: TaxReturn): TracedValue {
   )
 }
 
-// ── Line 33 — Total payments ───────────────────────────────────
-// Line 25 + estimated tax payments (0 for MVP).
+// ── Line 27 — Earned income credit ─────────────────────────────
+// Placeholder $0 — EITC not implemented yet.
 
-export function computeLine33(line25: TracedValue): TracedValue {
+export function computeLine27(): TracedValue {
+  return tracedZero('form1040.line27', 'Form 1040, Line 27')
+}
+
+// ── Line 28 — Additional child tax credit (refundable) ────────
+// Computed by childTaxCredit module; set externally in orchestrator.
+
+// ── Line 29 — American opportunity credit (refundable) ────────
+// Placeholder $0 — AOTC not implemented yet.
+
+export function computeLine29(): TracedValue {
+  return tracedZero('form1040.line29', 'Form 1040, Line 29')
+}
+
+// ── Line 31 — Other refundable credits ─────────────────────────
+// Placeholder $0.
+
+export function computeLine31(): TracedValue {
+  return tracedZero('form1040.line31', 'Form 1040, Line 31')
+}
+
+// ── Line 32 — Total other payments and refundable credits ──────
+// Line 27 + Line 28 + Line 29 + Line 31
+
+export function computeLine32(
+  line27: TracedValue,
+  line28: TracedValue,
+  line29: TracedValue,
+  line31: TracedValue,
+): TracedValue {
   return tracedFromComputation(
-    line25.amount,
+    line27.amount + line28.amount + line29.amount + line31.amount,
+    'form1040.line32',
+    ['form1040.line27', 'form1040.line28', 'form1040.line29', 'form1040.line31'],
+    'Form 1040, Line 32',
+  )
+}
+
+// ── Line 33 — Total payments ───────────────────────────────────
+// Line 25 + Line 32
+
+export function computeLine33(line25: TracedValue, line32: TracedValue): TracedValue {
+  return tracedFromComputation(
+    line25.amount + line32.amount,
     'form1040.line33',
-    ['form1040.line25'],
+    ['form1040.line25', 'form1040.line32'],
     'Form 1040, Line 33',
   )
 }
@@ -414,17 +516,32 @@ export interface Form1040Result {
   line14: TracedValue
   line15: TracedValue
 
-  // Tax (Lines 16, 24)
+  // Tax & Credits (Lines 16–24)
   line16: TracedValue
+  line17: TracedValue
+  line18: TracedValue
+  line19: TracedValue
+  line20: TracedValue
+  line21: TracedValue
+  line22: TracedValue
+  line23: TracedValue
   line24: TracedValue
 
-  // Payments (Lines 25, 33)
+  // Payments & Refundable Credits (Lines 25–33)
   line25: TracedValue
+  line27: TracedValue
+  line28: TracedValue
+  line29: TracedValue
+  line31: TracedValue
+  line32: TracedValue
   line33: TracedValue
 
   // Refund or amount owed (Lines 34, 37)
   line34: TracedValue
   line37: TracedValue
+
+  // Child Tax Credit detail (null if no dependents)
+  childTaxCredit: ChildTaxCreditResult | null
 
   // Attached schedules
   scheduleA: ScheduleAResult | null
@@ -480,11 +597,49 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
 
   // ── Tax ─────────────────────────────────────────────────
   const line16 = computeLine16(line15.amount, line3a.amount, scheduleD, model.filingStatus)
-  const line24 = computeLine24(line16)
+  const line17 = computeLine17()
+  const line18 = computeLine18(line16, line17)
 
-  // ── Payments ────────────────────────────────────────────
+  // ── Credits ────────────────────────────────────────────
+  // Earned income for refundable CTC = sum of W-2 Box 1
+  const earnedIncome = model.w2s.reduce((sum, w) => sum + w.box1, 0)
+
+  const childTaxCredit = model.dependents.length > 0
+    ? computeChildTaxCredit(model.dependents, model.filingStatus, line11.amount, line18.amount, earnedIncome)
+    : null
+
+  const line19 = childTaxCredit
+    ? tracedFromComputation(
+        childTaxCredit.nonRefundableCredit,
+        'form1040.line19',
+        ['ctc.creditAfterPhaseOut'],
+        'Form 1040, Line 19',
+      )
+    : tracedZero('form1040.line19', 'Form 1040, Line 19')
+
+  const line20 = computeLine20()
+  const line21 = computeLine21(line19, line20)
+  const line22 = computeLine22(line18, line21)
+  const line23 = computeLine23()
+  const line24 = computeLine24(line22, line23)
+
+  // ── Payments & refundable credits ──────────────────────
   const line25 = computeLine25(model)
-  const line33 = computeLine33(line25)
+  const line27 = computeLine27()
+
+  const line28 = childTaxCredit
+    ? tracedFromComputation(
+        childTaxCredit.additionalCTC,
+        'form1040.line28',
+        ['ctc.creditAfterPhaseOut'],
+        'Form 1040, Line 28',
+      )
+    : tracedZero('form1040.line28', 'Form 1040, Line 28')
+
+  const line29 = computeLine29()
+  const line31 = computeLine31()
+  const line32 = computeLine32(line27, line28, line29, line31)
+  const line33 = computeLine33(line25, line32)
 
   // ── Result ──────────────────────────────────────────────
   const line34 = computeLine34(line33, line24)
@@ -494,9 +649,10 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     line1a, line2a, line2b, line3a, line3b, line7, line8, line9,
     line10, line11,
     line12, line13, line14, line15,
-    line16, line24,
-    line25, line33,
+    line16, line17, line18, line19, line20, line21, line22, line23, line24,
+    line25, line27, line28, line29, line31, line32, line33,
     line34, line37,
+    childTaxCredit,
     scheduleA, scheduleD,
   }
 }

@@ -65,14 +65,23 @@ export async function fillForm1040(
   setDollarField(form, F1040_PAGE2.line14, result.line14.amount)
   setDollarField(form, F1040_PAGE2.line15, result.line15.amount)
   setDollarField(form, F1040_PAGE2.line16, result.line16.amount)
-  // Lines 17-23 are $0 for MVP
-  setDollarField(form, F1040_PAGE2.line18, result.line16.amount) // line 18 = line 16 for MVP
-  setDollarField(form, F1040_PAGE2.line22, result.line16.amount) // line 22 = line 18 for MVP
+  setDollarField(form, F1040_PAGE2.line17, result.line17.amount)
+  setDollarField(form, F1040_PAGE2.line18, result.line18.amount)
+  setDollarField(form, F1040_PAGE2.line19, result.line19.amount)
+  setDollarField(form, F1040_PAGE2.line20, result.line20.amount)
+  setDollarField(form, F1040_PAGE2.line21, result.line21.amount)
+  setDollarField(form, F1040_PAGE2.line22, result.line22.amount)
+  setDollarField(form, F1040_PAGE2.line23, result.line23.amount)
   setDollarField(form, F1040_PAGE2.line24, result.line24.amount)
 
-  // ── Page 2: Payments ────────────────────────────────────────
+  // ── Page 2: Payments & Refundable Credits ───────────────────
   setDollarField(form, F1040_PAGE2.line25a, result.line25.amount)
   setDollarField(form, F1040_PAGE2.line25d, result.line25.amount)
+  setDollarField(form, F1040_PAGE2.line27, result.line27.amount)
+  setDollarField(form, F1040_PAGE2.line28, result.line28.amount)
+  setDollarField(form, F1040_PAGE2.line29, result.line29.amount)
+  setDollarField(form, F1040_PAGE2.line31, result.line31.amount)
+  setDollarField(form, F1040_PAGE2.line32, result.line32.amount)
   setDollarField(form, F1040_PAGE2.line33, result.line33.amount)
 
   // ── Page 2: Refund / Owed ───────────────────────────────────

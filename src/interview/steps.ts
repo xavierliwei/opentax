@@ -12,6 +12,7 @@ import { StockSalesPage } from '../ui/pages/StockSalesPage.tsx'
 import { RSUIncomePage } from '../ui/pages/RSUIncomePage.tsx'
 import { PriorYearPage } from '../ui/pages/PriorYearPage.tsx'
 import { DeductionsPage } from '../ui/pages/DeductionsPage.tsx'
+import { CreditsPage } from '../ui/pages/CreditsPage.tsx'
 import { ReviewPage } from '../ui/pages/ReviewPage.tsx'
 import { DownloadPage } from '../ui/pages/DownloadPage.tsx'
 
@@ -133,6 +134,14 @@ export const STEPS: InterviewStep[] = [
     isVisible: () => true,
     isComplete: () => true,
     component: DeductionsPage,
+  },
+  {
+    id: 'credits',
+    label: 'Credits',
+    path: '/interview/credits',
+    isVisible: (tr) => tr.dependents.length > 0,
+    isComplete: () => true,
+    component: CreditsPage,
   },
   {
     id: 'review',

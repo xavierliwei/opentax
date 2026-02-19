@@ -53,8 +53,20 @@ export const NODE_LABELS: Record<string, string> = {
   'form1040.line14': 'Total deductions',
   'form1040.line15': 'Taxable income',
   'form1040.line16': 'Tax',
+  'form1040.line17': 'Amount from Schedule 2, Part I',
+  'form1040.line18': 'Tax + Schedule 2',
+  'form1040.line19': 'Child tax credit / credit for other dependents',
+  'form1040.line20': 'Other nonrefundable credits',
+  'form1040.line21': 'Total credits',
+  'form1040.line22': 'Tax after credits',
+  'form1040.line23': 'Other taxes',
   'form1040.line24': 'Total tax',
   'form1040.line25': 'Federal income tax withheld',
+  'form1040.line27': 'Earned income credit',
+  'form1040.line28': 'Additional child tax credit',
+  'form1040.line29': 'American opportunity credit',
+  'form1040.line31': 'Other refundable credits',
+  'form1040.line32': 'Total other payments and refundable credits',
   'form1040.line33': 'Total payments',
   'form1040.line34': 'Overpaid',
   'form1040.line37': 'Amount you owe',
@@ -113,6 +125,11 @@ export const NODE_LABELS: Record<string, string> = {
   'form8949.E.basis': 'Form 8949 Box E — Total basis',
   'form8949.E.adjustments': 'Form 8949 Box E — Total adjustments',
   'form8949.E.gainLoss': 'Form 8949 Box E — Total gain/loss',
+
+  // Child Tax Credit detail
+  'ctc.initialCredit': 'Initial child tax credit',
+  'ctc.phaseOutReduction': 'CTC phase-out reduction',
+  'ctc.creditAfterPhaseOut': 'CTC after phase-out',
 
   // Pseudo-nodes
   'standardDeduction': 'Standard deduction',
@@ -173,11 +190,46 @@ export function collectAllValues(
   add(form1040.line14)
   add(form1040.line15)
   add(form1040.line16)
+  add(form1040.line17)
+  add(form1040.line18)
+  add(form1040.line19)
+  add(form1040.line20)
+  add(form1040.line21)
+  add(form1040.line22)
+  add(form1040.line23)
   add(form1040.line24)
   add(form1040.line25)
+  add(form1040.line27)
+  add(form1040.line28)
+  add(form1040.line29)
+  add(form1040.line31)
+  add(form1040.line32)
   add(form1040.line33)
   add(form1040.line34)
   add(form1040.line37)
+
+  // Child Tax Credit detail nodes
+  if (form1040.childTaxCredit) {
+    const ctc = form1040.childTaxCredit
+    values.set('ctc.initialCredit', tracedFromComputation(
+      ctc.initialCredit,
+      'ctc.initialCredit',
+      [],
+      'Child Tax Credit — initial',
+    ))
+    values.set('ctc.phaseOutReduction', tracedFromComputation(
+      ctc.phaseOutReduction,
+      'ctc.phaseOutReduction',
+      ['ctc.initialCredit'],
+      'Child Tax Credit — phase-out reduction',
+    ))
+    values.set('ctc.creditAfterPhaseOut', tracedFromComputation(
+      ctc.creditAfterPhaseOut,
+      'ctc.creditAfterPhaseOut',
+      ['ctc.initialCredit', 'ctc.phaseOutReduction'],
+      'Child Tax Credit — after phase-out',
+    ))
+  }
 
   // Schedule A
   if (form1040.scheduleA) {
