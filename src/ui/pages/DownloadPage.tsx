@@ -41,13 +41,22 @@ export function DownloadPage() {
     try {
       let templates: FormTemplates
       try {
-        templates = {
-          f1040: await loadTemplate('forms/f1040.pdf'),
-          f1040sa: await loadTemplate('forms/f1040sa.pdf'),
-          f1040sb: await loadTemplate('forms/f1040sb.pdf'),
-          f1040sd: await loadTemplate('forms/f1040sd.pdf'),
-          f8949: await loadTemplate('forms/f8949.pdf'),
-        }
+        const [f1040, f1040sa, f1040sb, f1040sd, f8949, f1040s1, f1040s2, f1040s3, f8812, f8863, f6251, f8889] =
+          await Promise.all([
+            loadTemplate('forms/f1040.pdf'),
+            loadTemplate('forms/f1040sa.pdf'),
+            loadTemplate('forms/f1040sb.pdf'),
+            loadTemplate('forms/f1040sd.pdf'),
+            loadTemplate('forms/f8949.pdf'),
+            loadTemplate('forms/f1040s1.pdf'),
+            loadTemplate('forms/f1040s2.pdf'),
+            loadTemplate('forms/f1040s3.pdf'),
+            loadTemplate('forms/f8812.pdf'),
+            loadTemplate('forms/f8863.pdf'),
+            loadTemplate('forms/f6251.pdf'),
+            loadTemplate('forms/f8889.pdf'),
+          ])
+        templates = { f1040, f1040sa, f1040sb, f1040sd, f8949, f1040s1, f1040s2, f1040s3, f8812, f8863, f6251, f8889 }
       } catch {
         throw new Error(
           'Could not load IRS form templates. Make sure the PDF templates are installed in the /public/forms/ directory.',

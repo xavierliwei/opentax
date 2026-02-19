@@ -4,8 +4,10 @@
  * Orchestrates: rules engine → PDF fillers → assembled multi-page PDF.
  *
  * IRS attachment sequence order:
- *   Form 1040 (00) → Schedule A (07) → Schedule B (08)
- *   → Schedule D (12) → Form 8949 (12A)
+ *   Form 1040 (00) → Schedule 1 (02) → Schedule 2 (05) → Schedule 3 (06)
+ *   → Schedule A (07) → Schedule B (08) → Schedule D (12)
+ *   → Form 8949 (12A) → Form 8863 (18) → Form 6251 (32)
+ *   → Form 8812 (47) → Form 8889 (52)
  */
 
 import { PDFDocument } from 'pdf-lib'
@@ -19,7 +21,15 @@ import { fillScheduleA } from './fillers/scheduleAFiller'
 import { fillScheduleB } from './fillers/scheduleBFiller'
 import { fillScheduleD } from './fillers/scheduleDFiller'
 import { fillForm8949 } from './fillers/form8949Filler'
+import { fillSchedule1 } from './fillers/schedule1Filler'
+import { fillSchedule2 } from './fillers/schedule2Filler'
+import { fillSchedule3 } from './fillers/schedule3Filler'
+import { fillForm8812 } from './fillers/form8812Filler'
+import { fillForm8863 } from './fillers/form8863Filler'
+import { fillForm6251 } from './fillers/form6251Filler'
+import { fillForm8889 } from './fillers/form8889Filler'
 import { generateCoverSheet } from './fillers/coverSheet'
+import { tracedZero } from '../model/traced'
 
 /**
  * Compile a complete filing package for a tax return.
@@ -43,7 +53,33 @@ export async function compileFilingPackage(
   const needsForm8949 = needsScheduleD &&
     result.scheduleD!.form8949.categories.length > 0
 
-  // ── Fill forms ─────────────────────────────────────────────
+  const needsSchedule1 = result.schedule1 !== null ||
+    result.iraDeduction !== null ||
+    result.hsaResult !== null ||
+    result.studentLoanDeduction !== null
+
+  const needsSchedule2 =
+    (result.amtResult !== null && result.amtResult.amt > 0) ||
+    (result.hsaResult !== null && (result.hsaResult.distributionPenalty + result.hsaResult.excessPenalty) > 0)
+
+  const needsSchedule3 =
+    result.line20.amount > 0 ||
+    (result.educationCredit !== null && result.educationCredit.aotcRefundable > 0)
+
+  const needsForm8812 =
+    result.childTaxCredit !== null &&
+    (result.childTaxCredit.nonRefundableCredit + result.childTaxCredit.additionalCTC) > 0
+
+  const needsForm8863 =
+    result.educationCredit !== null &&
+    (result.educationCredit.totalNonRefundable + result.educationCredit.totalRefundable) > 0
+
+  const needsForm6251 =
+    result.amtResult !== null && result.amtResult.amt > 0
+
+  const needsForm8889 = result.hsaResult !== null
+
+  // ── Fill forms (in IRS attachment sequence order) ──────────
   const filledDocs: Array<{ doc: PDFDocument; summary: FormSummary }> = []
 
   // Form 1040 (sequence 00)
@@ -52,6 +88,43 @@ export async function compileFilingPackage(
     doc: f1040Doc,
     summary: { formId: 'Form 1040', sequenceNumber: '00', pageCount: f1040Doc.getPageCount() },
   })
+
+  // Schedule 1 (sequence 02)
+  if (needsSchedule1) {
+    const sch1Doc = await fillSchedule1(
+      templates.f1040s1, taxReturn,
+      result.schedule1 ?? { line5: tracedZero('sch1-5'), line8z: tracedZero('sch1-8z'), line10: tracedZero('sch1-10') },
+      result.iraDeduction,
+      result.hsaResult,
+      result.studentLoanDeduction,
+    )
+    filledDocs.push({
+      doc: sch1Doc,
+      summary: { formId: 'Schedule 1', sequenceNumber: '02', pageCount: sch1Doc.getPageCount() },
+    })
+  }
+
+  // Schedule 2 (sequence 05)
+  if (needsSchedule2) {
+    const sch2Doc = await fillSchedule2(
+      templates.f1040s2, taxReturn,
+      result.amtResult,
+      result.hsaResult,
+    )
+    filledDocs.push({
+      doc: sch2Doc,
+      summary: { formId: 'Schedule 2', sequenceNumber: '05', pageCount: sch2Doc.getPageCount() },
+    })
+  }
+
+  // Schedule 3 (sequence 06)
+  if (needsSchedule3) {
+    const sch3Doc = await fillSchedule3(templates.f1040s3, taxReturn, result)
+    filledDocs.push({
+      doc: sch3Doc,
+      summary: { formId: 'Schedule 3', sequenceNumber: '06', pageCount: sch3Doc.getPageCount() },
+    })
+  }
 
   // Schedule A (sequence 07)
   // Note: Schedule A is included whenever the user selects "itemized", even if
@@ -97,6 +170,42 @@ export async function compileFilingPackage(
         },
       })
     }
+  }
+
+  // Form 8863 (sequence 18)
+  if (needsForm8863) {
+    const f8863Doc = await fillForm8863(templates.f8863, taxReturn, result.educationCredit!)
+    filledDocs.push({
+      doc: f8863Doc,
+      summary: { formId: 'Form 8863', sequenceNumber: '18', pageCount: f8863Doc.getPageCount() },
+    })
+  }
+
+  // Form 6251 (sequence 32)
+  if (needsForm6251) {
+    const f6251Doc = await fillForm6251(templates.f6251, taxReturn, result.amtResult!)
+    filledDocs.push({
+      doc: f6251Doc,
+      summary: { formId: 'Form 6251', sequenceNumber: '32', pageCount: f6251Doc.getPageCount() },
+    })
+  }
+
+  // Form 8812 (sequence 47)
+  if (needsForm8812) {
+    const f8812Doc = await fillForm8812(templates.f8812, taxReturn, result.childTaxCredit!)
+    filledDocs.push({
+      doc: f8812Doc,
+      summary: { formId: 'Form 8812', sequenceNumber: '47', pageCount: f8812Doc.getPageCount() },
+    })
+  }
+
+  // Form 8889 (sequence 52)
+  if (needsForm8889) {
+    const f8889Doc = await fillForm8889(templates.f8889, taxReturn, result.hsaResult!)
+    filledDocs.push({
+      doc: f8889Doc,
+      summary: { formId: 'Form 8889', sequenceNumber: '52', pageCount: f8889Doc.getPageCount() },
+    })
   }
 
   // ── Build summary ──────────────────────────────────────────
