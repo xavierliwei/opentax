@@ -627,12 +627,25 @@ export function StockSalesPage() {
             ✓ {forms.length} transaction{forms.length !== 1 ? 's' : ''} loaded from{' '}
             {importBroker ?? 'import'}
           </span>
-          <button
-            className="text-gray-500 hover:text-gray-700 underline"
-            onClick={() => setShowUpload(true)}
-          >
-            Replace
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              className="text-gray-500 hover:text-gray-700 underline"
+              onClick={() => setShowUpload(true)}
+            >
+              Replace
+            </button>
+            <button
+              className="text-red-400 hover:text-red-600 underline"
+              onClick={() => {
+                setForm1099Bs([])
+                setShowUpload(true)
+                setImportResult(null)
+                setImportBroker(null)
+              }}
+            >
+              Clear all
+            </button>
+          </div>
         </div>
       )}
 
@@ -660,6 +673,20 @@ export function StockSalesPage() {
       {/* Transaction categories */}
       {forms.length > 0 && (
         <div className="mt-6 flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-500">{forms.length} transaction{forms.length !== 1 ? 's' : ''}</span>
+            <button
+              className="text-xs text-red-400 hover:text-red-600 underline"
+              onClick={() => {
+                setForm1099Bs([])
+                setImportResult(null)
+                setImportBroker(null)
+                setShowUpload(true)
+              }}
+            >
+              Clear all
+            </button>
+          </div>
           {CATEGORY_ORDER.map((cat) => {
             const catForms = grouped.get(cat)!
             if (catForms.length === 0) return null
