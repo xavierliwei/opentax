@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useTaxStore } from '../../store/taxStore.ts'
 import { useInterview } from '../../interview/useInterview.ts'
 import { InterviewNav } from './InterviewNav.tsx'
@@ -35,23 +35,6 @@ export function DownloadPage() {
   const interview = useInterview()
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [templateWarning, setTemplateWarning] = useState<string | null>(null)
-
-  // Proactive check: verify PDF templates exist on mount
-  useEffect(() => {
-    fetch('/forms/f1040.pdf', { method: 'HEAD' }).then((resp) => {
-      if (!resp.ok) {
-        setTemplateWarning(
-          'IRS form templates are missing. PDF download will not work until templates are installed in the /public/forms/ directory.',
-        )
-      }
-    }).catch(() => {
-      setTemplateWarning(
-        'Could not verify IRS form templates. PDF download may not work.',
-      )
-    })
-  }, [])
-
   const handleDownloadPDF = async () => {
     setGenerating(true)
     setError(null)
@@ -158,13 +141,6 @@ export function DownloadPage() {
           </div>
         )}
       </div>
-
-      {/* Template warning */}
-      {templateWarning && (
-        <div className="mt-4 bg-amber-50 border border-amber-200 rounded-md p-3 text-sm text-amber-800">
-          {templateWarning}
-        </div>
-      )}
 
       {/* Download buttons */}
       <div className="mt-6 flex flex-col sm:flex-row gap-3">
