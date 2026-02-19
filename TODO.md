@@ -158,6 +158,9 @@ Lines currently returning **placeholder $0** that need real computation:
 - [ ] Schedule C / Schedule SE — self-employment income
 - [ ] Multi-year support (hardcoded to 2025)
 
+## Infrastructure
+- [ ] Enable GitHub Pages — repo Settings → Pages → Source: "Deploy from a branch" → Branch: `main`, Folder: `/docs`. Landing page is ready at `docs/index.html`.
+
 ## Out of Scope
 - **E-filing / MeF XML** — requires IRS enrollment and certification as an Authorized e-file Provider
 - **Authentication** — product runs on localhost; single-user, no network auth needed
