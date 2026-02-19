@@ -18,6 +18,7 @@ import type {
   DependentCareExpenses,
   RetirementContributions,
   EnergyCredits,
+  EducationExpenses,
 } from '../model/types.ts'
 import { emptyTaxReturn } from '../model/types.ts'
 import { computeAll } from '../rules/engine.ts'
@@ -70,6 +71,7 @@ export interface TaxStoreState {
   setDependentCare: (updates: Partial<DependentCareExpenses>) => void
   setRetirementContributions: (updates: Partial<RetirementContributions>) => void
   setEnergyCredits: (updates: Partial<EnergyCredits>) => void
+  setEducationExpenses: (expenses: EducationExpenses) => void
   importReturn: (taxReturn: TaxReturn) => void
   resetReturn: () => void
 }
@@ -518,6 +520,11 @@ export const useTaxStore = create<TaxStoreState>()(
         set(recompute(tr))
       },
 
+      setEducationExpenses: (expenses) => {
+        const tr = { ...get().taxReturn, educationExpenses: expenses }
+        set(recompute(tr))
+      },
+
       importReturn: (taxReturn) => {
         set(recompute(taxReturn))
       },
@@ -535,6 +542,29 @@ export const useTaxStore = create<TaxStoreState>()(
           // Merge with defaults so fields added after the user's last save
           // (e.g. form1099MISCs) are initialised instead of undefined.
           state.taxReturn = { ...emptyTaxReturn(state.taxReturn.taxYear), ...state.taxReturn }
+
+          // Ensure itemized sub-fields added after the user's last save default to 0
+          if (state.taxReturn.deductions.itemized) {
+            const defaults: ItemizedDeductions = {
+              medicalExpenses: 0,
+              stateLocalIncomeTaxes: 0,
+              stateLocalSalesTaxes: 0,
+              realEstateTaxes: 0,
+              personalPropertyTaxes: 0,
+              mortgageInterest: 0,
+              mortgagePrincipal: 0,
+              mortgagePreTCJA: false,
+              investmentInterest: 0,
+              priorYearInvestmentInterestCarryforward: 0,
+              charitableCash: 0,
+              charitableNoncash: 0,
+              gamblingLosses: 0,
+              casualtyTheftLosses: 0,
+              federalEstateTaxIRD: 0,
+              otherMiscDeductions: 0,
+            }
+            state.taxReturn.deductions.itemized = { ...defaults, ...state.taxReturn.deductions.itemized }
+          }
 
           // Migrate legacy otherDeductions → otherMiscDeductions
           const it = state.taxReturn.deductions.itemized
