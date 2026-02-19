@@ -213,7 +213,7 @@ function TransactionRow({
   )
 }
 
-// ── Category section (collapsible) ──────────────────────────
+// ── Category section (collapsible, nested inside broker) ──────
 
 function CategorySection({
   cat,
@@ -230,16 +230,16 @@ function CategorySection({
   const isNetGain = netGL >= 0
 
   return (
-    <div className="rounded-xl border border-gray-200 overflow-hidden">
-      {/* Clickable category header */}
+    <div className="border-t border-gray-100 first:border-t-0">
+      {/* Category header */}
       <button
         type="button"
         onClick={() => setCollapsed(!collapsed)}
-        className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
+        className="w-full flex items-center justify-between gap-3 px-4 py-2.5 bg-gray-50/70 hover:bg-gray-100/80 transition-colors text-left"
       >
         <div className="flex items-center gap-2 min-w-0">
           <svg
-            className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${collapsed ? '' : 'rotate-90'}`}
+            className={`w-3.5 h-3.5 text-gray-400 shrink-0 transition-transform ${collapsed ? '' : 'rotate-90'}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -247,21 +247,19 @@ function CategorySection({
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
           </svg>
-          <span className="text-sm font-semibold text-gray-700 truncate">
+          <span className="text-xs font-semibold text-gray-600 truncate">
             {CATEGORY_LABEL[cat]}
           </span>
           <span className="text-xs text-gray-400 shrink-0">
             {forms.length} trade{forms.length !== 1 ? 's' : ''}
           </span>
         </div>
-        <span
-          className={`text-sm font-bold tabular-nums shrink-0 ${isNetGain ? 'text-emerald-600' : 'text-red-600'}`}
-        >
+        <span className={`text-xs font-semibold tabular-nums shrink-0 ${isNetGain ? 'text-emerald-600' : 'text-red-600'}`}>
           {isNetGain ? '+' : '−'}{formatCents(Math.abs(netGL))}
         </span>
       </button>
 
-      {/* Table (shown when expanded) */}
+      {/* Table */}
       {!collapsed && (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[480px]">
@@ -273,12 +271,12 @@ function CategorySection({
               <col className="w-8" />
             </colgroup>
             <thead>
-              <tr className="border-t border-gray-200 text-xs text-gray-400 uppercase tracking-wide">
-                <th className="py-2 px-3 text-left font-medium">Security</th>
-                <th className="py-2 px-3 text-left font-medium">Dates</th>
-                <th className="py-2 px-3 text-right font-medium">Proceeds</th>
-                <th className="py-2 px-3 text-right font-medium">Gain / Loss</th>
-                <th className="py-2 px-2"></th>
+              <tr className="text-xs text-gray-400 uppercase tracking-wide border-t border-gray-100">
+                <th className="py-1.5 px-3 text-left font-medium">Security</th>
+                <th className="py-1.5 px-3 text-left font-medium">Dates</th>
+                <th className="py-1.5 px-3 text-right font-medium">Proceeds</th>
+                <th className="py-1.5 px-3 text-right font-medium">Gain / Loss</th>
+                <th className="py-1.5 px-2"></th>
               </tr>
             </thead>
             <tbody>
@@ -292,6 +290,85 @@ function CategorySection({
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Broker section (outer collapsible, contains categories) ──
+
+function BrokerSection({
+  brokerName,
+  forms,
+  onRemoveTransaction,
+  onRemoveBroker,
+}: {
+  brokerName: string
+  forms: Form1099B[]
+  onRemoveTransaction: (id: string) => void
+  onRemoveBroker: () => void
+}) {
+  const [collapsed, setCollapsed] = useState(false)
+
+  const netGL = forms.reduce((sum, f) => sum + f.gainLoss, 0)
+  const isNetGain = netGL >= 0
+
+  // Group by category within this broker
+  const grouped = new Map<Form8949Category, Form1099B[]>()
+  for (const cat of CATEGORY_ORDER) grouped.set(cat, [])
+  for (const f of forms) grouped.get(getCategory(f))!.push(f)
+
+  return (
+    <div className="rounded-xl border border-gray-200 overflow-hidden">
+      {/* Broker header */}
+      <div className="flex items-center gap-2 px-4 py-3 bg-white border-b border-gray-100">
+        <button
+          type="button"
+          onClick={() => setCollapsed(!collapsed)}
+          className="flex items-center gap-2 min-w-0 flex-1 text-left"
+        >
+          <svg
+            className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${collapsed ? '' : 'rotate-90'}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+          <span className="text-sm font-semibold text-gray-800 truncate">{brokerName}</span>
+          <span className="text-xs text-gray-400 shrink-0">
+            {forms.length} trade{forms.length !== 1 ? 's' : ''}
+          </span>
+        </button>
+        <span className={`text-sm font-bold tabular-nums shrink-0 ${isNetGain ? 'text-emerald-600' : 'text-red-600'}`}>
+          {isNetGain ? '+' : '−'}{formatCents(Math.abs(netGL))}
+        </span>
+        <button
+          onClick={onRemoveBroker}
+          className="ml-1 text-gray-300 hover:text-red-500 transition-colors text-base leading-none shrink-0"
+          title={`Remove all ${brokerName} transactions`}
+        >
+          ×
+        </button>
+      </div>
+
+      {/* Categories inside broker */}
+      {!collapsed && (
+        <div>
+          {CATEGORY_ORDER.map((cat) => {
+            const catForms = grouped.get(cat)!
+            if (catForms.length === 0) return null
+            return (
+              <CategorySection
+                key={cat}
+                cat={cat}
+                forms={catForms}
+                onRemove={onRemoveTransaction}
+              />
+            )
+          })}
         </div>
       )}
     </div>
@@ -517,12 +594,45 @@ function ManualEntryForm({
 
 // ── Main page ─────────────────────────────────────────────────
 
+// ── Broker chip (per-import summary) ─────────────────────────
+
+interface BrokerImport {
+  brokerName: string
+  count: number
+  result: ParseResult
+}
+
+function BrokerChip({
+  bi,
+  onRemove,
+}: {
+  bi: BrokerImport
+  onRemove: () => void
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5 text-sm bg-green-50 border border-green-200 text-green-800 rounded-full px-3 py-1">
+      <span className="font-medium">{bi.brokerName}</span>
+      <span className="text-green-600">{bi.count} txn{bi.count !== 1 ? 's' : ''}</span>
+      <button
+        onClick={onRemove}
+        className="ml-0.5 text-green-400 hover:text-red-500 transition-colors leading-none"
+        title={`Remove ${bi.brokerName} transactions`}
+      >
+        ×
+      </button>
+    </span>
+  )
+}
+
+// ── Main page ─────────────────────────────────────────────────
+
 export function StockSalesPage() {
   const forms = useTaxStore((s) => s.taxReturn.form1099Bs)
   const rsuVestEvents = useTaxStore((s) => s.taxReturn.rsuVestEvents)
   const setForm1099Bs = useTaxStore((s) => s.setForm1099Bs)
   const addForm1099B = useTaxStore((s) => s.addForm1099B)
   const removeForm1099B = useTaxStore((s) => s.removeForm1099B)
+  const removeForm1099BsByBroker = useTaxStore((s) => s.removeForm1099BsByBroker)
   const interview = useInterview()
 
   const rsuAnalysis = useMemo(() => {
@@ -533,47 +643,71 @@ export function StockSalesPage() {
     return { analyses, impact: estimateRSUImpact(analyses) }
   }, [forms, rsuVestEvents])
 
-  const [importBroker, setImportBroker] = useState<string | null>(null)
-  const [importResult, setImportResult] = useState<ParseResult | null>(null)
+  // Track per-broker imports for chips
+  const [brokerImports, setBrokerImports] = useState<BrokerImport[]>([])
+  const [lastImportResult, setLastImportResult] = useState<ParseResult | null>(null)
+  const [lastImportBroker, setLastImportBroker] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
-  const [showUpload, setShowUpload] = useState(true)
   const [showManualForm, setShowManualForm] = useState(false)
+
+  // Derive distinct broker names from actual data (covers persisted state)
+  const brokerNames = useMemo(() => {
+    const names = new Set<string>()
+    for (const f of forms) {
+      if (f.brokerName) names.add(f.brokerName)
+    }
+    return Array.from(names)
+  }, [forms])
 
   async function handleFileUpload(file: File) {
     setImporting(true)
+    setLastImportResult(null)
+    setLastImportBroker(null)
     try {
+      let brokerName: string
+      let result: ParseResult
+
       if (file.name.toLowerCase().endsWith('.pdf')) {
-        // PDF: Robinhood consolidated 1099
         const buf = await file.arrayBuffer()
-        const result = await parseRobinhoodPdf(buf)
-        setImportBroker('Robinhood')
-        setImportResult(result)
-        if (result.transactions.length > 0) {
-          setForm1099Bs(result.transactions)
-          setShowUpload(false)
-        }
+        result = await parseRobinhoodPdf(buf)
+        brokerName = 'Robinhood'
       } else {
-        // CSV: auto-detect broker
         const csv = await file.text()
         const detected = autoDetectBroker(csv)
-        setImportBroker(detected.parser.brokerName)
-        setImportResult(detected.result)
-        if (detected.result.transactions.length > 0) {
-          setForm1099Bs(detected.result.transactions)
-          setShowUpload(false)
-        }
+        brokerName = detected.parser.brokerName
+        result = detected.result
+      }
+
+      setLastImportBroker(brokerName)
+      setLastImportResult(result)
+
+      if (result.transactions.length > 0) {
+        // Remove any existing transactions from this broker, then append new ones
+        // This handles re-importing from the same broker cleanly
+        const existing = forms.filter(f => f.brokerName !== brokerName)
+        setForm1099Bs([...existing, ...result.transactions])
+
+        setBrokerImports(prev => {
+          const without = prev.filter(bi => bi.brokerName !== brokerName)
+          return [...without, { brokerName, count: result.rowCounts.parsed, result }]
+        })
       }
     } catch (e) {
-      setImportResult({
+      setLastImportResult({
         transactions: [],
         warnings: [],
         errors: [e instanceof Error ? e.message : 'Failed to read file. The file may be corrupted or in an unsupported format.'],
         rowCounts: { total: 0, parsed: 0, skipped: 0 },
       })
-      setImportBroker(file.name)
+      setLastImportBroker(file.name)
     } finally {
       setImporting(false)
     }
+  }
+
+  function handleRemoveBroker(brokerName: string) {
+    removeForm1099BsByBroker(brokerName)
+    setBrokerImports(prev => prev.filter(bi => bi.brokerName !== brokerName))
   }
 
   function handleManualSave(form: Form1099B) {
@@ -581,87 +715,67 @@ export function StockSalesPage() {
     setShowManualForm(false)
   }
 
-  // Group by category for display
-  const grouped = new Map<Form8949Category, Form1099B[]>()
-  for (const cat of CATEGORY_ORDER) {
-    grouped.set(cat, [])
-  }
-  for (const f of forms) {
-    const cat = getCategory(f)
-    grouped.get(cat)!.push(f)
-  }
+  // Group by broker for display
+  const groupedByBroker = useMemo(() => {
+    const map = new Map<string, Form1099B[]>()
+    for (const f of forms) {
+      const key = f.brokerName || 'Manual'
+      if (!map.has(key)) map.set(key, [])
+      map.get(key)!.push(f)
+    }
+    return map
+  }, [forms])
 
   return (
     <div data-testid="page-stock-sales" className="max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold text-gray-900">Stock Sales (1099-B)</h1>
       <p className="mt-1 text-sm text-gray-600">
-        Import your broker's CSV export or add transactions manually. Skip this step if you had no
-        stock sales.
+        Import your broker's CSV or PDF export, or add transactions manually.
+        {forms.length > 0 ? ' You can import from multiple brokers.' : ' Skip this step if you had no stock sales.'}
       </p>
 
-      {/* Upload zone */}
-      {showUpload ? (
-        <div className="mt-6">
-          {importing ? (
-            <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center bg-gray-50">
-              <div className="text-2xl mb-2 animate-pulse">⏳</div>
-              <p className="text-sm text-gray-500">Parsing PDF…</p>
-            </div>
-          ) : (
-            <BrokerUploadZone onUpload={handleFileUpload} />
+      {/* Broker chips — show which brokers are loaded */}
+      {brokerNames.length > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          {brokerNames.map(name => {
+            const count = forms.filter(f => f.brokerName === name).length
+            const bi = brokerImports.find(b => b.brokerName === name)
+            return (
+              <BrokerChip
+                key={name}
+                bi={{ brokerName: name, count, result: bi?.result ?? { transactions: [], warnings: [], errors: [], rowCounts: { total: count, parsed: count, skipped: 0 } } }}
+                onRemove={() => handleRemoveBroker(name)}
+              />
+            )
+          })}
+          {/* Also show manually-added transactions if any have no broker */}
+          {forms.some(f => !f.brokerName) && (
+            <span className="inline-flex items-center gap-1.5 text-sm bg-gray-50 border border-gray-200 text-gray-700 rounded-full px-3 py-1">
+              <span className="font-medium">Manual</span>
+              <span className="text-gray-500">{forms.filter(f => !f.brokerName).length} txn{forms.filter(f => !f.brokerName).length !== 1 ? 's' : ''}</span>
+            </span>
           )}
-          {importResult && (
-            <ImportBanner
-              brokerName={importBroker ?? 'Broker'}
-              result={importResult}
-              onReplace={() => {
-                setShowUpload(true)
-                setImportResult(null)
-              }}
-            />
-          )}
-        </div>
-      ) : (
-        <div className="mt-4 flex items-center justify-between text-sm">
-          <span className="text-green-700 font-medium">
-            ✓ {forms.length} transaction{forms.length !== 1 ? 's' : ''} loaded from{' '}
-            {importBroker ?? 'import'}
-          </span>
-          <div className="flex items-center gap-3">
-            <button
-              className="text-gray-500 hover:text-gray-700 underline"
-              onClick={() => setShowUpload(true)}
-            >
-              Replace
-            </button>
-            <button
-              className="text-red-400 hover:text-red-600 underline"
-              onClick={() => {
-                setForm1099Bs([])
-                setShowUpload(true)
-                setImportResult(null)
-                setImportBroker(null)
-              }}
-            >
-              Clear all
-            </button>
-          </div>
         </div>
       )}
 
-      {/* Per-transaction warnings (RSU basis, etc.) */}
-      {!showUpload && importResult && importResult.warnings.length > 0 && (
-        <div className="mt-2 space-y-1">
-          {importResult.warnings.map((w, i) => (
-            <p
-              key={i}
-              className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-1.5"
-            >
-              ⚠ {w}
-            </p>
-          ))}
-        </div>
-      )}
+      {/* Upload zone — always visible */}
+      <div className="mt-4">
+        {importing ? (
+          <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center bg-gray-50">
+            <div className="text-2xl mb-2 animate-pulse">⏳</div>
+            <p className="text-sm text-gray-500">Parsing file…</p>
+          </div>
+        ) : (
+          <BrokerUploadZone onUpload={handleFileUpload} />
+        )}
+        {lastImportResult && (
+          <ImportBanner
+            brokerName={lastImportBroker ?? 'Broker'}
+            result={lastImportResult}
+            onReplace={() => setLastImportResult(null)}
+          />
+        )}
+      </div>
 
       {/* RSU basis adjustment banner */}
       {rsuAnalysis && (
@@ -670,35 +784,32 @@ export function StockSalesPage() {
         </div>
       )}
 
-      {/* Transaction categories */}
+      {/* Transactions grouped by broker */}
       {forms.length > 0 && (
         <div className="mt-6 flex flex-col gap-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-500">{forms.length} transaction{forms.length !== 1 ? 's' : ''}</span>
+            <span className="text-sm text-gray-500">{forms.length} transaction{forms.length !== 1 ? 's' : ''} total</span>
             <button
               className="text-xs text-red-400 hover:text-red-600 underline"
               onClick={() => {
                 setForm1099Bs([])
-                setImportResult(null)
-                setImportBroker(null)
-                setShowUpload(true)
+                setBrokerImports([])
+                setLastImportResult(null)
+                setLastImportBroker(null)
               }}
             >
               Clear all
             </button>
           </div>
-          {CATEGORY_ORDER.map((cat) => {
-            const catForms = grouped.get(cat)!
-            if (catForms.length === 0) return null
-            return (
-              <CategorySection
-                key={cat}
-                cat={cat}
-                forms={catForms}
-                onRemove={removeForm1099B}
-              />
-            )
-          })}
+          {Array.from(groupedByBroker.entries()).map(([broker, brokerForms]) => (
+            <BrokerSection
+              key={broker}
+              brokerName={broker}
+              forms={brokerForms}
+              onRemoveTransaction={removeForm1099B}
+              onRemoveBroker={() => handleRemoveBroker(broker === 'Manual' ? '' : broker)}
+            />
+          ))}
 
           <GainLossSummary forms={forms} />
         </div>
