@@ -6,7 +6,7 @@ After making and verifying a change, commit it. Follow this workflow:
 
 1. **Make the change** — implement the requested feature or fix.
 2. **Verify** — run `npm run build` (or the relevant test command) to confirm the change is correct and the build is clean.
-3. **Commit** — stage the relevant files and create a focused commit with a clear message.
+3. **Commit** — stage only the files you changed. Do not `git add .` or stage files modified by other agents.
 
 If verification requires user input (e.g. visual UI review in the browser, or a runtime test that can't be automated), ask the user to confirm the change looks good **before** committing.
 
