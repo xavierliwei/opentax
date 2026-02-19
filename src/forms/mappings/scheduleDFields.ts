@@ -35,31 +35,31 @@ interface GainLossRow {
 export const SCHD_SHORT_TERM_TABLE: Record<string, GainLossRow> = {
   /** Line 1a: Totals from Form 8949, Box A (basis reported to IRS) */
   line1a: {
-    proceeds:    `${P1}Table_PartI[0].f1_3[0]`,
-    basis:       `${P1}Table_PartI[0].f1_4[0]`,
-    adjustments: `${P1}Table_PartI[0].f1_5[0]`,
-    gainLoss:    `${P1}Table_PartI[0].f1_6[0]`,
+    proceeds:    `${P1}Table_PartI[0].Row1a[0].f1_3[0]`,
+    basis:       `${P1}Table_PartI[0].Row1a[0].f1_4[0]`,
+    adjustments: `${P1}Table_PartI[0].Row1a[0].f1_5[0]`,
+    gainLoss:    `${P1}Table_PartI[0].Row1a[0].f1_6[0]`,
   },
   /** Line 1b: Totals from Form 8949, Box B (basis NOT reported to IRS) */
   line1b: {
-    proceeds:    `${P1}Table_PartI[0].f1_7[0]`,
-    basis:       `${P1}Table_PartI[0].f1_8[0]`,
-    adjustments: `${P1}Table_PartI[0].f1_9[0]`,
-    gainLoss:    `${P1}Table_PartI[0].f1_10[0]`,
+    proceeds:    `${P1}Table_PartI[0].Row1b[0].f1_7[0]`,
+    basis:       `${P1}Table_PartI[0].Row1b[0].f1_8[0]`,
+    adjustments: `${P1}Table_PartI[0].Row1b[0].f1_9[0]`,
+    gainLoss:    `${P1}Table_PartI[0].Row1b[0].f1_10[0]`,
   },
   /** Line 2: Totals from Form 8949, Box C (Form 1099-B not received) */
   line2: {
-    proceeds:    `${P1}Table_PartI[0].f1_11[0]`,
-    basis:       `${P1}Table_PartI[0].f1_12[0]`,
-    adjustments: `${P1}Table_PartI[0].f1_13[0]`,
-    gainLoss:    `${P1}Table_PartI[0].f1_14[0]`,
+    proceeds:    `${P1}Table_PartI[0].Row2[0].f1_11[0]`,
+    basis:       `${P1}Table_PartI[0].Row2[0].f1_12[0]`,
+    adjustments: `${P1}Table_PartI[0].Row2[0].f1_13[0]`,
+    gainLoss:    `${P1}Table_PartI[0].Row2[0].f1_14[0]`,
   },
   /** Line 3: Totals from Form 8949 combined (all short-term) */
   line3: {
-    proceeds:    `${P1}Table_PartI[0].f1_15[0]`,
-    basis:       `${P1}Table_PartI[0].f1_16[0]`,
-    adjustments: `${P1}Table_PartI[0].f1_17[0]`,
-    gainLoss:    `${P1}Table_PartI[0].f1_18[0]`,
+    proceeds:    `${P1}Table_PartI[0].Row3[0].f1_15[0]`,
+    basis:       `${P1}Table_PartI[0].Row3[0].f1_16[0]`,
+    adjustments: `${P1}Table_PartI[0].Row3[0].f1_17[0]`,
+    gainLoss:    `${P1}Table_PartI[0].Row3[0].f1_18[0]`,
   },
 }
 
@@ -79,31 +79,31 @@ export const SCHD_SHORT_TERM = {
 export const SCHD_LONG_TERM_TABLE: Record<string, GainLossRow> = {
   /** Line 8a: Totals from Form 8949, Box D (basis reported to IRS) */
   line8a: {
-    proceeds:    `${P1}Table_PartII[0].f1_23[0]`,
-    basis:       `${P1}Table_PartII[0].f1_24[0]`,
-    adjustments: `${P1}Table_PartII[0].f1_25[0]`,
-    gainLoss:    `${P1}Table_PartII[0].f1_26[0]`,
+    proceeds:    `${P1}Table_PartII[0].Row8a[0].f1_23[0]`,
+    basis:       `${P1}Table_PartII[0].Row8a[0].f1_24[0]`,
+    adjustments: `${P1}Table_PartII[0].Row8a[0].f1_25[0]`,
+    gainLoss:    `${P1}Table_PartII[0].Row8a[0].f1_26[0]`,
   },
   /** Line 8b: Totals from Form 8949, Box E (basis NOT reported to IRS) */
   line8b: {
-    proceeds:    `${P1}Table_PartII[0].f1_27[0]`,
-    basis:       `${P1}Table_PartII[0].f1_28[0]`,
-    adjustments: `${P1}Table_PartII[0].f1_29[0]`,
-    gainLoss:    `${P1}Table_PartII[0].f1_30[0]`,
+    proceeds:    `${P1}Table_PartII[0].Row8b[0].f1_27[0]`,
+    basis:       `${P1}Table_PartII[0].Row8b[0].f1_28[0]`,
+    adjustments: `${P1}Table_PartII[0].Row8b[0].f1_29[0]`,
+    gainLoss:    `${P1}Table_PartII[0].Row8b[0].f1_30[0]`,
   },
   /** Line 9: Totals from Form 8949, Box F (Form 1099-B not received) */
   line9: {
-    proceeds:    `${P1}Table_PartII[0].f1_31[0]`,
-    basis:       `${P1}Table_PartII[0].f1_32[0]`,
-    adjustments: `${P1}Table_PartII[0].f1_33[0]`,
-    gainLoss:    `${P1}Table_PartII[0].f1_34[0]`,
+    proceeds:    `${P1}Table_PartII[0].Row9[0].f1_31[0]`,
+    basis:       `${P1}Table_PartII[0].Row9[0].f1_32[0]`,
+    adjustments: `${P1}Table_PartII[0].Row9[0].f1_33[0]`,
+    gainLoss:    `${P1}Table_PartII[0].Row9[0].f1_34[0]`,
   },
   /** Line 10: Totals from Form 8949 combined (all long-term) */
   line10: {
-    proceeds:    `${P1}Table_PartII[0].f1_35[0]`,
-    basis:       `${P1}Table_PartII[0].f1_36[0]`,
-    adjustments: `${P1}Table_PartII[0].f1_37[0]`,
-    gainLoss:    `${P1}Table_PartII[0].f1_38[0]`,
+    proceeds:    `${P1}Table_PartII[0].Row10[0].f1_35[0]`,
+    basis:       `${P1}Table_PartII[0].Row10[0].f1_36[0]`,
+    adjustments: `${P1}Table_PartII[0].Row10[0].f1_37[0]`,
+    gainLoss:    `${P1}Table_PartII[0].Row10[0].f1_38[0]`,
   },
 }
 

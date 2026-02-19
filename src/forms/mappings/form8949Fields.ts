@@ -67,15 +67,16 @@ function part1Row(rowIndex: number): TransactionRowFields {
   // Fields start at f1_03 and increment by 8 per row
   const base = 3 + rowIndex * COLUMNS_PER_ROW
   const pad = (n: number) => n.toString().padStart(2, '0')
+  const row = `Row${rowIndex + 1}[0].`
   return {
-    description:      `${P1}Table_Line1_Part1[0].f1_${pad(base)}[0]`,
-    dateAcquired:     `${P1}Table_Line1_Part1[0].f1_${pad(base + 1)}[0]`,
-    dateSold:         `${P1}Table_Line1_Part1[0].f1_${pad(base + 2)}[0]`,
-    proceeds:         `${P1}Table_Line1_Part1[0].f1_${pad(base + 3)}[0]`,
-    basis:            `${P1}Table_Line1_Part1[0].f1_${pad(base + 4)}[0]`,
-    adjustmentCode:   `${P1}Table_Line1_Part1[0].f1_${pad(base + 5)}[0]`,
-    adjustmentAmount: `${P1}Table_Line1_Part1[0].f1_${pad(base + 6)}[0]`,
-    gainLoss:         `${P1}Table_Line1_Part1[0].f1_${pad(base + 7)}[0]`,
+    description:      `${P1}Table_Line1_Part1[0].${row}f1_${pad(base)}[0]`,
+    dateAcquired:     `${P1}Table_Line1_Part1[0].${row}f1_${pad(base + 1)}[0]`,
+    dateSold:         `${P1}Table_Line1_Part1[0].${row}f1_${pad(base + 2)}[0]`,
+    proceeds:         `${P1}Table_Line1_Part1[0].${row}f1_${pad(base + 3)}[0]`,
+    basis:            `${P1}Table_Line1_Part1[0].${row}f1_${pad(base + 4)}[0]`,
+    adjustmentCode:   `${P1}Table_Line1_Part1[0].${row}f1_${pad(base + 5)}[0]`,
+    adjustmentAmount: `${P1}Table_Line1_Part1[0].${row}f1_${pad(base + 6)}[0]`,
+    gainLoss:         `${P1}Table_Line1_Part1[0].${row}f1_${pad(base + 7)}[0]`,
   }
 }
 
@@ -122,15 +123,16 @@ function part2Row(rowIndex: number): TransactionRowFields {
   // Fields start at f2_03 and increment by 8 per row
   const base = 3 + rowIndex * COLUMNS_PER_ROW
   const pad = (n: number) => n.toString().padStart(2, '0')
+  const row = `Row${rowIndex + 1}[0].`
   return {
-    description:      `${P2}Table_Line1_Part2[0].f2_${pad(base)}[0]`,
-    dateAcquired:     `${P2}Table_Line1_Part2[0].f2_${pad(base + 1)}[0]`,
-    dateSold:         `${P2}Table_Line1_Part2[0].f2_${pad(base + 2)}[0]`,
-    proceeds:         `${P2}Table_Line1_Part2[0].f2_${pad(base + 3)}[0]`,
-    basis:            `${P2}Table_Line1_Part2[0].f2_${pad(base + 4)}[0]`,
-    adjustmentCode:   `${P2}Table_Line1_Part2[0].f2_${pad(base + 5)}[0]`,
-    adjustmentAmount: `${P2}Table_Line1_Part2[0].f2_${pad(base + 6)}[0]`,
-    gainLoss:         `${P2}Table_Line1_Part2[0].f2_${pad(base + 7)}[0]`,
+    description:      `${P2}Table_Line1_Part2[0].${row}f2_${pad(base)}[0]`,
+    dateAcquired:     `${P2}Table_Line1_Part2[0].${row}f2_${pad(base + 1)}[0]`,
+    dateSold:         `${P2}Table_Line1_Part2[0].${row}f2_${pad(base + 2)}[0]`,
+    proceeds:         `${P2}Table_Line1_Part2[0].${row}f2_${pad(base + 3)}[0]`,
+    basis:            `${P2}Table_Line1_Part2[0].${row}f2_${pad(base + 4)}[0]`,
+    adjustmentCode:   `${P2}Table_Line1_Part2[0].${row}f2_${pad(base + 5)}[0]`,
+    adjustmentAmount: `${P2}Table_Line1_Part2[0].${row}f2_${pad(base + 6)}[0]`,
+    gainLoss:         `${P2}Table_Line1_Part2[0].${row}f2_${pad(base + 7)}[0]`,
   }
 }
 

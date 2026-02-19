@@ -1,0 +1,17 @@
+# OpenTax TODO
+
+## Quick Wins
+- [ ] Fix `better-sqlite3` version mismatch — `npm rebuild better-sqlite3` to unblock 53 backend tests
+- [x] Add IRS 2025 fillable PDF templates to `/public/forms/` + fix field name mappings for Schedule D and Form 8949
+
+## Medium Effort
+- [ ] Accessibility pass — ARIA labels, keyboard nav, trace graph `<title>`/`<desc>` tags
+- [ ] Mobile responsive fixes — Review page and trace graph layout on small screens
+- [x] Better error UX — CSV parse failures and missing form templates show minimal feedback
+
+## Bigger Features
+- [ ] State tax computation (federal-only today)
+- [ ] Alternative Minimum Tax (AMT) — important for RSU/ISO users
+- [ ] Schedule C / Schedule SE — self-employment income
+- [ ] E-filing via MeF integration (currently mail-file only)
+- [ ] Multi-year support (hardcoded to 2025)
