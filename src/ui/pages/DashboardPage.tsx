@@ -1,23 +1,17 @@
 /**
- * Dashboard page — live tax status view connected to the plugin HTTP API.
+ * Dashboard page — tax status view.
  *
- * Fetches status on mount, subscribes to SSE for real-time updates.
- * Shows refund/owed hero, tax summary, section status, gap items, and activity log.
+ * Primary data source: client-side Zustand store (always up to date).
+ * Optional: connects to plugin HTTP API for SSE activity feed.
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react'
-import type { GapAnalysisResult } from '../../../openclaw-plugin/service/GapAnalysis.ts'
+import { useState, useEffect, useRef } from 'react'
+import { useTaxStore } from '../../store/taxStore.ts'
+import { analyzeGaps } from '../../rules/gapAnalysis.ts'
+import type { GapAnalysisResult } from '../../rules/gapAnalysis.ts'
 import type { TaxReturn } from '../../model/types.ts'
-import type { SerializedComputeResult } from '../../model/serialize.ts'
 
 const API_URL = import.meta.env.VITE_DASHBOARD_API ?? ''
-
-interface StatusResponse {
-  taxReturn: TaxReturn
-  computeResult: SerializedComputeResult
-  stateVersion: number
-  gapAnalysis: GapAnalysisResult
-}
 
 interface ActivityEntry {
   timestamp: string
@@ -31,43 +25,33 @@ function formatCurrency(amountCents: number): string {
 }
 
 export function DashboardPage() {
-  const [status, setStatus] = useState<StatusResponse | null>(null)
+  // Client-side data — always current
+  const taxReturn = useTaxStore((s) => s.taxReturn)
+  const computeResult = useTaxStore((s) => s.computeResult)
+  const f = computeResult.form1040
+
+  // Client-side gap analysis — recomputed on every store change
+  const gapAnalysis: GapAnalysisResult = analyzeGaps(taxReturn, computeResult)
+
+  // Optional server connection for activity feed
   const [connected, setConnected] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [activity, setActivity] = useState<ActivityEntry[]>([])
   const eventSourceRef = useRef<EventSource | null>(null)
 
-  const fetchStatus = useCallback(async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/status`)
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const data: StatusResponse = await res.json()
-      setStatus(data)
-      setError(null)
-    } catch (err) {
-      setError('Cannot reach API server')
-    }
-  }, [])
-
   useEffect(() => {
-    fetchStatus()
+    if (!API_URL) return
 
     const es = new EventSource(`${API_URL}/api/events`)
     eventSourceRef.current = es
 
     es.onopen = () => setConnected(true)
 
-    let lastSeenVersion = -1
-
     es.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data)
         if (data.type === 'connected') {
           setConnected(true)
-          lastSeenVersion = data.stateVersion ?? -1
         } else if (data.type === 'stateChanged') {
-          if (data.stateVersion != null && data.stateVersion <= lastSeenVersion) return
-          lastSeenVersion = data.stateVersion ?? lastSeenVersion
           setActivity((prev) => [
             {
               timestamp: data.timestamp ?? new Date().toISOString(),
@@ -75,7 +59,6 @@ export function DashboardPage() {
             },
             ...prev.slice(0, 49),
           ])
-          fetchStatus()
         }
       } catch {
         // ignore parse errors
@@ -88,34 +71,7 @@ export function DashboardPage() {
       es.close()
       eventSourceRef.current = null
     }
-  }, [fetchStatus])
-
-  if (error && !status) {
-    return (
-      <div className="mt-8 rounded-xl border border-red-200 bg-red-50 p-8 text-center">
-        <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-3">
-          <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-          </svg>
-        </div>
-        <p className="font-semibold text-red-800">{error}</p>
-        <p className="text-sm text-red-500 mt-1">
-          Make sure the OpenClaw plugin is running with the OpenTax plugin loaded.
-        </p>
-      </div>
-    )
-  }
-
-  if (!status) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-sm text-gray-400">Loading...</div>
-      </div>
-    )
-  }
-
-  const { gapAnalysis, computeResult, taxReturn } = status
-  const f = computeResult.form1040
+  }, [])
 
   const isRefund = f.line34.amount > 0
   const isOwed = f.line37.amount > 0
@@ -132,8 +88,8 @@ export function DashboardPage() {
           className="absolute top-3 right-3 flex items-center gap-1.5 text-xs text-gray-400 bg-gray-50 border border-gray-100 rounded-full px-2.5 py-1"
           data-testid="connection-status"
         >
-          <div className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-500' : 'bg-red-400'}`} />
-          {connected ? 'Live' : 'Offline'}
+          <div className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-500' : 'bg-gray-300'}`} />
+          {connected ? 'Live' : 'Local'}
         </div>
 
         <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-2">
