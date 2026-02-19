@@ -6,7 +6,7 @@
 
 ## Medium Effort
 - [ ] 1099-R support — Fidelity 401K rollover (code G = direct rollover to IRA, generally non-taxable). Needs `Form1099R` model type, parser, and UI page.
-- [ ] Investment interest carryforward — excess investment interest over net investment income is currently capped at $0 (see `scheduleA.ts` line 196). Should carry forward to next year via Form 4952.
+- [x] Investment interest carryforward — excess investment interest over net investment income carries forward via Form 4952. Prior-year carryforward input added to deductions model and UI.
 - [ ] Granular API endpoint for itemized deductions — currently external systems must fetch/sync the entire tax return via `/api/return.json` or `/api/sync`. Add a dedicated GET/PUT endpoint for deductions.
 - [ ] Accessibility pass — ARIA labels, keyboard nav, trace graph `<title>`/`<desc>` tags
 - [ ] Mobile responsive fixes — Review page and trace graph layout on small screens

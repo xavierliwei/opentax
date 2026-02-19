@@ -37,6 +37,7 @@ function makeItemized(overrides: {
   mortgagePreTCJA?: boolean
   // Investment interest
   investmentInterest?: number
+  priorYearCarryforward?: number
   // Charitable
   charitableCash?: number
   charitableNoncash?: number
@@ -78,6 +79,7 @@ function makeItemized(overrides: {
         mortgagePrincipal: overrides.mortgagePrincipal ?? 0,
         mortgagePreTCJA: overrides.mortgagePreTCJA ?? false,
         investmentInterest: overrides.investmentInterest ?? 0,
+        priorYearInvestmentInterestCarryforward: overrides.priorYearCarryforward ?? 0,
         charitableCash: overrides.charitableCash ?? 0,
         charitableNoncash: overrides.charitableNoncash ?? 0,
         otherDeductions: overrides.other ?? 0,
@@ -360,19 +362,69 @@ describe('Schedule A — Investment interest (IRC §163(d))', () => {
   })
 
   it('investment interest > net investment income → capped at NII', () => {
-    // NII = $2K, investment interest = $5K → deductible = $2K
+    // NII = $2K, investment interest = $5K → deductible = $2K, carryforward = $3K
     const model = makeItemized({ investmentInterest: cents(5000) })
     const result = computeScheduleA(model, cents(100000), cents(2000))
 
     expect(result.line9.amount).toBe(cents(2000))
+    expect(result.investmentInterestCarryforward.amount).toBe(cents(3000))
   })
 
-  it('zero net investment income → investment interest not deductible', () => {
-    // NII = $0, investment interest = $10K → deductible = $0
+  it('zero net investment income → investment interest not deductible, full carryforward', () => {
+    // NII = $0, investment interest = $10K → deductible = $0, carryforward = $10K
     const model = makeItemized({ investmentInterest: cents(10000) })
     const result = computeScheduleA(model, cents(100000), 0)
 
     expect(result.line9.amount).toBe(0)
+    expect(result.investmentInterestCarryforward.amount).toBe(cents(10000))
+  })
+
+  it('no excess → zero carryforward', () => {
+    // NII = $5K, investment interest = $3K → deductible = $3K, carryforward = $0
+    const model = makeItemized({ investmentInterest: cents(3000) })
+    const result = computeScheduleA(model, cents(100000), cents(5000))
+
+    expect(result.line9.amount).toBe(cents(3000))
+    expect(result.investmentInterestCarryforward.amount).toBe(0)
+  })
+
+  it('prior-year carryforward added to current-year expense', () => {
+    // Current $3K + prior carryforward $2K = $5K total. NII = $4K.
+    // Deductible = $4K, new carryforward = $1K.
+    const model = makeItemized({
+      investmentInterest: cents(3000),
+      priorYearCarryforward: cents(2000),
+    })
+    const result = computeScheduleA(model, cents(100000), cents(4000))
+
+    expect(result.line9.amount).toBe(cents(4000))
+    expect(result.investmentInterestCarryforward.amount).toBe(cents(1000))
+  })
+
+  it('prior-year carryforward fully deductible when NII is sufficient', () => {
+    // Current $3K + prior carryforward $2K = $5K total. NII = $10K.
+    // Deductible = $5K, new carryforward = $0.
+    const model = makeItemized({
+      investmentInterest: cents(3000),
+      priorYearCarryforward: cents(2000),
+    })
+    const result = computeScheduleA(model, cents(100000), cents(10000))
+
+    expect(result.line9.amount).toBe(cents(5000))
+    expect(result.investmentInterestCarryforward.amount).toBe(0)
+  })
+
+  it('prior-year carryforward with zero current-year expense', () => {
+    // Current $0 + prior carryforward $6K = $6K total. NII = $4K.
+    // Deductible = $4K, new carryforward = $2K.
+    const model = makeItemized({
+      investmentInterest: 0,
+      priorYearCarryforward: cents(6000),
+    })
+    const result = computeScheduleA(model, cents(100000), cents(4000))
+
+    expect(result.line9.amount).toBe(cents(4000))
+    expect(result.investmentInterestCarryforward.amount).toBe(cents(2000))
   })
 
   it('line10 = line8a + line9', () => {
@@ -634,6 +686,7 @@ describe('Integration — Schedule A through computeForm1040', () => {
           mortgagePrincipal: 0,
           mortgagePreTCJA: false,
           investmentInterest: 0,
+          priorYearInvestmentInterestCarryforward: 0,
           charitableCash: cents(500),
           charitableNoncash: 0,
           otherDeductions: 0,
@@ -726,6 +779,7 @@ describe('Integration — Schedule A through computeForm1040', () => {
           mortgagePrincipal: 0,
           mortgagePreTCJA: false,
           investmentInterest: cents(10000),  // $10K expense, limited to $5K NII
+          priorYearInvestmentInterestCarryforward: 0,
           charitableCash: 0,
           charitableNoncash: 0,
           otherDeductions: 0,
@@ -801,6 +855,7 @@ describe('Integration — Schedule A through computeForm1040', () => {
           mortgagePrincipal: 0,
           mortgagePreTCJA: false,
           investmentInterest: cents(4000),  // $4K expense, NII = $5K → fully deductible
+          priorYearInvestmentInterestCarryforward: 0,
           charitableCash: 0,
           charitableNoncash: 0,
           otherDeductions: 0,

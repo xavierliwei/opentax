@@ -13,6 +13,7 @@ import type {
   Dependent,
   RSUVestEvent,
   ItemizedDeductions,
+  PriorYearInfo,
 } from '../model/types.ts'
 import { emptyTaxReturn } from '../model/types.ts'
 import { computeAll } from '../rules/engine.ts'
@@ -53,6 +54,7 @@ export interface TaxStoreState {
   addRSUVestEvent: (event: RSUVestEvent) => void
   removeRSUVestEvent: (id: string) => void
   setCapitalTransactions: (txns: CapitalTransaction[]) => void
+  setPriorYear: (updates: Partial<PriorYearInfo>) => void
   setDeductionMethod: (method: 'standard' | 'itemized') => void
   setItemizedDeductions: (itemized: Partial<ItemizedDeductions>) => void
   importReturn: (taxReturn: TaxReturn) => void
@@ -362,6 +364,20 @@ export const useTaxStore = create<TaxStoreState>()(
         set(recompute(tr))
       },
 
+      setPriorYear: (updates) => {
+        const prev = get().taxReturn
+        const existing = prev.priorYear ?? {
+          agi: 0,
+          capitalLossCarryforwardST: 0,
+          capitalLossCarryforwardLT: 0,
+        }
+        const tr = {
+          ...prev,
+          priorYear: { ...existing, ...updates },
+        }
+        set(recompute(tr))
+      },
+
       setDeductionMethod: (method) => {
         const tr = {
           ...get().taxReturn,
@@ -382,6 +398,7 @@ export const useTaxStore = create<TaxStoreState>()(
           mortgagePrincipal: 0,
           mortgagePreTCJA: false,
           investmentInterest: 0,
+          priorYearInvestmentInterestCarryforward: 0,
           charitableCash: 0,
           charitableNoncash: 0,
           otherDeductions: 0,

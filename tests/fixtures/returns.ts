@@ -456,6 +456,7 @@ export function itemizedDeductionReturn(): TaxReturn {
         mortgagePrincipal: 0,               // not filled → pass-through (no cap applied)
         mortgagePreTCJA: false,
         investmentInterest: 0,
+        priorYearInvestmentInterestCarryforward: 0,
         charitableCash: cents(4000),
         charitableNoncash: cents(1000),
         otherDeductions: 0,

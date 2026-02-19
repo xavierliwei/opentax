@@ -71,6 +71,7 @@ export const NODE_LABELS: Record<string, string> = {
   'scheduleA.line7': 'State and local taxes (after cap)',
   'scheduleA.line8a': 'Home mortgage interest (after limit)',
   'scheduleA.line9': 'Investment interest',
+  'form4952.carryforward': 'Investment interest carryforward to next year',
   'scheduleA.line10': 'Total interest you paid',
   'scheduleA.line11': 'Cash charitable contributions',
   'scheduleA.line12': 'Non-cash charitable contributions',
@@ -85,10 +86,12 @@ export const NODE_LABELS: Record<string, string> = {
   // Schedule D
   'scheduleD.line1a': 'Short-term gain/loss (Box A)',
   'scheduleD.line1b': 'Short-term gain/loss (Box B)',
+  'scheduleD.line6': 'Short-term capital loss carryover from prior year',
   'scheduleD.line7': 'Net short-term capital gain or (loss)',
   'scheduleD.line8a': 'Long-term gain/loss (Box D)',
   'scheduleD.line8b': 'Long-term gain/loss (Box E)',
   'scheduleD.line13': 'Capital gain distributions',
+  'scheduleD.line14': 'Long-term capital loss carryover from prior year',
   'scheduleD.line15': 'Net long-term capital gain or (loss)',
   'scheduleD.line16': 'Combined net gain or (loss)',
   'scheduleD.line21': 'Capital gain/loss for Form 1040',
@@ -191,6 +194,7 @@ export function collectAllValues(
     add(sa.line8a)
     add(sa.line9)
     add(sa.line10)
+    add(sa.investmentInterestCarryforward)
     add(sa.line11)
     add(sa.line12)
     add(sa.line14)
@@ -207,10 +211,12 @@ export function collectAllValues(
     const sd = form1040.scheduleD
     add(sd.line1a)
     add(sd.line1b)
+    add(sd.line6)
     add(sd.line7)
     add(sd.line8a)
     add(sd.line8b)
     add(sd.line13)
+    add(sd.line14)
     add(sd.line15)
     add(sd.line16)
     add(sd.line21)

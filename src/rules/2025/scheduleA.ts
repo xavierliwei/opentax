@@ -48,6 +48,9 @@ export interface ScheduleAResult {
   line9:  TracedValue   // deductible investment interest (limited to net investment income)
   line10: TracedValue   // line8a + line9
 
+  // Form 4952 carryforward (not a Schedule A line — tracked for next-year use)
+  investmentInterestCarryforward: TracedValue  // excess investment interest to carry forward
+
   // Gifts to Charity (Lines 11, 12, 14)
   line11: TracedValue   // cash charitable (60% AGI limited)
   line12: TracedValue   // non-cash charitable (30% AGI limited)
@@ -189,16 +192,27 @@ export function computeScheduleA(
     'Schedule A, Line 8a',
   )
 
-  // ── Investment Interest (Line 9) — IRC §163(d) ─────────
-  // Deductible only up to net investment income (Form 4952 simplified).
-  // Excess is silently zeroed (no current-year carryover in MVP).
+  // ── Investment Interest (Line 9) — IRC §163(d), Form 4952 ──
+  // Total = current-year expense + prior-year carryforward.
+  // Deductible up to net investment income; excess carries forward.
 
-  const investDeductible = Math.min(d.investmentInterest, Math.max(0, netInvestmentIncome))
+  const priorCarryforward = d.priorYearInvestmentInterestCarryforward ?? 0
+  const totalInvestmentInterest = d.investmentInterest + priorCarryforward
+  const nii = Math.max(0, netInvestmentIncome)
+  const investDeductible = Math.min(totalInvestmentInterest, nii)
   const line9 = tracedFromComputation(
     investDeductible,
     'scheduleA.line9',
     ['itemized.investmentInterest'],
     'Schedule A, Line 9',
+  )
+
+  const carryforwardAmount = totalInvestmentInterest - investDeductible
+  const investmentInterestCarryforward = tracedFromComputation(
+    carryforwardAmount,
+    'form4952.carryforward',
+    ['scheduleA.line9'],
+    'Form 4952 — Investment interest carryforward to next year',
   )
 
   const line10 = tracedFromComputation(
@@ -260,6 +274,7 @@ export function computeScheduleA(
     line1, line2, line3, line4,
     line5a, line5b, line5c, line5e, line7,
     line8a, line9, line10,
+    investmentInterestCarryforward,
     line11, line12, line14,
     line16, line17,
   }
@@ -280,6 +295,7 @@ function zeroScheduleA(agi: number): ScheduleAResult {
     line8a: tracedZero('scheduleA.line8a', 'Schedule A, Line 8a'),
     line9:  tracedZero('scheduleA.line9', 'Schedule A, Line 9'),
     line10: tracedZero('scheduleA.line10', 'Schedule A, Line 10'),
+    investmentInterestCarryforward: tracedZero('form4952.carryforward', 'Form 4952 — Investment interest carryforward to next year'),
     line11: tracedZero('scheduleA.line11', 'Schedule A, Line 11'),
     line12: tracedZero('scheduleA.line12', 'Schedule A, Line 12'),
     line14: tracedZero('scheduleA.line14', 'Schedule A, Line 14'),

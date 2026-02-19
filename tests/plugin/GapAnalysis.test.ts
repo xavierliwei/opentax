@@ -174,6 +174,7 @@ describe('GapAnalysis', () => {
         mortgagePrincipal: 0,
         mortgagePreTCJA: false,
         investmentInterest: 0,
+        priorYearInvestmentInterestCarryforward: 0,
         charitableCash: 0,
         charitableNoncash: 0,
         otherDeductions: 0,

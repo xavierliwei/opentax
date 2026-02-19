@@ -67,6 +67,7 @@ export function DeductionsPage() {
     mortgagePrincipal: 0,
     mortgagePreTCJA: false,
     investmentInterest: 0,
+    priorYearInvestmentInterestCarryforward: 0,
     charitableCash: 0,
     charitableNoncash: 0,
     otherDeductions: 0,
@@ -405,6 +406,12 @@ export function DeductionsPage() {
               value={itemized.investmentInterest}
               onChange={(v) => setItemizedDeductions({ investmentInterest: v })}
               helperText={`Limited to your net investment income (~${formatCurrency(netInvestmentIncome)} for this return)`}
+            />
+            <CurrencyInput
+              label="Prior-year carryforward (Form 4952)"
+              value={itemized.priorYearInvestmentInterestCarryforward}
+              onChange={(v) => setItemizedDeductions({ priorYearInvestmentInterestCarryforward: v })}
+              helperText="Disallowed investment interest expense carried forward from prior tax year(s)"
             />
           </div>
 

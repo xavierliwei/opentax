@@ -225,6 +225,7 @@ export interface ItemizedDeductions {
 
   // Investment Interest (Line 9, Form 4952)
   investmentInterest: number        // cents — margin interest + other investment interest
+  priorYearInvestmentInterestCarryforward: number  // cents — disallowed excess from prior year(s)
 
   // Charitable (Lines 11-14)
   charitableCash: number            // cents (60% AGI limit)
@@ -232,6 +233,14 @@ export interface ItemizedDeductions {
 
   // Other (Line 16)
   otherDeductions: number           // cents
+}
+
+// ── Prior Year Info ─────────────────────────────────────────────
+
+export interface PriorYearInfo {
+  agi: number                        // cents — prior-year AGI (for e-filing)
+  capitalLossCarryforwardST: number  // cents — short-term capital loss carryover (positive)
+  capitalLossCarryforwardLT: number  // cents — long-term capital loss carryover (positive)
 }
 
 // ── Credits ────────────────────────────────────────────────────
@@ -263,6 +272,9 @@ export interface TaxReturn {
 
   // Derived / processed data
   capitalTransactions: CapitalTransaction[]
+
+  // Prior year carry-forward data
+  priorYear?: PriorYearInfo
 
   // Adjustments, deductions, credits
   adjustments: Adjustment[]
