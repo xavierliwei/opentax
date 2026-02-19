@@ -255,8 +255,8 @@ describe('TaxService', () => {
 
     it('setItemizedDeductions sets deduction values', () => {
       const svc = new TaxService(workspace)
-      svc.setItemizedDeductions({ stateLocalTaxes: cents(12000), charitableCash: cents(5000) })
-      expect(svc.taxReturn.deductions.itemized!.stateLocalTaxes).toBe(cents(12000))
+      svc.setItemizedDeductions({ stateLocalIncomeTaxes: cents(12000), charitableCash: cents(5000) })
+      expect(svc.taxReturn.deductions.itemized!.stateLocalIncomeTaxes).toBe(cents(12000))
       expect(svc.taxReturn.deductions.itemized!.charitableCash).toBe(cents(5000))
       expect(svc.taxReturn.deductions.itemized!.medicalExpenses).toBe(0) // default
     })

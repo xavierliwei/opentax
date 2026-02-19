@@ -152,6 +152,19 @@ export function analyzeGaps(taxReturn: TaxReturn, computeResult: ComputeResult):
           priority: 'recommended',
         })
       }
+      // Mortgage interest entered without principal balance — the interest cap
+      // calculation needs the loan balance to apply the $750K/$1M limit correctly
+      if (itemized.mortgageInterest > 0 && !itemized.mortgagePrincipal) {
+        warnings.push(
+          'Mortgage interest entered without a loan balance. Enter your outstanding mortgage principal so the $750K/$1M interest deduction limit can be applied correctly.'
+        )
+        items.push({
+          category: 'deductions',
+          field: 'mortgagePrincipal',
+          label: 'Mortgage principal balance',
+          priority: 'recommended',
+        })
+      }
     }
   }
 

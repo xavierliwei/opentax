@@ -54,6 +54,10 @@ export async function compileFilingPackage(
   })
 
   // Schedule A (sequence 07)
+  // Note: Schedule A is included whenever the user selects "itemized", even if
+  // standard deduction is larger. This is intentional — the IRS requires Schedule A
+  // to be filed if the taxpayer elects itemized, and it helps taxpayers see why
+  // the standard deduction was more beneficial.
   if (needsScheduleA) {
     const schADoc = await fillScheduleA(templates.f1040sa, taxReturn, result.scheduleA!)
     filledDocs.push({

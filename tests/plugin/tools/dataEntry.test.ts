@@ -159,11 +159,11 @@ describe('dataEntry tools', () => {
   it('tax_set_deductions sets itemized with amounts', () => {
     exec('tax_set_deductions', {
       method: 'itemized',
-      stateLocalTaxes: 10000,
+      stateLocalIncomeTaxes: 10000,
       charitableCash: 5000,
     })
     expect(service.taxReturn.deductions.method).toBe('itemized')
-    expect(service.taxReturn.deductions.itemized!.stateLocalTaxes).toBe(cents(10000))
+    expect(service.taxReturn.deductions.itemized!.stateLocalIncomeTaxes).toBe(cents(10000))
     expect(service.taxReturn.deductions.itemized!.charitableCash).toBe(cents(5000))
   })
 
