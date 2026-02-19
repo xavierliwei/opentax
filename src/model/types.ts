@@ -157,6 +157,41 @@ export interface Form1099MISC {
   box4: number   // Federal income tax withheld (cents)
 }
 
+// ── 1099-G (Government payments) ──────────────────────────────
+
+export interface Form1099G {
+  id: string
+  payerName: string        // State agency name
+  payerTin?: string
+
+  box1: number             // Unemployment compensation (cents)
+  box2: number             // State or local income tax refunds, credits, or offsets (cents)
+  box3: number             // Box 2 amount is for tax year (e.g. 2024)
+  box4: number             // Federal income tax withheld (cents)
+  box5: number             // RTAA payments (cents) — Reemployment Trade Adjustment Assistance
+  box10a: number           // Market gain (cents)
+  box10b: number           // Market gain tax year
+  box11: number            // State income tax withheld (cents)
+}
+
+// ── 1099-R (Retirement distributions) ────────────────────────
+
+export interface Form1099R {
+  id: string
+  payerName: string
+  payerTin?: string
+
+  box1: number           // Gross distribution (cents)
+  box2a: number          // Taxable amount (cents)
+  box2bTaxableNotDetermined: boolean  // Box 2b checkbox — taxable amount not determined
+  box2bTotalDistribution: boolean     // Box 2b checkbox — total distribution
+  box3: number           // Capital gain (included in box 2a) (cents)
+  box4: number           // Federal income tax withheld (cents)
+  box5: number           // Employee contributions / Roth contributions (cents)
+  box7: string           // Distribution code(s): 1, 2, 3, 4, 7, G, H, T, etc.
+  iraOrSep: boolean      // IRA/SEP/SIMPLE checkbox — true = Lines 4a/4b, false = Lines 5a/5b
+}
+
 // ── 1099-SA (HSA distributions) ──────────────────────────────
 
 export interface Form1099SA {
@@ -325,6 +360,7 @@ export interface PriorYearInfo {
   agi: number                        // cents — prior-year AGI (for e-filing)
   capitalLossCarryforwardST: number  // cents — short-term capital loss carryover (positive)
   capitalLossCarryforwardLT: number  // cents — long-term capital loss carryover (positive)
+  itemizedLastYear: boolean          // true if taxpayer itemized on prior-year return (needed for taxable refund calc)
 }
 
 // ── Dependent Care (Form 2441) ──────────────────────────────────
@@ -403,6 +439,8 @@ export interface TaxReturn {
   form1099INTs: Form1099INT[]
   form1099DIVs: Form1099DIV[]
   form1099MISCs: Form1099MISC[]
+  form1099Gs: Form1099G[]
+  form1099Rs: Form1099R[]
 
   // RSU data
   rsuVestEvents: RSUVestEvent[]
@@ -452,6 +490,10 @@ export interface TaxReturn {
   retirementContributions?: RetirementContributions
   energyCredits?: EnergyCredits
   educationExpenses?: EducationExpenses
+
+  // State — California
+  caResident?: boolean              // true if CA resident for full year
+  rentPaidInCA?: boolean            // for CA renter's credit
 }
 
 // ── Factory ────────────────────────────────────────────────────
@@ -479,6 +521,8 @@ export function emptyTaxReturn(taxYear: number): TaxReturn {
     form1099INTs: [],
     form1099DIVs: [],
     form1099MISCs: [],
+    form1099Gs: [],
+    form1099Rs: [],
     rsuVestEvents: [],
     isoExercises: [],
     scheduleEProperties: [],
