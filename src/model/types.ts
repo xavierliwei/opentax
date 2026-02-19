@@ -274,8 +274,11 @@ export interface ItemizedDeductions {
   charitableCash: number            // cents (60% AGI limit)
   charitableNoncash: number         // cents (30% AGI limit)
 
-  // Other (Line 16)
-  otherDeductions: number           // cents
+  // Other (Line 16) — four Schedule A Line 16 categories
+  gamblingLosses: number            // cents — limited to gambling winnings
+  casualtyTheftLosses: number       // cents — Form 4684, federally declared disasters
+  federalEstateTaxIRD: number       // cents — IRC §691(c)
+  otherMiscDeductions: number       // cents — catch-all
 }
 
 // ── Prior Year Info ─────────────────────────────────────────────

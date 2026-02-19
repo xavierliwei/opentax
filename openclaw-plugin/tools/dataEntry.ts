@@ -322,7 +322,10 @@ export function createDataEntryTools(service: TaxService): ToolDef[] {
           investmentInterest: { type: 'number', description: 'Investment interest / margin interest (dollars, optional)' },
           charitableCash: { type: 'number', description: 'Charitable contributions - cash (dollars, optional)' },
           charitableNoncash: { type: 'number', description: 'Charitable contributions - noncash (dollars, optional)' },
-          otherDeductions: { type: 'number', description: 'Other deductions (dollars, optional)' },
+          gamblingLosses: { type: 'number', description: 'Gambling losses (dollars, optional)' },
+          casualtyTheftLosses: { type: 'number', description: 'Casualty/theft losses from federally declared disasters (dollars, optional)' },
+          federalEstateTaxIRD: { type: 'number', description: 'Federal estate tax on income in respect of a decedent (dollars, optional)' },
+          otherMiscDeductions: { type: 'number', description: 'Other miscellaneous deductions (dollars, optional)' },
         },
         required: ['method'],
       },
@@ -343,7 +346,10 @@ export function createDataEntryTools(service: TaxService): ToolDef[] {
           if (args.investmentInterest != null) itemized.investmentInterest = cents(args.investmentInterest as number)
           if (args.charitableCash != null) itemized.charitableCash = cents(args.charitableCash as number)
           if (args.charitableNoncash != null) itemized.charitableNoncash = cents(args.charitableNoncash as number)
-          if (args.otherDeductions != null) itemized.otherDeductions = cents(args.otherDeductions as number)
+          if (args.gamblingLosses != null) itemized.gamblingLosses = cents(args.gamblingLosses as number)
+          if (args.casualtyTheftLosses != null) itemized.casualtyTheftLosses = cents(args.casualtyTheftLosses as number)
+          if (args.federalEstateTaxIRD != null) itemized.federalEstateTaxIRD = cents(args.federalEstateTaxIRD as number)
+          if (args.otherMiscDeductions != null) itemized.otherMiscDeductions = cents(args.otherMiscDeductions as number)
           if (Object.keys(itemized).length > 0) {
             service.setItemizedDeductions(itemized)
           }

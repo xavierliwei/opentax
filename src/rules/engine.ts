@@ -175,7 +175,10 @@ export const NODE_LABELS: Record<string, string> = {
   'itemized.investmentInterest': 'Investment interest',
   'itemized.charitableCash': 'Charitable contributions (cash)',
   'itemized.charitableNoncash': 'Charitable contributions (non-cash)',
-  'itemized.otherDeductions': 'Other deductions',
+  'itemized.gamblingLosses': 'Gambling losses',
+  'itemized.casualtyTheftLosses': 'Casualty & theft losses',
+  'itemized.federalEstateTaxIRD': 'Federal estate tax on IRD',
+  'itemized.otherMiscDeductions': 'Other miscellaneous deductions',
 }
 
 // ── computeAll ───────────────────────────────────────────────────
@@ -633,7 +636,10 @@ export function collectAllValues(
       ['itemized.investmentInterest', d.investmentInterest],
       ['itemized.charitableCash', d.charitableCash],
       ['itemized.charitableNoncash', d.charitableNoncash],
-      ['itemized.otherDeductions', d.otherDeductions],
+      ['itemized.gamblingLosses', d.gamblingLosses],
+      ['itemized.casualtyTheftLosses', d.casualtyTheftLosses],
+      ['itemized.federalEstateTaxIRD', d.federalEstateTaxIRD],
+      ['itemized.otherMiscDeductions', d.otherMiscDeductions],
     ]
     for (const [nodeId, amount] of items) {
       values.set(nodeId, tracedFromComputation(
@@ -889,7 +895,10 @@ export function resolveDocumentRef(
       investmentInterest: 'Investment interest',
       charitableCash: 'Charitable contributions (cash)',
       charitableNoncash: 'Charitable contributions (non-cash)',
-      otherDeductions: 'Other deductions',
+      gamblingLosses: 'Gambling losses',
+      casualtyTheftLosses: 'Casualty & theft losses',
+      federalEstateTaxIRD: 'Federal estate tax on IRD',
+      otherMiscDeductions: 'Other miscellaneous deductions',
     }
     const val = model.deductions.itemized[key]
     return {

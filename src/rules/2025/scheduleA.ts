@@ -253,16 +253,17 @@ export function computeScheduleA(
 
   // ── Other (Lines 15–16) ────────────────────────────────
 
+  const otherTotal = d.gamblingLosses + d.casualtyTheftLosses + d.federalEstateTaxIRD + d.otherMiscDeductions
   const line16 = tracedFromComputation(
-    d.otherDeductions,
+    otherTotal,
     'scheduleA.line16',
-    ['itemized.otherDeductions'],
+    ['itemized.gamblingLosses', 'itemized.casualtyTheftLosses', 'itemized.federalEstateTaxIRD', 'itemized.otherMiscDeductions'],
     'Schedule A, Line 16',
   )
 
   // ── Total (Line 17) ───────────────────────────────────
 
-  const total = medicalDeduction + saltDeduction + deductibleMortgage + investDeductible + totalCharitable + d.otherDeductions
+  const total = medicalDeduction + saltDeduction + deductibleMortgage + investDeductible + totalCharitable + otherTotal
   const line17 = tracedFromComputation(
     total,
     'scheduleA.line17',

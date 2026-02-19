@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { useTaxStore } from '../../store/taxStore.ts'
+import type { ItemizedDeductions } from '../../model/types.ts'
 import { useInterview } from '../../interview/useInterview.ts'
 import { CurrencyInput } from '../components/CurrencyInput.tsx'
 import { InfoTooltip } from '../components/InfoTooltip.tsx'
@@ -70,7 +71,10 @@ export function DeductionsPage() {
     priorYearInvestmentInterestCarryforward: 0,
     charitableCash: 0,
     charitableNoncash: 0,
-    otherDeductions: 0,
+    gamblingLosses: 0,
+    casualtyTheftLosses: 0,
+    federalEstateTaxIRD: 0,
+    otherMiscDeductions: 0,
   }
 
   // Use post-limit total from engine when available (method=itemized),
@@ -86,7 +90,10 @@ export function DeductionsPage() {
     itemized.investmentInterest +
     itemized.charitableCash +
     itemized.charitableNoncash +
-    itemized.otherDeductions
+    itemized.gamblingLosses +
+    itemized.casualtyTheftLosses +
+    itemized.federalEstateTaxIRD +
+    itemized.otherMiscDeductions
   )
 
   const diff = Math.abs(standardAmount - itemizedTotal)
@@ -164,7 +171,8 @@ export function DeductionsPage() {
       </p>
 
       {/* Method selection */}
-      <div className="mt-6 grid grid-cols-2 gap-3">
+      <fieldset className="mt-6 grid grid-cols-2 gap-3">
+        <legend className="sr-only">Deduction method</legend>
         <label
           className={`flex flex-col items-center gap-1 border rounded-lg p-4 cursor-pointer transition-colors ${
             deductions.method === 'standard'
@@ -215,7 +223,7 @@ export function DeductionsPage() {
             </span>
           )}
         </label>
-      </div>
+      </fieldset>
 
       {/* Itemized detail form */}
       {deductions.method === 'itemized' && (
@@ -453,30 +461,13 @@ export function DeductionsPage() {
             )}
           </div>
 
-          {/* Other Deductions */}
-          <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
-            <div className="flex items-baseline justify-between">
-              <div className="flex items-center gap-1">
-                <span className="text-sm font-semibold text-gray-800">Other Deductions</span>
-                <InfoTooltip
-                  explanation="Includes gambling losses (limited to gambling winnings reported on Schedule 1), casualty and theft losses from federally declared disaster areas (Form 4684), federal estate tax on income in respect of a decedent, and certain other deductions listed in the Schedule A instructions."
-                  pubName="IRS Schedule A Instructions — Other Itemized Deductions (Line 16)"
-                  pubUrl="https://www.irs.gov/instructions/i1040sca"
-                />
-                <span className="text-xs text-gray-400">Line 16</span>
-              </div>
-              {scheduleA && (
-                <span className="text-sm font-semibold text-gray-700">
-                  {formatCurrency(otherDeductible)}
-                </span>
-              )}
-            </div>
-            <CurrencyInput
-              label="Other deductions"
-              value={itemized.otherDeductions}
-              onChange={(v) => setItemizedDeductions({ otherDeductions: v })}
-            />
-          </div>
+          {/* Other Deductions — collapsible */}
+          <OtherDeductionsSection
+            itemized={itemized}
+            otherDeductible={otherDeductible}
+            scheduleA={!!scheduleA}
+            setItemizedDeductions={setItemizedDeductions}
+          />
         </div>
       )}
 
@@ -540,6 +531,91 @@ export function DeductionsPage() {
       </div>
 
       <InterviewNav interview={interview} />
+    </div>
+  )
+}
+
+// ── Other Deductions (collapsible) ──────────────────────────
+
+function OtherDeductionsSection({
+  itemized,
+  otherDeductible,
+  scheduleA,
+  setItemizedDeductions,
+}: {
+  itemized: ItemizedDeductions
+  otherDeductible: number
+  scheduleA: boolean
+  setItemizedDeductions: (updates: Partial<ItemizedDeductions>) => void
+}) {
+  const [collapsed, setCollapsed] = useState(true)
+
+  const otherTotal =
+    itemized.gamblingLosses +
+    itemized.casualtyTheftLosses +
+    itemized.federalEstateTaxIRD +
+    itemized.otherMiscDeductions
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 flex flex-col">
+      {/* Collapsible header */}
+      <button
+        type="button"
+        onClick={() => setCollapsed(!collapsed)}
+        className="flex items-center justify-between gap-2 p-4 w-full text-left"
+      >
+        <div className="flex items-center gap-1">
+          <svg
+            className={`w-3.5 h-3.5 text-gray-400 shrink-0 transition-transform ${collapsed ? '' : 'rotate-90'}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+          <span className="text-sm font-semibold text-gray-800">Other Deductions</span>
+          <InfoTooltip
+            explanation="Includes gambling losses (limited to gambling winnings reported on Schedule 1), casualty and theft losses from federally declared disaster areas (Form 4684), federal estate tax on income in respect of a decedent (IRC §691(c)), and certain other deductions listed in the Schedule A instructions."
+            pubName="IRS Schedule A Instructions — Other Itemized Deductions (Line 16)"
+            pubUrl="https://www.irs.gov/instructions/i1040sca"
+          />
+          <span className="text-xs text-gray-400">Line 16</span>
+        </div>
+        <span className="text-sm font-semibold text-gray-700">
+          {formatCurrency(scheduleA ? otherDeductible : otherTotal)}
+        </span>
+      </button>
+
+      {/* Expanded detail fields */}
+      {!collapsed && (
+        <div className="px-4 pb-4 flex flex-col gap-3 border-t border-gray-100 pt-3">
+          <CurrencyInput
+            label="Gambling losses"
+            value={itemized.gamblingLosses}
+            onChange={(v) => setItemizedDeductions({ gamblingLosses: v })}
+            helperText="Cannot exceed gambling winnings reported as income"
+          />
+          <CurrencyInput
+            label="Casualty & theft losses"
+            value={itemized.casualtyTheftLosses}
+            onChange={(v) => setItemizedDeductions({ casualtyTheftLosses: v })}
+            helperText="Form 4684 — only for federally declared disaster areas"
+          />
+          <CurrencyInput
+            label="Federal estate tax on IRD"
+            value={itemized.federalEstateTaxIRD}
+            onChange={(v) => setItemizedDeductions({ federalEstateTaxIRD: v })}
+            helperText="IRC §691(c) — estate tax attributable to income in respect of a decedent"
+          />
+          <CurrencyInput
+            label="Other miscellaneous deductions"
+            value={itemized.otherMiscDeductions}
+            onChange={(v) => setItemizedDeductions({ otherMiscDeductions: v })}
+            helperText="See Schedule A instructions for qualifying deductions"
+          />
+        </div>
+      )}
     </div>
   )
 }

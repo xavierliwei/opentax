@@ -453,7 +453,10 @@ export const useTaxStore = create<TaxStoreState>()(
           priorYearInvestmentInterestCarryforward: 0,
           charitableCash: 0,
           charitableNoncash: 0,
-          otherDeductions: 0,
+          gamblingLosses: 0,
+          casualtyTheftLosses: 0,
+          federalEstateTaxIRD: 0,
+          otherMiscDeductions: 0,
         }
         const tr = {
           ...prev,
@@ -532,6 +535,20 @@ export const useTaxStore = create<TaxStoreState>()(
           // Merge with defaults so fields added after the user's last save
           // (e.g. form1099MISCs) are initialised instead of undefined.
           state.taxReturn = { ...emptyTaxReturn(state.taxReturn.taxYear), ...state.taxReturn }
+
+          // Migrate legacy otherDeductions → otherMiscDeductions
+          const it = state.taxReturn.deductions.itemized
+          if (it) {
+            const raw = it as unknown as Record<string, unknown>
+            const legacy = raw.otherDeductions
+            if (typeof legacy === 'number' && legacy > 0 &&
+                it.gamblingLosses === 0 && it.casualtyTheftLosses === 0 &&
+                it.federalEstateTaxIRD === 0 && it.otherMiscDeductions === 0) {
+              it.otherMiscDeductions = legacy
+            }
+            delete raw.otherDeductions
+          }
+
           state.computeResult = computeAll(state.taxReturn)
         }
       },

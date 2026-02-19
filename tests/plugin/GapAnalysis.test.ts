@@ -177,7 +177,10 @@ describe('GapAnalysis', () => {
         priorYearInvestmentInterestCarryforward: 0,
         charitableCash: 0,
         charitableNoncash: 0,
-        otherDeductions: 0,
+        gamblingLosses: 0,
+        casualtyTheftLosses: 0,
+        federalEstateTaxIRD: 0,
+        otherMiscDeductions: 0,
       },
     }
     const result = analyze(tr)

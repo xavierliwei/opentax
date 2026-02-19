@@ -459,7 +459,10 @@ export function itemizedDeductionReturn(): TaxReturn {
         priorYearInvestmentInterestCarryforward: 0,
         charitableCash: cents(4000),
         charitableNoncash: cents(1000),
-        otherDeductions: 0,
+        gamblingLosses: 0,
+        casualtyTheftLosses: 0,
+        federalEstateTaxIRD: 0,
+        otherMiscDeductions: 0,
       },
     },
     // AGI = $150,000 (below $500K SALT phase-out threshold)

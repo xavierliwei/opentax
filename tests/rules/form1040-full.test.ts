@@ -78,7 +78,10 @@ describe('Line 12 — Deductions', () => {
           priorYearInvestmentInterestCarryforward: 0,
           charitableCash: cents(2000),
           charitableNoncash: 0,
-          otherDeductions: 0,
+          gamblingLosses: 0,
+          casualtyTheftLosses: 0,
+          federalEstateTaxIRD: 0,
+          otherMiscDeductions: 0,
         },
       },
     }
@@ -107,7 +110,10 @@ describe('Line 12 — Deductions', () => {
           priorYearInvestmentInterestCarryforward: 0,
           charitableCash: cents(1000),
           charitableNoncash: 0,
-          otherDeductions: 0,
+          gamblingLosses: 0,
+          casualtyTheftLosses: 0,
+          federalEstateTaxIRD: 0,
+          otherMiscDeductions: 0,
         },
       },
     }

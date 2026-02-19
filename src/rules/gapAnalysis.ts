@@ -140,7 +140,10 @@ export function analyzeGaps(taxReturn: TaxReturn, computeResult: ComputeResult):
         itemized.investmentInterest +
         itemized.charitableCash +
         itemized.charitableNoncash +
-        itemized.otherDeductions
+        itemized.gamblingLosses +
+        itemized.casualtyTheftLosses +
+        itemized.federalEstateTaxIRD +
+        itemized.otherMiscDeductions
       if (total === 0) {
         warnings.push(
           'Itemized deductions selected but all amounts are $0. Consider entering deduction amounts or switching to standard deduction.'
