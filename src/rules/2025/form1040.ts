@@ -21,6 +21,8 @@ import type { ScheduleAResult } from './scheduleA'
 import { computeScheduleD } from './scheduleD'
 import type { ScheduleDResult } from './scheduleD'
 import { computeOrdinaryTax, computeQDCGTax, netCapGainForQDCG } from './taxComputation'
+import { computeAMT } from './amt'
+import type { AMTResult } from './amt'
 import { computeChildTaxCredit } from './childTaxCredit'
 import type { ChildTaxCreditResult } from './childTaxCredit'
 import { computeEarnedIncomeCredit } from './earnedIncomeCredit'
@@ -32,6 +34,8 @@ import type { SaversCreditResult } from './saversCredit'
 import { computeEnergyCredit } from './energyCredit'
 import type { EnergyCreditResult } from './energyCredit'
 import { TAX_YEAR } from './constants'
+import { computeIRADeduction } from './iraDeduction'
+import type { IRADeductionResult } from './iraDeduction'
 
 // ── Line 1a — Wages, salaries, tips ────────────────────────────
 // Sum of all W-2 Box 1 values.
@@ -169,11 +173,15 @@ export function computeLine9(
 }
 
 // ── Line 10 — Adjustments to income ─────────────────────────────
-// Placeholder $0 for MVP. Would include Schedule 1 (IRA, student loan, etc.)
+// Schedule 1 Part II adjustments (IRA deduction, etc.)
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function computeLine10(_model: TaxReturn): TracedValue {
-  return tracedZero('form1040.line10', 'Form 1040, Line 10')
+export function computeLine10(
+  iraDeduction: IRADeductionResult | null,
+): TracedValue {
+  const amount = iraDeduction?.deductibleAmount ?? 0
+  return amount > 0
+    ? tracedFromComputation(amount, 'form1040.line10', ['adjustments.ira'], 'Form 1040, Line 10')
+    : tracedZero('form1040.line10', 'Form 1040, Line 10')
 }
 
 // ── Line 11 — Adjusted Gross Income ────────────────────────────
@@ -306,10 +314,28 @@ export function computeLine16(
 }
 
 // ── Line 17 — Amount from Schedule 2, Part I, line 4 ──────────
-// Placeholder $0 — no AMT or other Schedule 2 taxes for now.
+// Alternative Minimum Tax (Form 6251)
 
-export function computeLine17(): TracedValue {
-  return tracedZero('form1040.line17', 'Form 1040, Line 17')
+export function computeLine17(
+  taxableIncome: number,
+  regularTax: number,
+  filingStatus: FilingStatus,
+  saltDeduction: number,
+  isoExercises: TaxReturn['isoExercises'],
+  qualifiedDividends: number,
+  netLTCG: number,
+): { traced: TracedValue; amtResult: AMTResult } {
+  const amtResult = computeAMT(
+    taxableIncome, regularTax, filingStatus,
+    saltDeduction, isoExercises, 0,
+    qualifiedDividends, netLTCG,
+  )
+
+  const traced = amtResult.amt > 0
+    ? tracedFromComputation(amtResult.amt, 'form1040.line17', ['amt.amt'], 'Form 1040, Line 17')
+    : tracedZero('form1040.line17', 'Form 1040, Line 17')
+
+  return { traced, amtResult }
 }
 
 // ── Line 18 — Tax + Schedule 2 ─────────────────────────────────
@@ -552,6 +578,12 @@ export interface Form1040Result {
   saversCredit: SaversCreditResult | null
   energyCredit: EnergyCreditResult | null
 
+  // IRA deduction detail (Schedule 1, Line 20)
+  iraDeduction: IRADeductionResult | null
+
+  // AMT detail (Form 6251)
+  amtResult: AMTResult | null
+
   // Attached schedules
   scheduleA: ScheduleAResult | null
   scheduleD: ScheduleDResult | null
@@ -589,7 +621,9 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   )
 
   // ── Adjustments & AGI ───────────────────────────────────
-  const line10 = computeLine10(model)
+  // MAGI for IRA deduction = Line 9 (total income), per IRC §219(g)(3)(A)(ii)
+  const iraDeduction = computeIRADeduction(model, line9.amount)
+  const line10 = computeLine10(iraDeduction)
   const line11 = computeLine11(line9, line10)
 
   // ── Deductions ──────────────────────────────────────────
@@ -606,7 +640,15 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
 
   // ── Tax ─────────────────────────────────────────────────
   const line16 = computeLine16(line15.amount, line3a.amount, scheduleD, model.filingStatus)
-  const line17 = computeLine17()
+
+  const saltDeduction = scheduleA?.line7.amount ?? 0
+  const netLTCG = Math.max(0, scheduleD?.line15.amount ?? 0)
+  const { traced: line17, amtResult } = computeLine17(
+    line15.amount, line16.amount, model.filingStatus,
+    saltDeduction, model.isoExercises ?? [],
+    line3a.amount, netLTCG,
+  )
+
   const line18 = computeLine18(line16, line17)
 
   // ── Credits ────────────────────────────────────────────
@@ -720,6 +762,8 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     dependentCareCredit,
     saversCredit,
     energyCredit: energyCreditResult,
+    iraDeduction,
+    amtResult,
     scheduleA, scheduleD,
   }
 }

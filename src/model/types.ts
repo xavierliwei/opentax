@@ -159,6 +159,17 @@ export interface RSUVestEvent {
   linkedW2Id?: string        // which W-2 includes this income
 }
 
+// ── ISO exercise events ──────────────────────────────────────────
+
+export interface ISOExercise {
+  id: string
+  exerciseDate: string     // ISO date
+  symbol: string           // stock ticker
+  sharesExercised: number
+  exercisePrice: number    // cents per share
+  fmvAtExercise: number    // cents per share (FMV at exercise date)
+}
+
 // ── Capital transactions (derived) ─────────────────────────────
 
 /**
@@ -305,6 +316,9 @@ export interface TaxReturn {
   // RSU data
   rsuVestEvents: RSUVestEvent[]
 
+  // ISO exercise events (AMT preference item)
+  isoExercises: ISOExercise[]
+
   // Derived / processed data
   capitalTransactions: CapitalTransaction[]
 
@@ -349,6 +363,7 @@ export function emptyTaxReturn(taxYear: number): TaxReturn {
     form1099INTs: [],
     form1099DIVs: [],
     rsuVestEvents: [],
+    isoExercises: [],
     capitalTransactions: [],
     adjustments: [],
     deductions: { method: 'standard' },

@@ -319,6 +319,54 @@ export const ENERGY_WINDOWS_CAP = c(600)
 export const ENERGY_DOORS_CAP = c(500)
 export const ENERGY_AUDIT_CAP = c(150)
 
+// ── Alternative Minimum Tax (Form 6251) ───────────────────────
+// Source: Rev. Proc. 2024-40, §3.02
+
+export const AMT_EXEMPTION: Record<FilingStatus, number> = {
+  single: c(88100),
+  mfj:    c(137000),
+  mfs:    c(68500),
+  hoh:    c(88100),
+  qw:     c(137000),
+}
+
+export const AMT_PHASEOUT_THRESHOLD: Record<FilingStatus, number> = {
+  single: c(626350),
+  mfj:    c(1252700),
+  mfs:    c(626350),
+  hoh:    c(626350),
+  qw:     c(1252700),
+}
+
+export const AMT_PHASEOUT_RATE = 0.25  // exemption reduced by 25¢ per $1 over threshold
+
+export const AMT_28_PERCENT_THRESHOLD: Record<FilingStatus, number> = {
+  single: c(248300),
+  mfj:    c(248300),
+  mfs:    c(124150),
+  hoh:    c(248300),
+  qw:     c(248300),
+}
+
+// ── IRA Deduction (Schedule 1, Line 20) ────────────────────────
+// Source: Rev. Proc. 2024-40, IRC §219
+
+export const IRA_CONTRIBUTION_LIMIT = c(7000)   // under age 50
+export const IRA_CATCHUP_LIMIT = c(8000)         // age 50+
+export const IRA_CATCHUP_AGE = 50
+
+// Phase-out ranges when taxpayer IS covered by employer retirement plan
+export const IRA_PHASEOUT_COVERED: Record<FilingStatus, { start: number; end: number }> = {
+  single: { start: c(79000),  end: c(89000) },
+  hoh:    { start: c(79000),  end: c(89000) },
+  mfj:    { start: c(126000), end: c(146000) },
+  mfs:    { start: c(0),      end: c(10000) },
+  qw:     { start: c(126000), end: c(146000) },
+}
+
+// Phase-out when taxpayer NOT covered but spouse IS covered (MFJ only)
+export const IRA_PHASEOUT_SPOUSE_COVERED = { start: c(236000), end: c(246000) }
+
 // ── Tax Year ───────────────────────────────────────────────────
 
 export const TAX_YEAR = 2025

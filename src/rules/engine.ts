@@ -136,10 +136,24 @@ export const NODE_LABELS: Record<string, string> = {
   'eic.creditAtAGI': 'EIC at AGI',
   'eic.creditAmount': 'Earned income credit',
 
+  // Adjustments (Line 10 components)
+  'adjustments.ira': 'IRA deduction (Schedule 1, Line 20)',
+
   // Other credits (Line 20 components)
   'credits.dependentCare': 'Dependent care credit (Form 2441)',
   'credits.savers': "Saver's credit (Form 8880)",
   'credits.energy': 'Residential energy credit (Form 5695)',
+
+  // AMT (Form 6251)
+  'amt.amti': 'Alternative minimum taxable income (AMTI)',
+  'amt.saltAddBack': 'SALT deduction add-back',
+  'amt.isoSpread': 'ISO exercise spread (AMT preference)',
+  'amt.exemption': 'AMT exemption',
+  'amt.phaseOutReduction': 'AMT exemption phase-out reduction',
+  'amt.reducedExemption': 'AMT exemption (after phase-out)',
+  'amt.amtiAfterExemption': 'AMTI after exemption',
+  'amt.tentativeMinimumTax': 'Tentative minimum tax',
+  'amt.amt': 'Alternative minimum tax',
 
   // Pseudo-nodes
   'standardDeduction': 'Standard deduction',
@@ -218,6 +232,16 @@ export function collectAllValues(
   add(form1040.line34)
   add(form1040.line37)
 
+  // IRA deduction detail node
+  if (form1040.iraDeduction && form1040.iraDeduction.deductibleAmount > 0) {
+    values.set('adjustments.ira', tracedFromComputation(
+      form1040.iraDeduction.deductibleAmount,
+      'adjustments.ira',
+      [],
+      'IRA deduction (Schedule 1, Line 20)',
+    ))
+  }
+
   // Child Tax Credit detail nodes
   if (form1040.childTaxCredit) {
     const ctc = form1040.childTaxCredit
@@ -287,6 +311,41 @@ export function collectAllValues(
       'credits.energy',
       [],
       'Residential energy credit (Form 5695)',
+    ))
+  }
+
+  // AMT detail nodes (Form 6251)
+  if (form1040.amtResult && form1040.amtResult.amt > 0) {
+    const a = form1040.amtResult
+    values.set('amt.saltAddBack', tracedFromComputation(
+      a.line2a_saltAddBack, 'amt.saltAddBack', [], 'SALT deduction add-back',
+    ))
+    values.set('amt.isoSpread', tracedFromComputation(
+      a.line2i_isoSpread, 'amt.isoSpread', [], 'ISO exercise spread (AMT preference)',
+    ))
+    const amtiInputs: string[] = ['form1040.line15']
+    if (a.line2a_saltAddBack > 0) amtiInputs.push('amt.saltAddBack')
+    if (a.line2i_isoSpread > 0) amtiInputs.push('amt.isoSpread')
+    values.set('amt.amti', tracedFromComputation(
+      a.line4_amti, 'amt.amti', amtiInputs, 'Alternative minimum taxable income (AMTI)',
+    ))
+    values.set('amt.exemption', tracedFromComputation(
+      a.line5_exemption, 'amt.exemption', [], 'AMT exemption',
+    ))
+    values.set('amt.phaseOutReduction', tracedFromComputation(
+      a.line8_phaseOutReduction, 'amt.phaseOutReduction', ['amt.amti'], 'AMT exemption phase-out reduction',
+    ))
+    values.set('amt.reducedExemption', tracedFromComputation(
+      a.line9_reducedExemption, 'amt.reducedExemption', ['amt.exemption', 'amt.phaseOutReduction'], 'AMT exemption (after phase-out)',
+    ))
+    values.set('amt.amtiAfterExemption', tracedFromComputation(
+      a.line10_amtiAfterExemption, 'amt.amtiAfterExemption', ['amt.amti', 'amt.reducedExemption'], 'AMTI after exemption',
+    ))
+    values.set('amt.tentativeMinimumTax', tracedFromComputation(
+      a.tentativeMinimumTax, 'amt.tentativeMinimumTax', ['amt.amtiAfterExemption'], 'Tentative minimum tax',
+    ))
+    values.set('amt.amt', tracedFromComputation(
+      a.amt, 'amt.amt', ['amt.tentativeMinimumTax', 'form1040.line16'], 'Alternative minimum tax',
     ))
   }
 
