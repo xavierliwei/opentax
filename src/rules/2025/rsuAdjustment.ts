@@ -229,6 +229,10 @@ export function form1099BToTransaction(sale: Form1099B): CapitalTransaction {
   const longTerm = sale.longTerm ?? isLongTerm(sale.dateAcquired, sale.dateSold)
   const category = classifyCategory(longTerm, sale.basisReportedToIrs)
 
+  // Wash sale: disallowed loss is added back in column g of Form 8949,
+  // increasing gain (or reducing loss). gainLoss = proceeds − basis + washSale.
+  const washSale = sale.washSaleLossDisallowed ?? 0
+
   return {
     id: `tx-${sale.id}`,
     description: sale.description,
@@ -237,10 +241,10 @@ export function form1099BToTransaction(sale: Form1099B): CapitalTransaction {
     proceeds: sale.proceeds,
     reportedBasis,
     adjustedBasis: reportedBasis,
-    adjustmentCode: null,
-    adjustmentAmount: 0,
-    gainLoss: sale.proceeds - reportedBasis,
-    washSaleLossDisallowed: sale.washSaleLossDisallowed,
+    adjustmentCode: washSale > 0 ? 'W' : null,
+    adjustmentAmount: washSale,
+    gainLoss: sale.proceeds - reportedBasis + washSale,
+    washSaleLossDisallowed: washSale,
     longTerm,
     category,
     source1099BId: sale.id,

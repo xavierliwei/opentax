@@ -1,10 +1,12 @@
-import { useRef, useState } from 'react'
+import { useRef, useMemo, useState } from 'react'
 import { useTaxStore } from '../../store/taxStore.ts'
 import { useInterview } from '../../interview/useInterview.ts'
 import { CurrencyInput } from '../components/CurrencyInput.tsx'
+import { RSUBasisBanner } from '../components/RSUBasisBanner.tsx'
 import { InterviewNav } from './InterviewNav.tsx'
 import { autoDetectBroker } from '../../intake/csv/autoDetect.ts'
 import { parseRobinhoodPdf } from '../../intake/pdf/robinhoodPdfParser.ts'
+import { processRSUAdjustments, estimateRSUImpact } from '../../rules/2025/rsuAdjustment.ts'
 import type { ParseResult } from '../../intake/csv/types.ts'
 import type { Form1099B, Form8949Category } from '../../model/types.ts'
 
@@ -21,6 +23,13 @@ function formatDate(iso: string | null): string {
   return `${month}/${day}/${year?.slice(2)}`
 }
 
+/** Convert ALL-CAPS brokerage names to readable title case. */
+function titleCase(s: string): string {
+  return s.replace(/\S+/g, (w) =>
+    w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(),
+  )
+}
+
 // ── Form 8949 category helpers ────────────────────────────────
 
 function getCategory(b: Form1099B): Form8949Category {
@@ -31,10 +40,10 @@ function getCategory(b: Form1099B): Form8949Category {
 }
 
 const CATEGORY_LABEL: Record<Form8949Category, string> = {
-  A: 'Category A — Short-term, basis reported to IRS',
-  B: 'Category B — Short-term, basis NOT reported to IRS',
-  D: 'Category D — Long-term, basis reported to IRS',
-  E: 'Category E — Long-term, basis NOT reported to IRS',
+  A: 'Short-term, basis reported to IRS',
+  B: 'Short-term, basis NOT reported',
+  D: 'Long-term, basis reported to IRS',
+  E: 'Long-term, basis NOT reported',
 }
 
 const CATEGORY_ORDER: Form8949Category[] = ['A', 'B', 'D', 'E']
@@ -99,19 +108,21 @@ function ImportBanner({
   result: ParseResult
   onReplace: () => void
 }) {
-  const hasErrors = result.errors.length > 0
+  // Fatal error = no transactions could be extracted at all
+  const isFatal = result.errors.length > 0 && result.transactions.length === 0
+  const isSuccess = result.transactions.length > 0
 
   return (
     <div
-      className={`rounded-lg border px-4 py-3 mt-4 ${hasErrors ? 'border-red-300 bg-red-50' : 'border-green-300 bg-green-50'}`}
+      className={`rounded-lg border px-4 py-3 mt-4 ${isFatal ? 'border-red-300 bg-red-50' : 'border-green-300 bg-green-50'}`}
     >
-      {hasErrors ? (
+      {isFatal ? (
         <div className="flex flex-col gap-1">
           {result.errors.map((err, i) => (
             <p key={i} className="text-sm font-medium text-red-700">Import failed: {err}</p>
           ))}
         </div>
-      ) : (
+      ) : isSuccess ? (
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-green-800">
@@ -120,7 +131,7 @@ function ImportBanner({
             </p>
             {result.rowCounts.skipped > 0 && (
               <p className="text-xs text-amber-700 mt-1">
-                {result.rowCounts.skipped} row{result.rowCounts.skipped !== 1 ? 's' : ''} could not be parsed and {result.rowCounts.skipped !== 1 ? 'were' : 'was'} skipped
+                {result.rowCounts.skipped} row{result.rowCounts.skipped !== 1 ? 's' : ''} skipped (non-1099B or unrecognized format)
               </p>
             )}
           </div>
@@ -131,7 +142,7 @@ function ImportBanner({
             Replace
           </button>
         </div>
-      )}
+      ) : null}
       {result.warnings.map((w, i) => (
         <p key={i} className="text-xs text-amber-700 mt-1">
           ⚠ {w}
@@ -146,34 +157,43 @@ function ImportBanner({
 function TransactionRow({
   form,
   onRemove,
+  even,
 }: {
   form: Form1099B
   onRemove: () => void
+  even: boolean
 }) {
   const gain = form.gainLoss
   const isGain = gain >= 0
 
   return (
     <>
-      <tr className="border-t border-gray-100">
-        <td className="py-2 pr-2 text-sm font-medium text-gray-900 max-w-36 truncate">
-          {form.description}
+      <tr className={even ? 'bg-gray-50/60' : ''}>
+        <td className="py-2 px-3 text-sm text-gray-900 truncate max-w-0">
+          {titleCase(form.description)}
         </td>
-        <td className="py-2 pr-2 text-sm text-gray-500 whitespace-nowrap">
-          {formatDate(form.dateAcquired)} → {formatDate(form.dateSold)}
+        <td className="py-2 px-3 text-sm text-gray-500 whitespace-nowrap">
+          <span className="hidden sm:inline">
+            {formatDate(form.dateAcquired)} → {formatDate(form.dateSold)}
+          </span>
+          <span className="sm:hidden text-xs">
+            {formatDate(form.dateAcquired)}
+            <br />
+            → {formatDate(form.dateSold)}
+          </span>
         </td>
-        <td className="py-2 pr-2 text-sm text-gray-700 text-right whitespace-nowrap">
+        <td className="py-2 px-3 text-sm text-gray-700 text-right whitespace-nowrap tabular-nums">
           {formatCents(form.proceeds)}
         </td>
         <td
-          className={`py-2 pr-2 text-sm font-medium text-right whitespace-nowrap ${isGain ? 'text-green-700' : 'text-red-600'}`}
+          className={`py-2 px-3 text-sm font-semibold text-right whitespace-nowrap tabular-nums ${isGain ? 'text-emerald-600' : 'text-red-600'}`}
         >
           {isGain ? '+' : '−'}{formatCents(Math.abs(gain))}
         </td>
-        <td className="py-2 pl-1 text-right">
+        <td className="py-2 px-2 text-center w-8">
           <button
             onClick={onRemove}
-            className="text-gray-300 hover:text-red-500 transition-colors text-base leading-none"
+            className="inline-flex items-center justify-center w-6 h-6 rounded-full text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors text-sm leading-none"
             title="Remove"
           >
             ×
@@ -181,8 +201,8 @@ function TransactionRow({
         </td>
       </tr>
       {form.washSaleLossDisallowed > 0 && (
-        <tr>
-          <td colSpan={5} className="pb-2 pt-0">
+        <tr className={even ? 'bg-gray-50/60' : ''}>
+          <td colSpan={5} className="pb-2 pt-0 px-3">
             <span className="inline-flex items-center gap-1 text-xs bg-amber-50 text-amber-700 border border-amber-200 rounded px-2 py-0.5">
               ⚠ Wash sale: {formatCents(form.washSaleLossDisallowed)} disallowed
             </span>
@@ -190,6 +210,91 @@ function TransactionRow({
         </tr>
       )}
     </>
+  )
+}
+
+// ── Category section (collapsible) ──────────────────────────
+
+function CategorySection({
+  cat,
+  forms,
+  onRemove,
+}: {
+  cat: Form8949Category
+  forms: Form1099B[]
+  onRemove: (id: string) => void
+}) {
+  const [collapsed, setCollapsed] = useState(false)
+
+  const netGL = forms.reduce((sum, f) => sum + f.gainLoss, 0)
+  const isNetGain = netGL >= 0
+
+  return (
+    <div className="rounded-xl border border-gray-200 overflow-hidden">
+      {/* Clickable category header */}
+      <button
+        type="button"
+        onClick={() => setCollapsed(!collapsed)}
+        className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <svg
+            className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${collapsed ? '' : 'rotate-90'}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+          <span className="text-sm font-semibold text-gray-700 truncate">
+            {CATEGORY_LABEL[cat]}
+          </span>
+          <span className="text-xs text-gray-400 shrink-0">
+            {forms.length} trade{forms.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+        <span
+          className={`text-sm font-bold tabular-nums shrink-0 ${isNetGain ? 'text-emerald-600' : 'text-red-600'}`}
+        >
+          {isNetGain ? '+' : '−'}{formatCents(Math.abs(netGL))}
+        </span>
+      </button>
+
+      {/* Table (shown when expanded) */}
+      {!collapsed && (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[480px]">
+            <colgroup>
+              <col className="w-[38%]" />
+              <col className="w-[22%]" />
+              <col className="w-[18%]" />
+              <col className="w-[17%]" />
+              <col className="w-8" />
+            </colgroup>
+            <thead>
+              <tr className="border-t border-gray-200 text-xs text-gray-400 uppercase tracking-wide">
+                <th className="py-2 px-3 text-left font-medium">Security</th>
+                <th className="py-2 px-3 text-left font-medium">Dates</th>
+                <th className="py-2 px-3 text-right font-medium">Proceeds</th>
+                <th className="py-2 px-3 text-right font-medium">Gain / Loss</th>
+                <th className="py-2 px-2"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {forms.map((f, i) => (
+                <TransactionRow
+                  key={f.id}
+                  form={f}
+                  onRemove={() => onRemove(f.id)}
+                  even={i % 2 === 0}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -207,24 +312,24 @@ function GainLossSummary({ forms }: { forms: Form1099B[] }) {
   const netTotal = shortTermNet + longTermNet
 
   return (
-    <div className="mt-4 rounded-lg bg-gray-50 border border-gray-200 px-4 py-3">
+    <div className="rounded-xl bg-gray-50 border border-gray-200 px-4 py-3">
       <h3 className="text-sm font-semibold text-gray-700 mb-2">Summary</h3>
       <div className="flex flex-col gap-1 text-sm">
         <div className="flex justify-between">
           <span className="text-gray-600">Short-term net</span>
-          <span className={`font-medium ${shortTermNet >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+          <span className={`font-medium tabular-nums ${shortTermNet >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
             {shortTermNet >= 0 ? '+' : '−'}{formatCents(Math.abs(shortTermNet))}
           </span>
         </div>
         <div className="flex justify-between">
           <span className="text-gray-600">Long-term net</span>
-          <span className={`font-medium ${longTermNet >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+          <span className={`font-medium tabular-nums ${longTermNet >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
             {longTermNet >= 0 ? '+' : '−'}{formatCents(Math.abs(longTermNet))}
           </span>
         </div>
         <div className="flex justify-between border-t border-gray-200 pt-1 mt-1">
           <span className="font-semibold text-gray-700">Net capital {netTotal >= 0 ? 'gain' : 'loss'}</span>
-          <span className={`font-bold ${netTotal >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+          <span className={`font-bold tabular-nums ${netTotal >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
             {netTotal >= 0 ? '+' : '−'}{formatCents(Math.abs(netTotal))}
           </span>
         </div>
@@ -272,16 +377,16 @@ function ManualEntryForm({
 
   function updateProceeds(v: number) {
     const basis = form.costBasis ?? 0
-    update({ proceeds: v, gainLoss: v - basis - form.washSaleLossDisallowed })
+    update({ proceeds: v, gainLoss: v - basis + form.washSaleLossDisallowed })
   }
 
   function updateCostBasis(v: number) {
-    update({ costBasis: v, gainLoss: form.proceeds - v - form.washSaleLossDisallowed })
+    update({ costBasis: v, gainLoss: form.proceeds - v + form.washSaleLossDisallowed })
   }
 
   function updateWashSale(v: number) {
     const basis = form.costBasis ?? 0
-    update({ washSaleLossDisallowed: v, gainLoss: form.proceeds - basis - v })
+    update({ washSaleLossDisallowed: v, gainLoss: form.proceeds - basis + v })
   }
 
   const canSave = form.description.trim().length > 0 && form.dateSold.length > 0
@@ -414,10 +519,19 @@ function ManualEntryForm({
 
 export function StockSalesPage() {
   const forms = useTaxStore((s) => s.taxReturn.form1099Bs)
+  const rsuVestEvents = useTaxStore((s) => s.taxReturn.rsuVestEvents)
   const setForm1099Bs = useTaxStore((s) => s.setForm1099Bs)
   const addForm1099B = useTaxStore((s) => s.addForm1099B)
   const removeForm1099B = useTaxStore((s) => s.removeForm1099B)
   const interview = useInterview()
+
+  const rsuAnalysis = useMemo(() => {
+    if (forms.length === 0 || rsuVestEvents.length === 0) return null
+    const { analyses } = processRSUAdjustments(forms, rsuVestEvents)
+    const adjustments = analyses.filter(a => a.status !== 'correct')
+    if (adjustments.length === 0) return null
+    return { analyses, impact: estimateRSUImpact(analyses) }
+  }, [forms, rsuVestEvents])
 
   const [importBroker, setImportBroker] = useState<string | null>(null)
   const [importResult, setImportResult] = useState<ParseResult | null>(null)
@@ -434,7 +548,7 @@ export function StockSalesPage() {
         const result = await parseRobinhoodPdf(buf)
         setImportBroker('Robinhood')
         setImportResult(result)
-        if (result.errors.length === 0) {
+        if (result.transactions.length > 0) {
           setForm1099Bs(result.transactions)
           setShowUpload(false)
         }
@@ -444,7 +558,7 @@ export function StockSalesPage() {
         const detected = autoDetectBroker(csv)
         setImportBroker(detected.parser.brokerName)
         setImportResult(detected.result)
-        if (detected.result.errors.length === 0) {
+        if (detected.result.transactions.length > 0) {
           setForm1099Bs(detected.result.transactions)
           setShowUpload(false)
         }
@@ -478,7 +592,7 @@ export function StockSalesPage() {
   }
 
   return (
-    <div data-testid="page-stock-sales" className="max-w-xl mx-auto">
+    <div data-testid="page-stock-sales" className="max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold text-gray-900">Stock Sales (1099-B)</h1>
       <p className="mt-1 text-sm text-gray-600">
         Import your broker's CSV export or add transactions manually. Skip this step if you had no
@@ -536,43 +650,26 @@ export function StockSalesPage() {
         </div>
       )}
 
-      {/* Transaction table */}
+      {/* RSU basis adjustment banner */}
+      {rsuAnalysis && (
+        <div className="mt-4">
+          <RSUBasisBanner analyses={rsuAnalysis.analyses} impact={rsuAnalysis.impact} />
+        </div>
+      )}
+
+      {/* Transaction categories */}
       {forms.length > 0 && (
         <div className="mt-6 flex flex-col gap-4">
           {CATEGORY_ORDER.map((cat) => {
             const catForms = grouped.get(cat)!
             if (catForms.length === 0) return null
             return (
-              <div key={cat}>
-                <h3 className="text-sm font-semibold text-gray-600 mb-1">
-                  {CATEGORY_LABEL[cat]}{' '}
-                  <span className="font-normal text-gray-400">
-                    ({catForms.length} trade{catForms.length !== 1 ? 's' : ''})
-                  </span>
-                </h3>
-                <div className="rounded-lg border border-gray-200 overflow-x-auto">
-                  <table className="w-full min-w-[480px]">
-                    <thead>
-                      <tr className="bg-gray-50 text-xs text-gray-500">
-                        <th className="py-2 px-2 text-left font-medium">Security</th>
-                        <th className="py-2 px-2 text-left font-medium">Dates</th>
-                        <th className="py-2 px-2 text-right font-medium">Proceeds</th>
-                        <th className="py-2 px-2 text-right font-medium">G/L</th>
-                        <th className="py-2 px-2"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {catForms.map((f) => (
-                        <TransactionRow
-                          key={f.id}
-                          form={f}
-                          onRemove={() => removeForm1099B(f.id)}
-                        />
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+              <CategorySection
+                key={cat}
+                cat={cat}
+                forms={catForms}
+                onRemove={removeForm1099B}
+              />
             )
           })}
 

@@ -301,7 +301,10 @@ function IncomeCard({ complete, taxReturn }: { complete: boolean; taxReturn: Tax
   const hasAny =
     taxReturn.w2s.length > 0 ||
     taxReturn.form1099INTs.length > 0 ||
-    taxReturn.form1099DIVs.length > 0
+    taxReturn.form1099DIVs.length > 0 ||
+    taxReturn.form1099Bs.length > 0
+
+  const stockNetGain = taxReturn.form1099Bs.reduce((sum, b) => sum + b.gainLoss, 0)
 
   return (
     <div className={`rounded-xl border p-4 ${
@@ -367,6 +370,21 @@ function IncomeCard({ complete, taxReturn }: { complete: boolean; taxReturn: Tax
             </span>
           </div>
         ))}
+        {taxReturn.form1099Bs.length > 0 && (
+          <div className="flex items-baseline justify-between gap-2 text-xs">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="shrink-0 px-1 py-0.5 rounded bg-orange-100 text-orange-700 font-semibold text-[10px]">
+                1099-B
+              </span>
+              <span className="text-gray-600 truncate">
+                {taxReturn.form1099Bs.length} sale{taxReturn.form1099Bs.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+            <span className={`shrink-0 font-medium tabular-nums ${stockNetGain >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+              {stockNetGain >= 0 ? '+' : '−'}{formatCurrency(Math.abs(stockNetGain))}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   )

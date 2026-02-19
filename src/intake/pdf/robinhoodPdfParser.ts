@@ -388,8 +388,7 @@ export async function parseRobinhoodPdf(data: ArrayBuffer): Promise<ParseResult>
 
         const fields = parseTxnRow(line)
         if (!fields) {
-          const rawToks = line.items.map((it) => JSON.stringify(it.str.trim())).join(', ')
-          errors.push(`Page ${line.page}: could not parse row — tokens: [${rawToks}]`)
+          warnings.push(`Page ${line.page}: could not parse row (skipped)`)
           skipped++
           continue
         }

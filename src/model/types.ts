@@ -102,7 +102,7 @@ export interface Form1099B {
   proceeds: number             // cents
   costBasis: number | null     // cents, null if not reported
   washSaleLossDisallowed: number  // cents (0 if none)
-  gainLoss: number             // cents (proceeds - basis - wash adj)
+  gainLoss: number             // cents (proceeds - basis + washSaleLossDisallowed)
 
   // Classification
   basisReportedToIrs: boolean  // Box 12 checked = basis reported
