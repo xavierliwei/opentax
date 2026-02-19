@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState, useEffect, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useTaxStore } from '../../store/taxStore.ts'
-import { buildTrace, explainLine, NODE_LABELS } from '../../rules/engine.ts'
+import { buildTrace, explainLine, NODE_LABELS, type ComputeTrace } from '../../rules/engine.ts'
 import { useTraceLayout } from '../explain/useTraceLayout.ts'
 import { TraceNode } from '../explain/TraceNode.tsx'
 import { TraceEdge } from '../explain/TraceEdge.tsx'
@@ -10,13 +10,23 @@ const PADDING = 24
 const MIN_ZOOM = 0.1
 const MAX_ZOOM = 3
 
+/** Recursively remove child nodes whose output amount is 0. */
+function pruneZeroInputs(trace: ComputeTrace): ComputeTrace {
+  return {
+    ...trace,
+    inputs: trace.inputs
+      .filter((child) => child.output.amount !== 0)
+      .map(pruneZeroInputs),
+  }
+}
+
 export function ExplainView() {
   const { nodeId } = useParams<{ nodeId: string }>()
   const computeResult = useTaxStore((s) => s.computeResult)
 
   const effectiveNodeId = nodeId ?? ''
   const trace = useMemo(
-    () => buildTrace(computeResult, effectiveNodeId),
+    () => pruneZeroInputs(buildTrace(computeResult, effectiveNodeId)),
     [computeResult, effectiveNodeId],
   )
   const { nodes, edges, width, height, toggleCollapse } = useTraceLayout(trace)
