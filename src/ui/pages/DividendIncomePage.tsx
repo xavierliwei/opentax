@@ -88,7 +88,7 @@ export function DividendIncomePage() {
       </p>
 
       <div className="mt-6 mb-6">
-        <h2 className="text-sm font-medium text-gray-700 mb-2">Scan a 1099-DIV</h2>
+        <h2 className="text-sm font-medium text-gray-700 mb-2">Upload a 1099-DIV</h2>
         <OCRUpload formType="1099-DIV" />
       </div>
 

@@ -8,8 +8,7 @@
 
 import { useState } from 'react'
 import { CurrencyInput } from './CurrencyInput.tsx'
-import type { DetectedFormType } from '../../intake/ocr/formDetector.ts'
-import type { ExtractedField } from '../../intake/ocr/w2Parser.ts'
+import type { DetectedFormType, ExtractedField } from '../../intake/pdf/genericFormPdfParser.ts'
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -23,7 +22,8 @@ export interface VerificationField {
 
 interface OCRVerificationProps {
   formType: DetectedFormType
-  imageUrl: string
+  imageUrl?: string
+  isPdf?: boolean
   fields: VerificationField[]
   onConfirm: (fields: Map<string, string>) => void
   onDiscard: () => void
@@ -112,6 +112,7 @@ function ConfidenceBadge({ confidence }: { confidence: number }) {
 export function OCRVerification({
   formType,
   imageUrl,
+  isPdf,
   fields: initialFields,
   onConfirm,
   onDiscard,
@@ -142,14 +143,23 @@ export function OCRVerification({
       </div>
 
       <div className="flex flex-col md:flex-row">
-        {/* Left: original image */}
+        {/* Left: original image or PDF placeholder */}
         <div className="md:w-1/2 p-4 border-b md:border-b-0 md:border-r border-gray-200 bg-gray-50">
-          <img
-            src={imageUrl}
-            alt="Uploaded tax form"
-            className="w-full rounded shadow-sm"
-            data-testid="ocr-preview-image"
-          />
+          {isPdf ? (
+            <div className="flex items-center justify-center bg-gray-50 border border-gray-200 rounded-lg h-48" data-testid="ocr-preview-pdf">
+              <div className="text-center text-gray-400">
+                <div className="text-3xl mb-1">PDF</div>
+                <div className="text-xs">Document uploaded</div>
+              </div>
+            </div>
+          ) : (
+            <img
+              src={imageUrl}
+              alt="Uploaded tax form"
+              className="w-full rounded shadow-sm"
+              data-testid="ocr-preview-image"
+            />
+          )}
         </div>
 
         {/* Right: extracted fields */}

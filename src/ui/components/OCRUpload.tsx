@@ -1,38 +1,94 @@
 /**
- * OCR upload pipeline component.
+ * PDF upload pipeline component.
  *
- * Drag-and-drop zone → OCR scan → form detection → parsing → verification → store.
- * Reuses the upload UX pattern from CSVUpload.
+ * Drag-and-drop zone → pdfjs-dist text extraction → form detection → parsing → verification → store.
+ * Supports both broker consolidated PDFs (Fidelity/Robinhood) and standalone form PDFs
+ * (W-2, 1099-INT, 1099-DIV).
  */
 
 import { useState, useCallback, useRef } from 'react'
-import { recognizeImage } from '../../intake/ocr/ocrEngine.ts'
-import { detectFormType, type DetectedFormType } from '../../intake/ocr/formDetector.ts'
-import { parseW2 } from '../../intake/ocr/w2Parser.ts'
-import { parseForm1099Int } from '../../intake/ocr/form1099IntParser.ts'
-import { parseForm1099Div } from '../../intake/ocr/form1099DivParser.ts'
-import type { ExtractedField } from '../../intake/ocr/w2Parser.ts'
+import { parseGenericFormPdf, type DetectedFormType, type ExtractedField } from '../../intake/pdf/genericFormPdfParser.ts'
+import { autoDetectPdfBroker } from '../../intake/pdf/autoDetectPdf.ts'
+import type { Form1099INT, Form1099DIV } from '../../model/types.ts'
 import {
   OCRVerification,
   buildVerificationFields,
   type VerificationField,
 } from './OCRVerification.tsx'
 import { useTaxStore } from '../../store/taxStore.ts'
-import type { W2, Form1099INT, Form1099DIV } from '../../model/types.ts'
+import type { W2 } from '../../model/types.ts'
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
-const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/heic', 'application/pdf']
-const ACCEPTED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.heic', '.pdf']
 
 type UploadState =
   | { status: 'idle' }
   | { status: 'scanning'; progress: string }
-  | { status: 'verification'; formType: DetectedFormType; imageUrl: string; fields: VerificationField[] }
+  | { status: 'verification'; formType: DetectedFormType; isPdf: true; fields: VerificationField[] }
   | { status: 'imported'; formType: DetectedFormType }
   | { status: 'error'; message: string }
 
 interface OCRUploadProps {
   formType?: DetectedFormType
+}
+
+/**
+ * Try to extract forms from a broker consolidated PDF (Fidelity, Robinhood).
+ * Returns extracted fields if successful, null otherwise.
+ */
+async function tryConsolidatedPdf(
+  data: ArrayBuffer,
+  expectedFormType?: DetectedFormType,
+): Promise<{ formType: DetectedFormType; fields: Map<string, ExtractedField> } | null> {
+  const result = await autoDetectPdfBroker(data)
+
+  // Check if this broker PDF has the form type we're looking for
+  if (expectedFormType === '1099-INT' && result.form1099INTs.length > 0) {
+    return { formType: '1099-INT', fields: form1099IntToFields(result.form1099INTs[0]) }
+  }
+  if (expectedFormType === '1099-DIV' && result.form1099DIVs.length > 0) {
+    return { formType: '1099-DIV', fields: form1099DivToFields(result.form1099DIVs[0]) }
+  }
+
+  // If no specific type expected, try to find any form
+  if (!expectedFormType) {
+    if (result.form1099INTs.length > 0) {
+      return { formType: '1099-INT', fields: form1099IntToFields(result.form1099INTs[0]) }
+    }
+    if (result.form1099DIVs.length > 0) {
+      return { formType: '1099-DIV', fields: form1099DivToFields(result.form1099DIVs[0]) }
+    }
+  }
+
+  // Check for actionable error messages from broker detection
+  if (result.errors.length > 0 && result.brokerName && result.brokerName !== 'Unknown Broker') {
+    // Return null but let the standalone parser try
+    return null
+  }
+
+  return null
+}
+
+function form1099IntToFields(form: Form1099INT): Map<string, ExtractedField> {
+  const fields = new Map<string, ExtractedField>()
+  if (form.payerName) fields.set('payerName', { value: form.payerName, confidence: 1.0 })
+  if (form.box1) fields.set('box1', { value: String(form.box1), confidence: 1.0 })
+  if (form.box2) fields.set('box2', { value: String(form.box2), confidence: 1.0 })
+  if (form.box3) fields.set('box3', { value: String(form.box3), confidence: 1.0 })
+  if (form.box4) fields.set('box4', { value: String(form.box4), confidence: 1.0 })
+  if (form.box8) fields.set('box8', { value: String(form.box8), confidence: 1.0 })
+  return fields
+}
+
+function form1099DivToFields(form: Form1099DIV): Map<string, ExtractedField> {
+  const fields = new Map<string, ExtractedField>()
+  if (form.payerName) fields.set('payerName', { value: form.payerName, confidence: 1.0 })
+  if (form.box1a) fields.set('box1a', { value: String(form.box1a), confidence: 1.0 })
+  if (form.box1b) fields.set('box1b', { value: String(form.box1b), confidence: 1.0 })
+  if (form.box2a) fields.set('box2a', { value: String(form.box2a), confidence: 1.0 })
+  if (form.box4) fields.set('box4', { value: String(form.box4), confidence: 1.0 })
+  if (form.box5) fields.set('box5', { value: String(form.box5), confidence: 1.0 })
+  if (form.box11) fields.set('box11', { value: String(form.box11), confidence: 1.0 })
+  return fields
 }
 
 export function OCRUpload({ formType: expectedFormType }: OCRUploadProps) {
@@ -45,67 +101,48 @@ export function OCRUpload({ formType: expectedFormType }: OCRUploadProps) {
   const addForm1099DIV = useTaxStore((s) => s.addForm1099DIV)
 
   const processFile = useCallback(async (file: File) => {
-    // Validate file type
-    const ext = '.' + file.name.split('.').pop()?.toLowerCase()
-    if (!ACCEPTED_EXTENSIONS.includes(ext) && !ACCEPTED_TYPES.includes(file.type)) {
-      setState({ status: 'error', message: 'Unsupported file type. Please upload JPG, PNG, PDF, or HEIC.' })
+    // Validate: accept only PDF
+    if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
+      setState({ status: 'error', message: 'Please upload a PDF file.' })
       return
     }
 
-    // Validate file size
     if (file.size > MAX_FILE_SIZE) {
       setState({ status: 'error', message: 'File is too large. Maximum size is 10MB.' })
       return
     }
 
-    setState({ status: 'scanning', progress: 'Running OCR...' })
+    setState({ status: 'scanning', progress: 'Extracting text from PDF...' })
 
     try {
-      const ocr = await recognizeImage(file)
+      const buf = await file.arrayBuffer()
 
-      if (ocr.words.length === 0 || ocr.rawText.trim().length === 0) {
-        setState({ status: 'error', message: 'No text detected in this image. Please try a higher-resolution photo with better lighting.' })
+      // Try consolidated broker PDF first (Fidelity/Robinhood)
+      const consolidated = await tryConsolidatedPdf(buf.slice(0), expectedFormType)
+      if (consolidated) {
+        const fields = buildVerificationFields(consolidated.formType, consolidated.fields)
+        setState({ status: 'verification', formType: consolidated.formType, fields, isPdf: true })
         return
       }
 
-      setState({ status: 'scanning', progress: 'Detecting form type...' })
+      // Standalone form PDF (bank 1099-INT, individual 1099-DIV, W-2)
+      const result = await parseGenericFormPdf(buf)
 
-      let detectedType = detectFormType(ocr)
-
-      // If we expected a specific form type and detected unknown, use expected
+      // If standalone detection is unknown but we have an expected type, retry with that hint
+      let detectedType = result.formType
       if (detectedType === 'unknown' && expectedFormType) {
         detectedType = expectedFormType
       }
 
       if (detectedType === 'unknown') {
-        setState({ status: 'error', message: 'Could not detect form type. Please try a clearer image or enter data manually.' })
+        setState({ status: 'error', message: 'Could not detect form type in this PDF. Supported: W-2, 1099-INT, 1099-DIV.' })
         return
       }
 
-      // Parse based on detected type
-      let extractedFields: Map<string, ExtractedField>
-
-      switch (detectedType) {
-        case 'W-2':
-          extractedFields = parseW2(ocr).fields
-          break
-        case '1099-INT':
-          extractedFields = parseForm1099Int(ocr).fields
-          break
-        case '1099-DIV':
-          extractedFields = parseForm1099Div(ocr).fields
-          break
-        default:
-          setState({ status: 'error', message: 'Unsupported form type detected.' })
-          return
-      }
-
-      const imageUrl = URL.createObjectURL(file)
-      const fields = buildVerificationFields(detectedType, extractedFields)
-
-      setState({ status: 'verification', formType: detectedType, imageUrl, fields })
+      const fields = buildVerificationFields(detectedType, result.fields)
+      setState({ status: 'verification', formType: detectedType, fields, isPdf: true })
     } catch {
-      setState({ status: 'error', message: 'OCR failed. Please try a clearer image.' })
+      setState({ status: 'error', message: 'Failed to read PDF. The file may be corrupted or password-protected.' })
     }
   }, [expectedFormType])
 
@@ -191,20 +228,15 @@ export function OCRUpload({ formType: expectedFormType }: OCRUploadProps) {
         }
       }
 
-      // Clean up image URL
-      if (state.imageUrl) URL.revokeObjectURL(state.imageUrl)
       setState({ status: 'imported', formType })
     },
     [state, addW2, addForm1099INT, addForm1099DIV],
   )
 
   const handleDiscard = useCallback(() => {
-    if (state.status === 'verification' && state.imageUrl) {
-      URL.revokeObjectURL(state.imageUrl)
-    }
     setState({ status: 'idle' })
     if (fileInputRef.current) fileInputRef.current.value = ''
-  }, [state])
+  }, [])
 
   const handleReset = useCallback(() => {
     setState({ status: 'idle' })
@@ -229,7 +261,7 @@ export function OCRUpload({ formType: expectedFormType }: OCRUploadProps) {
           onDrop={handleDrop}
         >
           <p className="text-sm text-gray-600">
-            Drag and drop a photo or scan of your {expectedFormType ?? 'tax form'}
+            Upload your {expectedFormType ?? 'tax form'} PDF
           </p>
           <p className="mt-1 text-sm text-gray-500">
             or{' '}
@@ -242,12 +274,12 @@ export function OCRUpload({ formType: expectedFormType }: OCRUploadProps) {
             </button>
           </p>
           <p className="mt-2 text-xs text-gray-400">
-            JPG, PNG, PDF, or HEIC (max 10MB). All processing is done locally.
+            PDF only (max 10MB). All processing is local.
           </p>
           <input
             ref={fileInputRef}
             type="file"
-            accept=".jpg,.jpeg,.png,.pdf,.heic"
+            accept=".pdf"
             className="hidden"
             onChange={handleFileInput}
             data-testid="ocr-file-input"
@@ -257,14 +289,14 @@ export function OCRUpload({ formType: expectedFormType }: OCRUploadProps) {
 
       {/* Error */}
       {state.status === 'error' && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-3 text-sm text-red-700">
+        <div role="alert" className="bg-red-50 border border-red-200 rounded-md p-3 text-sm text-red-700">
           {state.message}
         </div>
       )}
 
       {/* Scanning */}
       {state.status === 'scanning' && (
-        <div className="text-sm text-gray-500 text-center py-8" data-testid="ocr-scanning">
+        <div role="status" aria-live="polite" className="text-sm text-gray-500 text-center py-8" data-testid="ocr-scanning">
           <div className="inline-block animate-spin w-5 h-5 border-2 border-gray-300 border-t-tax-blue rounded-full mr-2 align-middle" />
           {state.progress}
         </div>
@@ -274,7 +306,7 @@ export function OCRUpload({ formType: expectedFormType }: OCRUploadProps) {
       {state.status === 'verification' && (
         <OCRVerification
           formType={state.formType}
-          imageUrl={state.imageUrl}
+          isPdf={state.isPdf}
           fields={state.fields}
           onConfirm={handleConfirm}
           onDiscard={handleDiscard}
@@ -283,9 +315,9 @@ export function OCRUpload({ formType: expectedFormType }: OCRUploadProps) {
 
       {/* Imported */}
       {state.status === 'imported' && (
-        <div className="border border-green-200 bg-green-50 rounded-lg p-4 flex items-center justify-between">
+        <div role="status" className="border border-green-200 bg-green-50 rounded-lg p-4 flex items-center justify-between">
           <span className="text-sm text-green-700">
-            {state.formType} imported successfully from scan.
+            {state.formType} imported successfully from PDF.
           </span>
           <button
             type="button"
@@ -293,7 +325,7 @@ export function OCRUpload({ formType: expectedFormType }: OCRUploadProps) {
             onClick={handleReset}
             data-testid="ocr-scan-another"
           >
-            Scan another
+            Upload another
           </button>
         </div>
       )}

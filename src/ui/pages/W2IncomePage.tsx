@@ -296,7 +296,7 @@ export function W2IncomePage() {
       </p>
 
       <div className="mt-6 mb-6">
-        <h2 className="text-sm font-medium text-gray-700 mb-2">Scan a W-2</h2>
+        <h2 className="text-sm font-medium text-gray-700 mb-2">Upload a W-2</h2>
         <OCRUpload formType="W-2" />
       </div>
 

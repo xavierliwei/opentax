@@ -8,7 +8,6 @@ import { join } from 'node:path'
 import { TaxService } from './service/TaxService.ts'
 import { registerAllTools } from './tools/registerTools.ts'
 import { createHttpService } from './http/httpService.ts'
-import { recognizeImageNode } from './ocr/ocrNodeEngine.ts'
 
 interface OpenClawPluginServiceContext {
   workspaceDir?: string
@@ -40,7 +39,7 @@ export default function openTaxPlugin(api: OpenClawPluginApi) {
   // Use plugin-specific workspace config; fall back to resolvePath('.')
   const workspace = (cfg.workspace as string | undefined) ?? api.resolvePath('.')
   const service = new TaxService(workspace)
-  registerAllTools(api, service, recognizeImageNode)
+  registerAllTools(api, service)
 
   // Resolve staticDir: absolute paths used as-is; relative paths resolved against workspace
   const staticDirRaw = (cfg.staticDir as string | undefined) ?? './dist'

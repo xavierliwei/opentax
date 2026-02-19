@@ -11,7 +11,6 @@ import { createQueryTools } from './query.ts'
 import { createDocumentTools, processDocumentAsync } from './document.ts'
 import { createUtilityTools } from './utility.ts'
 import type { ToolDef } from './dataEntry.ts'
-import type { OCRResult } from '../../src/intake/ocr/ocrEngine.ts'
 
 export interface OpenClawApi {
   registerTool: (tool: {
@@ -42,12 +41,11 @@ function wrapTool(tool: ToolDef): {
 export function registerAllTools(
   api: OpenClawApi,
   service: TaxService,
-  ocrFn: (filePath: string) => Promise<OCRResult>,
 ): void {
   const allTools: ToolDef[] = [
     ...createDataEntryTools(service),
     ...createQueryTools(service),
-    ...createDocumentTools(service, ocrFn),
+    ...createDocumentTools(service),
     ...createUtilityTools(service),
   ]
 
@@ -59,7 +57,7 @@ export function registerAllTools(
         description: tool.description,
         parameters: tool.parameters,
         async execute(_id, params) {
-          const text = await processDocumentAsync(params.filePath as string, ocrFn)
+          const text = await processDocumentAsync(params.filePath as string)
           return { content: [{ type: 'text', text }] }
         },
       })

@@ -1,34 +1,30 @@
 /**
- * Document processing tools — OCR and CSV import.
+ * Document processing tools — PDF import and CSV import.
  */
 
 import { readFileSync } from 'node:fs'
 import type { TaxService } from '../service/TaxService.ts'
-import { detectFormType } from '../../src/intake/ocr/formDetector.ts'
-import { parseW2 } from '../../src/intake/ocr/w2Parser.ts'
-import { parseForm1099Int } from '../../src/intake/ocr/form1099IntParser.ts'
-import { parseForm1099Div } from '../../src/intake/ocr/form1099DivParser.ts'
+import { parseGenericFormPdf } from '../../src/intake/pdf/genericFormPdfParser.ts'
 import { autoDetectBroker } from '../../src/intake/csv/autoDetect.ts'
 import { convertToCapitalTransactions } from '../../src/intake/csv/convert.ts'
 import { dollars } from '../../src/model/traced.ts'
 import type { ToolDef } from './dataEntry.ts'
 
-export function createDocumentTools(service: TaxService, ocrFn: (filePath: string) => Promise<import('../../src/intake/ocr/ocrEngine.ts').OCRResult>): ToolDef[] {
+export function createDocumentTools(service: TaxService): ToolDef[] {
   return [
     {
       name: 'tax_process_document',
-      description: 'Process a photo of a tax document (W-2, 1099-INT, 1099-DIV) using OCR. Returns extracted data for confirmation — does NOT auto-import.',
+      description: 'Process a PDF tax document (W-2, 1099-INT, 1099-DIV) using text extraction. Returns extracted data for confirmation — does NOT auto-import.',
       parameters: {
         type: 'object',
         properties: {
-          filePath: { type: 'string', description: 'Path to the image file' },
+          filePath: { type: 'string', description: 'Path to the PDF file' },
         },
         required: ['filePath'],
       },
       execute(args) {
         // This tool is async in nature but our interface is sync.
         // The plugin framework handles async via promise.
-        // We return a placeholder and the actual implementation uses executeAsync.
         return `Use tax_process_document_async for document processing.`
       },
     },
@@ -91,42 +87,32 @@ export function createDocumentTools(service: TaxService, ocrFn: (filePath: strin
 
 /**
  * Async document processing — called by the plugin framework.
+ * Uses pdfjs-dist text extraction instead of Tesseract OCR.
  */
-export async function processDocumentAsync(
-  filePath: string,
-  ocrFn: (filePath: string) => Promise<import('../../src/intake/ocr/ocrEngine.ts').OCRResult>,
-): Promise<string> {
-  const ocr = await ocrFn(filePath)
-  const formType = detectFormType(ocr)
+export async function processDocumentAsync(filePath: string): Promise<string> {
+  const buf = readFileSync(filePath)
+  const data = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength)
+  const result = await parseGenericFormPdf(data)
 
-  if (formType === 'unknown') {
-    return `Could not identify the form type. Raw OCR text (first 500 chars):\n${ocr.rawText.slice(0, 500)}\n\nPlease enter the data manually using the appropriate tool.`
+  if (result.formType === 'unknown') {
+    return `Could not identify the form type in this PDF. Please enter the data manually using the appropriate tool.`
   }
 
-  const lines: string[] = [`Detected form: **${formType}** (confidence: ${ocr.confidence.toFixed(0)}%)\n`]
+  const lines: string[] = [`Detected form: **${result.formType}**\n`]
 
-  if (formType === 'W-2') {
-    const result = parseW2(ocr)
-    lines.push('Extracted W-2 fields:')
-    for (const [key, field] of result.fields) {
-      lines.push(`- ${key}: ${field.value} (confidence: ${(field.confidence * 100).toFixed(0)}%)`)
-    }
-    lines.push('\nReview these values and use tax_add_w2 to enter them.')
-  } else if (formType === '1099-INT') {
-    const result = parseForm1099Int(ocr)
-    lines.push('Extracted 1099-INT fields:')
-    for (const [key, field] of result.fields) {
-      lines.push(`- ${key}: ${field.value} (confidence: ${(field.confidence * 100).toFixed(0)}%)`)
-    }
-    lines.push('\nReview these values and use tax_add_1099_int to enter them.')
-  } else if (formType === '1099-DIV') {
-    const result = parseForm1099Div(ocr)
-    lines.push('Extracted 1099-DIV fields:')
-    for (const [key, field] of result.fields) {
-      lines.push(`- ${key}: ${field.value} (confidence: ${(field.confidence * 100).toFixed(0)}%)`)
-    }
-    lines.push('\nReview these values and use tax_add_1099_div to enter them.')
+  lines.push(`Extracted ${result.formType} fields:`)
+  for (const [key, field] of result.fields) {
+    lines.push(`- ${key}: ${field.value}`)
   }
+
+  if (result.warnings.length > 0) {
+    lines.push(`\nWarnings: ${result.warnings.join('; ')}`)
+  }
+
+  const toolName = result.formType === 'W-2' ? 'tax_add_w2'
+    : result.formType === '1099-INT' ? 'tax_add_1099_int'
+    : 'tax_add_1099_div'
+  lines.push(`\nReview these values and use ${toolName} to enter them.`)
 
   return lines.join('\n')
 }

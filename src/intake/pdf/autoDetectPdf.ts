@@ -10,6 +10,7 @@ import type { ConsolidatedParseResult } from '../csv/types'
 import { ensureWorker, extractItems } from './pdfUtils'
 import { parseFidelityPdf } from './fidelityPdfParser'
 import { parseRobinhoodPdf } from './robinhoodPdfParser'
+import { parseGenericFormPdf, type GenericPdfResult } from './genericFormPdfParser'
 
 export interface PdfParseOutput extends ConsolidatedParseResult {
   brokerName: string
@@ -80,4 +81,31 @@ export async function autoDetectPdfBroker(data: ArrayBuffer): Promise<PdfParseOu
     form1099DIVs: [],
     form1099INTs: [],
   }
+}
+
+// ── Standalone form PDF detection ────────────────────────────
+
+const BROKER_KEYWORDS = ['FIDELITY', 'NATIONAL FINANCIAL SERVICES', 'ROBINHOOD']
+
+/**
+ * Parse a standalone tax form PDF (W-2, 1099-INT, 1099-DIV).
+ * Returns null if the PDF looks like a broker consolidated document.
+ */
+export async function parseStandaloneFormPdf(data: ArrayBuffer): Promise<GenericPdfResult | null> {
+  await ensureWorker()
+
+  // Peek at first-page text to check for broker keywords
+  const detectionCopy = data.slice(0)
+  const items = await extractItems(detectionCopy)
+  const firstPageText = items
+    .filter((it) => it.page === 1)
+    .map((it) => it.str)
+    .join(' ')
+    .toUpperCase()
+
+  if (BROKER_KEYWORDS.some((kw) => firstPageText.includes(kw))) {
+    return null // Caller should use autoDetectPdfBroker instead
+  }
+
+  return parseGenericFormPdf(data)
 }
