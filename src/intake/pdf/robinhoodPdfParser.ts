@@ -12,13 +12,35 @@
  */
 
 import * as pdfjsLib from 'pdfjs-dist'
-import workerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+import rawWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import type { Form1099B } from '../../model/types'
 import type { ParseResult } from '../csv/types'
 
-// Configure PDF.js worker — the ?url suffix tells Vite to emit the file as a
-// static asset and return its resolved URL, which works in both dev and prod.
-pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc
+// ── PDF.js worker setup ───────────────────────────────────────
+//
+// The worker file (.mjs) must be served with a JavaScript MIME type, but
+// some static servers (including the OpenTax dev server) may not handle .mjs
+// correctly. To work around this, we fetch the worker source and re-serve it
+// via a blob URL with the correct MIME type, which is guaranteed to work.
+// The blob URL is cached so the fetch only happens once per page load.
+
+let _workerBlobUrl: string | null = null
+
+async function ensureWorker(): Promise<void> {
+  if (_workerBlobUrl) return
+  try {
+    const res = await fetch(rawWorkerUrl)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const text = await res.text()
+    _workerBlobUrl = URL.createObjectURL(
+      new Blob([text], { type: 'application/javascript' }),
+    )
+  } catch {
+    // Fall back to the direct URL — works when the server is configured correctly
+    _workerBlobUrl = rawWorkerUrl
+  }
+  pdfjsLib.GlobalWorkerOptions.workerSrc = _workerBlobUrl
+}
 
 // ── Internal types ────────────────────────────────────────────
 
@@ -269,6 +291,7 @@ export async function parseRobinhoodPdf(data: ArrayBuffer): Promise<ParseResult>
   let skipped = 0
 
   try {
+    await ensureWorker()
     const rawItems = await extractItems(data)
     const lines = groupLines(rawItems)
 
