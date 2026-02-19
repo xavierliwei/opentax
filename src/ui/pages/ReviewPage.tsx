@@ -235,6 +235,18 @@ export function ReviewPage() {
               pubUrl: 'https://www.irs.gov/instructions/i1040gi',
             }}
           />
+          {form1040.line27.amount > 0 && (
+            <LineItem
+              label="Line 27 — Earned income credit"
+              nodeId="form1040.line27"
+              amount={form1040.line27.amount}
+              tooltip={{
+                explanation: 'Line 27 is the Earned Income Credit (EITC). It is computed as a piecewise linear function at both earned income and AGI, taking the smaller result. The EITC is a refundable credit — it can increase your refund even if you owe no tax.',
+                pubName: 'IRS Pub 596 — Earned Income Credit',
+                pubUrl: 'https://www.irs.gov/publications/p596',
+              }}
+            />
+          )}
           {form1040.line28.amount > 0 && (
             <LineItem
               label="Line 28 — Additional child tax credit"

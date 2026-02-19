@@ -1018,3 +1018,59 @@ export function mfjBasicReturn(): TaxReturn {
     // Tax: 10% × $23,850 + 12% × $52,350 = $8,667
   }
 }
+
+// ── Fixture: low income with 1 child (EITC eligible) ─────────
+
+export function lowIncomeWithChildReturn(): TaxReturn {
+  return {
+    ...emptyTaxReturn(2025),
+    filingStatus: 'single',
+    w2s: [
+      makeW2({
+        id: 'w2-1',
+        employerName: 'Main St Shop',
+        box1: cents(25000),
+        box2: cents(1500),
+      }),
+    ],
+    dependents: [
+      makeDependent({ firstName: 'Emma', dateOfBirth: '2015-04-10', relationship: 'daughter' }),
+    ],
+    // AGI = $25,000
+    // 1 qualifying child → EIC schedule 1
+    // Earned income $25K is in phase-out range
+    // Single phase-out start: $23,350
+    // Credit at EI: max_credit - (25000 - 23350) × 0.1598
+    //             = $4,328 - $263.67 ≈ $4,064
+  }
+}
+
+// ── Fixture: low income, no children (EITC eligible) ─────────
+
+export function lowIncomeNoChildReturn(): TaxReturn {
+  return {
+    ...emptyTaxReturn(2025),
+    filingStatus: 'single',
+    taxpayer: {
+      firstName: 'Jane',
+      lastName: 'Doe',
+      ssn: '123456789',
+      dateOfBirth: '1995-06-15',  // age 30 at Dec 31 2025
+      address: { street: '123 Main St', city: 'Anytown', state: 'CA', zip: '90210' },
+    },
+    w2s: [
+      makeW2({
+        id: 'w2-1',
+        employerName: 'Main St Shop',
+        box1: cents(10000),
+        box2: cents(500),
+      }),
+    ],
+    // AGI = $10,000
+    // 0 qualifying children, age 30 → EIC schedule 0
+    // Earned income $10K is in plateau ($8,490 < $10K < $10,620)
+    // Credit at EI: $649 (max credit)
+    // Credit at AGI: same
+    // EITC = $649
+  }
+}

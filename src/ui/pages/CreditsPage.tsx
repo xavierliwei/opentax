@@ -12,10 +12,12 @@ function formatCurrency(cents: number): string {
 
 export function CreditsPage() {
   const dependents = useTaxStore((s) => s.taxReturn.dependents)
+  const filingStatus = useTaxStore((s) => s.taxReturn.filingStatus)
   const form1040 = useTaxStore((s) => s.computeResult.form1040)
   const interview = useInterview()
 
   const ctc = form1040.childTaxCredit
+  const eic = form1040.earnedIncomeCredit
   const hasDependentsWithoutDOB = dependents.some((d) => !d.dateOfBirth)
 
   return (
@@ -157,6 +159,77 @@ export function CreditsPage() {
             : 'No dependents qualify for tax credits. Ensure date of birth, SSN, and relationship are filled in.'}
         </div>
       )}
+
+      {/* ── Earned Income Credit ────────────────────────────── */}
+      {eic && eic.eligible && eic.creditAmount > 0 ? (
+        <div className="mt-6 flex flex-col gap-4">
+          <section>
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-200 pb-1">
+              Earned Income Credit
+            </h2>
+            <div className="mt-2 flex flex-col gap-1">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-700 flex items-center">
+                  Qualifying children (EITC)
+                  <InfoTooltip
+                    explanation="For the EITC, a qualifying child must be under age 19 at the end of the tax year (or under 24 if a full-time student, or any age if permanently disabled), have a valid SSN, be your son/daughter/stepchild/foster child/sibling/grandchild, and have lived with you for more than half the year."
+                    pubName="IRS Pub 596 — Earned Income Credit"
+                    pubUrl="https://www.irs.gov/publications/p596"
+                  />
+                </span>
+                <span className="font-medium">{eic.numQualifyingChildren}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-700">Schedule used</span>
+                <span className="font-medium">
+                  {eic.scheduleIndex === 0 ? 'No children' : `${eic.scheduleIndex} child${eic.scheduleIndex > 1 ? 'ren' : ''}`}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-700">Credit at earned income</span>
+                <span className="font-medium tabular-nums">{formatCurrency(eic.creditAtEarnedIncome)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-700">Credit at AGI</span>
+                <span className="font-medium tabular-nums">{formatCurrency(eic.creditAtAGI)}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm border-t border-gray-100 pt-1">
+                <span className="text-gray-700 font-medium flex items-center">
+                  Line 27 — Earned income credit
+                  <InfoTooltip
+                    explanation="The Earned Income Credit is computed at both earned income and AGI, taking the smaller amount. It is a refundable credit — it can reduce your tax below zero and result in a refund."
+                    pubName="IRS Pub 596 — Earned Income Credit"
+                    pubUrl="https://www.irs.gov/publications/p596"
+                  />
+                </span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="font-medium tabular-nums text-tax-green">
+                    {formatCurrency(eic.creditAmount)}
+                  </span>
+                  <Link
+                    to="/explain/form1040.line27"
+                    className="text-xs text-tax-blue hover:text-blue-700"
+                    title="Why this number?"
+                  >
+                    ?
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      ) : eic && !eic.eligible && eic.ineligibleReason ? (
+        <div className="mt-6 text-sm text-gray-500">
+          {eic.ineligibleReason === 'mfs' && 'Earned Income Credit is not available for Married Filing Separately.'}
+          {eic.ineligibleReason === 'investment_income' && 'Investment income exceeds $11,950 — not eligible for the Earned Income Credit.'}
+          {eic.ineligibleReason === 'age' && 'Without qualifying children, the EITC requires the filer to be age 25–64.'}
+          {eic.ineligibleReason === 'no_income' && 'No earned income — the Earned Income Credit requires wages or self-employment income.'}
+        </div>
+      ) : filingStatus === 'mfs' ? (
+        <div className="mt-6 text-sm text-gray-500">
+          Earned Income Credit is not available for Married Filing Separately.
+        </div>
+      ) : null}
 
       <InterviewNav interview={interview} />
     </div>

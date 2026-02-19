@@ -23,6 +23,9 @@ import type { ScheduleDResult } from './scheduleD'
 import { computeOrdinaryTax, computeQDCGTax, netCapGainForQDCG } from './taxComputation'
 import { computeChildTaxCredit } from './childTaxCredit'
 import type { ChildTaxCreditResult } from './childTaxCredit'
+import { computeEarnedIncomeCredit } from './earnedIncomeCredit'
+import type { EarnedIncomeCreditResult } from './earnedIncomeCredit'
+import { TAX_YEAR } from './constants'
 
 // ── Line 1a — Wages, salaries, tips ────────────────────────────
 // Sum of all W-2 Box 1 values.
@@ -409,11 +412,7 @@ export function computeLine25(model: TaxReturn): TracedValue {
 }
 
 // ── Line 27 — Earned income credit ─────────────────────────────
-// Placeholder $0 — EITC not implemented yet.
-
-export function computeLine27(): TracedValue {
-  return tracedZero('form1040.line27', 'Form 1040, Line 27')
-}
+// Computed by earnedIncomeCredit module; set externally in orchestrator.
 
 // ── Line 28 — Additional child tax credit (refundable) ────────
 // Computed by childTaxCredit module; set externally in orchestrator.
@@ -543,6 +542,9 @@ export interface Form1040Result {
   // Child Tax Credit detail (null if no dependents)
   childTaxCredit: ChildTaxCreditResult | null
 
+  // Earned Income Credit detail
+  earnedIncomeCredit: EarnedIncomeCreditResult | null
+
   // Attached schedules
   scheduleA: ScheduleAResult | null
   scheduleD: ScheduleDResult | null
@@ -625,7 +627,35 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
 
   // ── Payments & refundable credits ──────────────────────
   const line25 = computeLine25(model)
-  const line27 = computeLine27()
+
+  // Earned Income Credit
+  const eicInvestmentIncome = line2a.amount + line2b.amount + line3b.amount + Math.max(0, line7.amount)
+  let filerAge: number | null = null
+  if (model.taxpayer.dateOfBirth) {
+    const dobParts = model.taxpayer.dateOfBirth.split('-')
+    if (dobParts.length === 3) {
+      const birthYear = parseInt(dobParts[0], 10)
+      if (!isNaN(birthYear)) {
+        filerAge = TAX_YEAR - birthYear
+      }
+    }
+  }
+  const earnedIncomeCredit = computeEarnedIncomeCredit(
+    model.dependents,
+    model.filingStatus,
+    earnedIncome,
+    line11.amount,
+    eicInvestmentIncome,
+    filerAge,
+  )
+  const line27 = earnedIncomeCredit.eligible && earnedIncomeCredit.creditAmount > 0
+    ? tracedFromComputation(
+        earnedIncomeCredit.creditAmount,
+        'form1040.line27',
+        ['eic.creditAmount'],
+        'Form 1040, Line 27',
+      )
+    : tracedZero('form1040.line27', 'Form 1040, Line 27')
 
   const line28 = childTaxCredit
     ? tracedFromComputation(
@@ -653,6 +683,7 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     line25, line27, line28, line29, line31, line32, line33,
     line34, line37,
     childTaxCredit,
+    earnedIncomeCredit,
     scheduleA, scheduleD,
   }
 }

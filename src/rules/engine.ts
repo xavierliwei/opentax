@@ -131,6 +131,11 @@ export const NODE_LABELS: Record<string, string> = {
   'ctc.phaseOutReduction': 'CTC phase-out reduction',
   'ctc.creditAfterPhaseOut': 'CTC after phase-out',
 
+  // Earned Income Credit detail
+  'eic.creditAtEarnedIncome': 'EIC at earned income',
+  'eic.creditAtAGI': 'EIC at AGI',
+  'eic.creditAmount': 'Earned income credit',
+
   // Pseudo-nodes
   'standardDeduction': 'Standard deduction',
   'itemized.medicalExpenses': 'Medical expenses',
@@ -228,6 +233,29 @@ export function collectAllValues(
       'ctc.creditAfterPhaseOut',
       ['ctc.initialCredit', 'ctc.phaseOutReduction'],
       'Child Tax Credit — after phase-out',
+    ))
+  }
+
+  // Earned Income Credit detail nodes
+  if (form1040.earnedIncomeCredit && form1040.earnedIncomeCredit.eligible) {
+    const eic = form1040.earnedIncomeCredit
+    values.set('eic.creditAtEarnedIncome', tracedFromComputation(
+      eic.creditAtEarnedIncome,
+      'eic.creditAtEarnedIncome',
+      [],
+      'EIC — credit at earned income',
+    ))
+    values.set('eic.creditAtAGI', tracedFromComputation(
+      eic.creditAtAGI,
+      'eic.creditAtAGI',
+      [],
+      'EIC — credit at AGI',
+    ))
+    values.set('eic.creditAmount', tracedFromComputation(
+      eic.creditAmount,
+      'eic.creditAmount',
+      ['eic.creditAtEarnedIncome', 'eic.creditAtAGI'],
+      'Earned Income Credit',
     ))
   }
 

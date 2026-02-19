@@ -139,7 +139,7 @@ export const STEPS: InterviewStep[] = [
     id: 'credits',
     label: 'Credits',
     path: '/interview/credits',
-    isVisible: (tr) => tr.dependents.length > 0,
+    isVisible: () => true,
     isComplete: () => true,
     component: CreditsPage,
   },

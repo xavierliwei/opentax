@@ -251,6 +251,34 @@ export const CTC_PHASEOUT_THRESHOLD: Record<FilingStatus, number> = {
 
 export const CTC_PHASEOUT_RATE_PER_1000 = c(50)      // $50 per $1K of AGI over threshold
 
+// ── Earned Income Credit ──────────────────────────────────────
+// Source: IRS Rev. Proc. 2024-40, §3.07
+// Piecewise linear schedule indexed by number of qualifying children (0–3+)
+
+export interface EICSchedule {
+  phaseInRate: number
+  phaseOutRate: number
+  earnedIncomeAmount: number   // cents — phase-in end (plateau begins)
+  maxCredit: number            // cents
+  phaseOutStartSingle: number  // cents — Single/HOH/QW
+  phaseOutStartMFJ: number     // cents — MFJ
+}
+
+export const EIC_SCHEDULES: EICSchedule[] = [
+  // 0 qualifying children
+  { phaseInRate: 0.0765, phaseOutRate: 0.0765, earnedIncomeAmount: c(8490),  maxCredit: c(649),  phaseOutStartSingle: c(10620), phaseOutStartMFJ: c(17730) },
+  // 1 qualifying child
+  { phaseInRate: 0.34,   phaseOutRate: 0.1598, earnedIncomeAmount: c(12730), maxCredit: c(4328), phaseOutStartSingle: c(23350), phaseOutStartMFJ: c(30470) },
+  // 2 qualifying children
+  { phaseInRate: 0.40,   phaseOutRate: 0.2106, earnedIncomeAmount: c(17880), maxCredit: c(7152), phaseOutStartSingle: c(23350), phaseOutStartMFJ: c(30470) },
+  // 3+ qualifying children
+  { phaseInRate: 0.45,   phaseOutRate: 0.2106, earnedIncomeAmount: c(17880), maxCredit: c(8046), phaseOutStartSingle: c(23350), phaseOutStartMFJ: c(30470) },
+]
+
+export const EIC_INVESTMENT_INCOME_LIMIT = c(11950)
+export const EIC_MIN_AGE_NO_CHILDREN = 25
+export const EIC_MAX_AGE_NO_CHILDREN = 64
+
 // ── Tax Year ───────────────────────────────────────────────────
 
 export const TAX_YEAR = 2025
