@@ -4,9 +4,9 @@
 
 These features have working computation engines but **no way for users to input data**:
 
-- [ ] **HSA interview page** — Form 8889 computation complete (contributions, employer W-2 code W, excess penalty, 1099-SA distributions, 20% penalty). Needs UI for coverage type, contributions, qualified expenses, age flags.
-- [ ] **Student loan interest input field** — Schedule 1 Line 21 computation complete ($2,500 cap, MAGI phase-out). Needs a field somewhere in the interview to enter the 1098-E amount.
-- [ ] **ISO exercise interview page** — AMT computation handles ISO spread. Needs input page for exercise events (data model `ISOExercise` exists).
+- [x] **HSA interview page** — coverage type, contributions, qualified expenses, age flags on Deductions page
+- [x] **Student loan interest input field** — 1098-E amount input on Deductions page with phase-out warnings
+- [x] **ISO exercise interview page** — exercise events input with AMT spread computation
 
 ## Quick Wins
 
@@ -181,8 +181,8 @@ Lines currently returning **placeholder $0** that need real computation:
 - [x] Education Credits — AOTC + LLC (Form 8863) with multi-student support
 - [x] Additional standard deduction for age 65+ and blind
 - [x] IRA deduction (Schedule 1, Line 20)
-- [x] HSA deduction computation (Form 8889) — UI input pending
-- [x] Student loan interest deduction (Schedule 1, Line 21) — UI input pending
+- [x] HSA deduction computation (Form 8889) with UI input
+- [x] Student loan interest deduction (Schedule 1, Line 21) with UI input
 - [x] Alternative Minimum Tax (AMT) — Form 6251
 - [x] Wash sale detection (IRC §1091)
 - [x] RSU basis adjustment with confidence scoring
