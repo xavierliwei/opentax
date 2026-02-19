@@ -13,6 +13,7 @@ import {
 } from '../../rules/2025/constants.ts'
 import { computeSaltCap } from '../../rules/2025/scheduleA.ts'
 import { dollars } from '../../model/traced.ts'
+import { parseForm1098Pdf } from '../../intake/pdf/form1098PdfParser.ts'
 
 function formatCurrency(cents: number): string {
   return dollars(cents).toLocaleString('en-US', {
@@ -167,6 +168,50 @@ export function DeductionsPage() {
     ? MORTGAGE_LIMIT_PRE_TCJA[filingStatus]
     : MORTGAGE_LIMIT_POST_TCJA[filingStatus]
   const mortgageLimited = itemized.mortgagePrincipal > 0 && itemized.mortgagePrincipal > loanLimit
+
+  // Form 1098 upload state
+  const [form1098Status, setForm1098Status] = useState<'idle' | 'parsing' | 'imported' | 'error'>('idle')
+  const [form1098Message, setForm1098Message] = useState('')
+  const form1098InputRef = useRef<HTMLInputElement>(null)
+  const [form1098Dragging, setForm1098Dragging] = useState(false)
+
+  async function handleForm1098File(file: File) {
+    setForm1098Status('parsing')
+    setForm1098Message('')
+    try {
+      const buf = await file.arrayBuffer()
+      const parsed = await parseForm1098Pdf(buf)
+      if (parsed.errors.length > 0) {
+        setForm1098Status('error')
+        setForm1098Message(parsed.errors.join('; '))
+        return
+      }
+      // Auto-switch to itemized if currently standard
+      if (deductions.method === 'standard') {
+        setDeductionMethod('itemized')
+      }
+      // Auto-fill the fields
+      const updates: Record<string, number | boolean> = {}
+      if (parsed.mortgageInterest > 0) updates.mortgageInterest = parsed.mortgageInterest
+      if (parsed.mortgagePrincipal > 0) updates.mortgagePrincipal = parsed.mortgagePrincipal
+      if (parsed.originationDate) updates.mortgagePreTCJA = parsed.mortgagePreTCJA
+      setItemizedDeductions(updates)
+
+      const lender = parsed.lenderName || 'your lender'
+      const parts: string[] = []
+      if (parsed.mortgageInterest > 0) parts.push(`interest ${formatCurrency(parsed.mortgageInterest)}`)
+      if (parsed.mortgagePrincipal > 0) parts.push(`principal ${formatCurrency(parsed.mortgagePrincipal)}`)
+      const detail = parts.length > 0 ? ` — ${parts.join(', ')}` : ''
+      setForm1098Status('imported')
+      setForm1098Message(`Form 1098 imported from ${lender}${detail}`)
+      if (parsed.warnings.length > 0) {
+        setForm1098Message((prev) => prev + '. ' + parsed.warnings.join('; '))
+      }
+    } catch (err) {
+      setForm1098Status('error')
+      setForm1098Message(err instanceof Error ? err.message : 'Failed to parse PDF')
+    }
+  }
 
   return (
     <div data-testid="page-deductions" className="max-w-xl mx-auto">
@@ -331,6 +376,57 @@ export function DeductionsPage() {
                 </span>
               )}
             </div>
+
+            {/* Form 1098 upload zone */}
+            <div
+              className={`border border-dashed rounded-lg p-3 text-center cursor-pointer transition-colors select-none
+                ${form1098Dragging ? 'border-tax-blue bg-blue-50' : 'border-gray-300 hover:border-gray-400'}`}
+              onClick={() => form1098InputRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); setForm1098Dragging(true) }}
+              onDragLeave={() => setForm1098Dragging(false)}
+              onDrop={(e) => {
+                e.preventDefault()
+                setForm1098Dragging(false)
+                const file = e.dataTransfer.files[0]
+                if (file) handleForm1098File(file)
+              }}
+            >
+              <p className="text-sm font-medium text-gray-600">
+                Drop Form 1098 PDF or <span className="text-blue-600 underline">click to upload</span>
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Auto-fills interest &amp; principal from your mortgage lender
+              </p>
+              <input
+                ref={form1098InputRef}
+                type="file"
+                accept=".pdf,application/pdf"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) handleForm1098File(file)
+                  e.target.value = ''
+                }}
+              />
+            </div>
+
+            {/* Form 1098 status banner */}
+            {form1098Status === 'parsing' && (
+              <p className="text-sm text-blue-600 bg-blue-50 border border-blue-200 rounded px-3 py-2">
+                Parsing Form 1098…
+              </p>
+            )}
+            {form1098Status === 'imported' && (
+              <p className="text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded px-3 py-2">
+                {form1098Message}
+              </p>
+            )}
+            {form1098Status === 'error' && (
+              <p className="text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded px-3 py-2">
+                {form1098Message}
+              </p>
+            )}
+
             <CurrencyInput
               label="Home mortgage interest (Line 8a)"
               value={itemized.mortgageInterest}
