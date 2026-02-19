@@ -15,6 +15,18 @@ export interface PdfParseOutput extends ConsolidatedParseResult {
   brokerName: string
 }
 
+function emptyResult(error: string): PdfParseOutput {
+  return {
+    transactions: [],
+    warnings: [],
+    errors: [error],
+    rowCounts: { total: 0, parsed: 0, skipped: 0 },
+    form1099DIVs: [],
+    form1099INTs: [],
+    brokerName: '',
+  }
+}
+
 export async function autoDetectPdfBroker(data: ArrayBuffer): Promise<PdfParseOutput> {
   await ensureWorker()
 
@@ -30,6 +42,15 @@ export async function autoDetectPdfBroker(data: ArrayBuffer): Promise<PdfParseOu
     .join(' ')
     .toUpperCase()
 
+  // ── Detect unsupported form types before routing to a parser ──
+  if (firstPageText.includes('1099-R') || firstPageText.includes('DISTRIBUTION CODE')) {
+    return emptyResult('This PDF is a 1099-R (retirement distributions). 1099-R support is not yet available — please enter it manually or check back later.')
+  }
+  if (firstPageText.includes('1099-NEC') || firstPageText.includes('NONEMPLOYEE COMPENSATION')) {
+    return emptyResult('This PDF is a 1099-NEC (non-employee compensation). 1099-NEC support is not yet available.')
+  }
+
+  // ── Route to broker-specific parsers ──
   if (firstPageText.includes('FIDELITY') || firstPageText.includes('NATIONAL FINANCIAL SERVICES')) {
     const result = await parseFidelityPdf(data)
     return { ...result, brokerName: 'Fidelity' }
@@ -47,6 +68,9 @@ export async function autoDetectPdfBroker(data: ArrayBuffer): Promise<PdfParseOu
 
   // Unknown broker — attempt Robinhood parser as fallback (original behavior)
   const result = await parseRobinhoodPdf(data)
+  if (result.transactions.length === 0 && result.errors.length === 0) {
+    result.errors.push('Could not detect a supported broker or form type in this PDF. Supported formats: Fidelity and Robinhood consolidated 1099.')
+  }
   return {
     ...result,
     brokerName: 'Unknown Broker',
