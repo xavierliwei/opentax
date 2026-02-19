@@ -377,5 +377,285 @@ export function createDataEntryTools(service: TaxService): ToolDef[] {
         return `Prior-year info set: ${parts.join(', ')}. ${formatRefund(service)}`
       },
     },
+
+    {
+      name: 'tax_add_1099_misc',
+      description: 'Add a 1099-MISC form (rents, royalties, other income). All dollar amounts in dollars.',
+      parameters: {
+        type: 'object',
+        properties: {
+          payerName: { type: 'string', description: 'Payer name' },
+          rents: { type: 'number', description: 'Box 1: Rents (dollars, optional)' },
+          royalties: { type: 'number', description: 'Box 2: Royalties (dollars, optional)' },
+          otherIncome: { type: 'number', description: 'Box 3: Other income — prizes, awards (dollars, optional)' },
+          federalWithheld: { type: 'number', description: 'Box 4: Federal tax withheld (dollars, optional)' },
+        },
+        required: ['payerName'],
+      },
+      execute(args) {
+        const id = randomUUID()
+        service.addForm1099MISC({
+          id,
+          payerName: args.payerName as string,
+          box1: args.rents != null ? cents(args.rents as number) : 0,
+          box2: args.royalties != null ? cents(args.royalties as number) : 0,
+          box3: args.otherIncome != null ? cents(args.otherIncome as number) : 0,
+          box4: args.federalWithheld != null ? cents(args.federalWithheld as number) : 0,
+        })
+        const parts: string[] = []
+        if (args.rents) parts.push(`$${(args.rents as number).toLocaleString('en-US')} rents`)
+        if (args.royalties) parts.push(`$${(args.royalties as number).toLocaleString('en-US')} royalties`)
+        if (args.otherIncome) parts.push(`$${(args.otherIncome as number).toLocaleString('en-US')} other income`)
+        return `Added 1099-MISC from ${args.payerName} (${parts.join(', ') || 'no amounts'}). ${formatRefund(service)}`
+      },
+    },
+
+    {
+      name: 'tax_add_1099_b',
+      description: 'Add a 1099-B form (stock/security sale). All dollar amounts in dollars.',
+      parameters: {
+        type: 'object',
+        properties: {
+          brokerName: { type: 'string', description: 'Broker name (e.g., "Fidelity")' },
+          description: { type: 'string', description: 'Security description (e.g., "100 sh AAPL")' },
+          dateAcquired: { type: 'string', description: 'Date acquired (ISO date, or null for "Various")' },
+          dateSold: { type: 'string', description: 'Date sold (ISO date)' },
+          proceeds: { type: 'number', description: 'Box 1d: Proceeds (dollars)' },
+          costBasis: { type: 'number', description: 'Box 1e: Cost basis (dollars, optional if not reported)' },
+          washSaleLossDisallowed: { type: 'number', description: 'Box 1g: Wash sale loss disallowed (dollars, optional)' },
+          longTerm: { type: 'boolean', description: 'true if held > 1 year (long-term), false for short-term' },
+          basisReportedToIrs: { type: 'boolean', description: 'Box 12: Basis reported to IRS (default true)' },
+          federalWithheld: { type: 'number', description: 'Federal tax withheld (dollars, optional)' },
+        },
+        required: ['brokerName', 'description', 'dateSold', 'proceeds'],
+      },
+      execute(args) {
+        const id = randomUUID()
+        const proceedsCents = cents(args.proceeds as number)
+        const basisCents = args.costBasis != null ? cents(args.costBasis as number) : null
+        const washCents = args.washSaleLossDisallowed != null ? cents(args.washSaleLossDisallowed as number) : 0
+        const gainLoss = basisCents != null ? proceedsCents - basisCents + washCents : 0
+
+        service.addForm1099B({
+          id,
+          brokerName: args.brokerName as string,
+          description: args.description as string,
+          dateAcquired: (args.dateAcquired as string | null) ?? null,
+          dateSold: args.dateSold as string,
+          proceeds: proceedsCents,
+          costBasis: basisCents,
+          washSaleLossDisallowed: washCents,
+          gainLoss,
+          basisReportedToIrs: (args.basisReportedToIrs as boolean) ?? true,
+          longTerm: (args.longTerm as boolean | undefined) ?? null,
+          noncoveredSecurity: false,
+          federalTaxWithheld: args.federalWithheld != null ? cents(args.federalWithheld as number) : 0,
+        })
+        const gainStr = dollars(gainLoss) >= 0
+          ? `$${dollars(gainLoss).toFixed(2)} gain`
+          : `-$${Math.abs(dollars(gainLoss)).toFixed(2)} loss`
+        return `Added 1099-B from ${args.brokerName}: ${args.description} (${gainStr}). ${formatRefund(service)}`
+      },
+    },
+
+    {
+      name: 'tax_add_rsu_vest',
+      description: 'Add an RSU vest event. Dollar amounts in dollars, share counts as numbers.',
+      parameters: {
+        type: 'object',
+        properties: {
+          vestDate: { type: 'string', description: 'Vest date (ISO date)' },
+          symbol: { type: 'string', description: 'Stock ticker symbol (e.g., "MSFT")' },
+          sharesVested: { type: 'number', description: 'Total shares vested' },
+          sharesWithheldForTax: { type: 'number', description: 'Shares sold to cover taxes' },
+          sharesDelivered: { type: 'number', description: 'Net shares received' },
+          fmvPerShare: { type: 'number', description: 'Fair market value per share at vest (dollars)' },
+        },
+        required: ['vestDate', 'symbol', 'sharesVested', 'fmvPerShare'],
+      },
+      execute(args) {
+        const id = randomUUID()
+        const sharesVested = args.sharesVested as number
+        const fmvPerShare = cents(args.fmvPerShare as number)
+        const withheld = (args.sharesWithheldForTax as number | undefined) ?? 0
+        const delivered = (args.sharesDelivered as number | undefined) ?? (sharesVested - withheld)
+
+        service.addRSUVestEvent({
+          id,
+          vestDate: args.vestDate as string,
+          symbol: args.symbol as string,
+          sharesVested,
+          sharesWithheldForTax: withheld,
+          sharesDelivered: delivered,
+          fmvAtVest: fmvPerShare,
+          totalFmv: sharesVested * fmvPerShare,
+        })
+        return `Added RSU vest: ${sharesVested} ${args.symbol} shares on ${args.vestDate} (FMV $${(args.fmvPerShare as number).toFixed(2)}/share, total $${dollars(sharesVested * fmvPerShare).toLocaleString('en-US')}). ${formatRefund(service)}`
+      },
+    },
+
+    {
+      name: 'tax_set_dependent_care',
+      description: 'Set dependent care expenses for the Child and Dependent Care Credit (Form 2441).',
+      parameters: {
+        type: 'object',
+        properties: {
+          totalExpenses: { type: 'number', description: 'Total dependent care expenses paid (dollars)' },
+          numQualifyingPersons: { type: 'number', description: 'Number of qualifying persons (1 or 2+)' },
+        },
+        required: ['totalExpenses', 'numQualifyingPersons'],
+      },
+      execute(args) {
+        service.setDependentCare({
+          totalExpenses: cents(args.totalExpenses as number),
+          numQualifyingPersons: args.numQualifyingPersons as number,
+        })
+        return `Dependent care set: $${(args.totalExpenses as number).toLocaleString('en-US')} for ${args.numQualifyingPersons} qualifying person(s). ${formatRefund(service)}`
+      },
+    },
+
+    {
+      name: 'tax_set_retirement_contributions',
+      description: 'Set IRA contribution amounts. 401(k) is auto-derived from W-2 Box 12.',
+      parameters: {
+        type: 'object',
+        properties: {
+          traditionalIRA: { type: 'number', description: 'Traditional IRA contributions (dollars)' },
+          rothIRA: { type: 'number', description: 'Roth IRA contributions (dollars)' },
+        },
+      },
+      execute(args) {
+        const updates: Record<string, number> = {}
+        if (args.traditionalIRA != null) updates.traditionalIRA = cents(args.traditionalIRA as number)
+        if (args.rothIRA != null) updates.rothIRA = cents(args.rothIRA as number)
+        service.setRetirementContributions(updates)
+        const parts: string[] = []
+        if (args.traditionalIRA != null) parts.push(`Traditional IRA: $${(args.traditionalIRA as number).toLocaleString('en-US')}`)
+        if (args.rothIRA != null) parts.push(`Roth IRA: $${(args.rothIRA as number).toLocaleString('en-US')}`)
+        return `Retirement contributions set: ${parts.join(', ')}. ${formatRefund(service)}`
+      },
+    },
+
+    {
+      name: 'tax_set_energy_credits',
+      description: 'Set residential energy credit amounts (Form 5695). All dollar amounts in dollars.',
+      parameters: {
+        type: 'object',
+        properties: {
+          solarElectric: { type: 'number', description: 'Solar electric property cost (dollars)' },
+          solarWaterHeating: { type: 'number', description: 'Solar water heating cost (dollars)' },
+          batteryStorage: { type: 'number', description: 'Battery storage cost (≥3 kWh, dollars)' },
+          geothermal: { type: 'number', description: 'Geothermal heat pump cost (dollars)' },
+          insulation: { type: 'number', description: 'Insulation materials cost (dollars)' },
+          windows: { type: 'number', description: 'Energy efficient windows cost (dollars)' },
+          exteriorDoors: { type: 'number', description: 'Exterior doors cost (dollars)' },
+          centralAC: { type: 'number', description: 'Central air conditioning cost (dollars)' },
+          waterHeater: { type: 'number', description: 'Water heater cost (dollars)' },
+          heatPump: { type: 'number', description: 'Heat pump cost (dollars)' },
+          homeEnergyAudit: { type: 'number', description: 'Home energy audit cost (dollars)' },
+          biomassStove: { type: 'number', description: 'Biomass stove/boiler cost (dollars)' },
+        },
+      },
+      execute(args) {
+        const updates: Record<string, number> = {}
+        const fields = [
+          'solarElectric', 'solarWaterHeating', 'batteryStorage', 'geothermal',
+          'insulation', 'windows', 'exteriorDoors', 'centralAC',
+          'waterHeater', 'heatPump', 'homeEnergyAudit', 'biomassStove',
+        ]
+        const parts: string[] = []
+        for (const f of fields) {
+          if (args[f] != null) {
+            updates[f] = cents(args[f] as number)
+            parts.push(`${f}: $${(args[f] as number).toLocaleString('en-US')}`)
+          }
+        }
+        service.setEnergyCredits(updates)
+        return `Energy credits set: ${parts.join(', ') || 'no amounts'}. ${formatRefund(service)}`
+      },
+    },
+
+    {
+      name: 'tax_set_hsa',
+      description: 'Set Health Savings Account (HSA) information.',
+      parameters: {
+        type: 'object',
+        properties: {
+          coverageType: { type: 'string', enum: ['self-only', 'family'], description: 'HSA coverage type' },
+          contributions: { type: 'number', description: 'Your direct HSA contributions (dollars, not from employer/W-2)' },
+          qualifiedExpenses: { type: 'number', description: 'Qualified medical expenses paid from HSA (dollars)' },
+          age55OrOlder: { type: 'boolean', description: 'Age 55+ for catch-up contribution' },
+          age65OrDisabled: { type: 'boolean', description: 'Age 65+ or disabled (exempt from penalty)' },
+        },
+        required: ['coverageType', 'contributions'],
+      },
+      execute(args) {
+        const updates: Record<string, unknown> = {}
+        if (args.coverageType != null) updates.coverageType = args.coverageType
+        if (args.contributions != null) updates.contributions = cents(args.contributions as number)
+        if (args.qualifiedExpenses != null) updates.qualifiedExpenses = cents(args.qualifiedExpenses as number)
+        if (args.age55OrOlder != null) updates.age55OrOlder = args.age55OrOlder
+        if (args.age65OrDisabled != null) updates.age65OrDisabled = args.age65OrDisabled
+        service.setHSA(updates as Parameters<typeof service.setHSA>[0])
+        return `HSA set: ${args.coverageType} coverage, $${(args.contributions as number).toLocaleString('en-US')} contributions. ${formatRefund(service)}`
+      },
+    },
+
+    {
+      name: 'tax_add_1099_sa',
+      description: 'Add a 1099-SA form (HSA distributions). All dollar amounts in dollars.',
+      parameters: {
+        type: 'object',
+        properties: {
+          payerName: { type: 'string', description: 'HSA trustee/payer name' },
+          grossDistribution: { type: 'number', description: 'Box 1: Gross distribution (dollars)' },
+          earningsOnExcess: { type: 'number', description: 'Box 2: Earnings on excess contributions (dollars, optional)' },
+        },
+        required: ['payerName', 'grossDistribution'],
+      },
+      execute(args) {
+        const id = randomUUID()
+        service.addForm1099SA({
+          id,
+          payerName: args.payerName as string,
+          box1: cents(args.grossDistribution as number),
+          box2: args.earningsOnExcess != null ? cents(args.earningsOnExcess as number) : 0,
+        })
+        return `Added 1099-SA from ${args.payerName} ($${(args.grossDistribution as number).toLocaleString('en-US')} distribution). ${formatRefund(service)}`
+      },
+    },
+
+    {
+      name: 'tax_add_iso_exercise',
+      description: 'Add an ISO (Incentive Stock Option) exercise event for AMT calculation.',
+      parameters: {
+        type: 'object',
+        properties: {
+          exerciseDate: { type: 'string', description: 'Exercise date (ISO date)' },
+          symbol: { type: 'string', description: 'Stock ticker symbol' },
+          sharesExercised: { type: 'number', description: 'Number of shares exercised' },
+          exercisePrice: { type: 'number', description: 'Exercise (strike) price per share (dollars)' },
+          fmvAtExercise: { type: 'number', description: 'Fair market value per share at exercise (dollars)' },
+        },
+        required: ['exerciseDate', 'symbol', 'sharesExercised', 'exercisePrice', 'fmvAtExercise'],
+      },
+      execute(args) {
+        const id = randomUUID()
+        const shares = args.sharesExercised as number
+        const exPrice = args.exercisePrice as number
+        const fmv = args.fmvAtExercise as number
+        const bargainElement = (fmv - exPrice) * shares
+
+        service.addISOExercise({
+          id,
+          exerciseDate: args.exerciseDate as string,
+          symbol: args.symbol as string,
+          sharesExercised: shares,
+          exercisePrice: cents(exPrice),
+          fmvAtExercise: cents(fmv),
+        })
+        return `Added ISO exercise: ${shares} ${args.symbol} shares at $${exPrice.toFixed(2)}/share (FMV $${fmv.toFixed(2)}, AMT bargain element $${bargainElement.toLocaleString('en-US', { minimumFractionDigits: 2 })}). ${formatRefund(service)}`
+      },
+    },
   ]
 }

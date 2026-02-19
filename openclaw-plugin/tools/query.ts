@@ -65,17 +65,33 @@ export function createQueryTools(service: TaxService): ToolDef[] {
 
         // Documents on file
         const docs: string[] = []
-        if (service.taxReturn.w2s.length > 0) {
-          docs.push(`${service.taxReturn.w2s.length} W-2(s)`)
+        const tr = service.taxReturn
+        if (tr.w2s.length > 0) {
+          docs.push(`${tr.w2s.length} W-2(s)`)
         }
-        if (service.taxReturn.form1099INTs.length > 0) {
-          docs.push(`${service.taxReturn.form1099INTs.length} 1099-INT(s)`)
+        if (tr.form1099INTs.length > 0) {
+          docs.push(`${tr.form1099INTs.length} 1099-INT(s)`)
         }
-        if (service.taxReturn.form1099DIVs.length > 0) {
-          docs.push(`${service.taxReturn.form1099DIVs.length} 1099-DIV(s)`)
+        if (tr.form1099DIVs.length > 0) {
+          docs.push(`${tr.form1099DIVs.length} 1099-DIV(s)`)
         }
-        if (service.taxReturn.capitalTransactions.length > 0) {
-          docs.push(`${service.taxReturn.capitalTransactions.length} capital transaction(s)`)
+        if ((tr.form1099MISCs ?? []).length > 0) {
+          docs.push(`${tr.form1099MISCs!.length} 1099-MISC(s)`)
+        }
+        if ((tr.form1099Bs ?? []).length > 0) {
+          docs.push(`${tr.form1099Bs!.length} 1099-B(s)`)
+        }
+        if (tr.capitalTransactions.length > 0) {
+          docs.push(`${tr.capitalTransactions.length} capital transaction(s)`)
+        }
+        if (tr.rsuVestEvents.length > 0) {
+          docs.push(`${tr.rsuVestEvents.length} RSU vest event(s)`)
+        }
+        if ((tr.form1099SAs ?? []).length > 0) {
+          docs.push(`${tr.form1099SAs!.length} 1099-SA(s)`)
+        }
+        if (tr.isoExercises.length > 0) {
+          docs.push(`${tr.isoExercises.length} ISO exercise(s)`)
         }
         if (docs.length > 0) {
           lines.push(`### Documents on File`)

@@ -19,12 +19,19 @@ import type {
   Form1099INT,
   Form1099DIV,
   Form1099MISC,
+  Form1099B,
+  Form1099SA,
   CapitalTransaction,
   Taxpayer,
   Dependent,
   RSUVestEvent,
   ItemizedDeductions,
   PriorYearInfo,
+  DependentCareExpenses,
+  RetirementContributions,
+  EnergyCredits,
+  HSAInfo,
+  ISOExercise,
 } from '../../src/model/types.ts'
 import { computeAll } from '../../src/rules/engine.ts'
 import type { ComputeResult } from '../../src/rules/engine.ts'
@@ -393,6 +400,123 @@ export class TaxService extends EventEmitter {
         ...prev.deductions,
         itemized: { ...existing, ...itemized },
       },
+    }
+    this.apply(tr)
+  }
+
+  // ── 1099-B ──────────────────────────────────────────────────────
+
+  addForm1099B(form: Form1099B): void {
+    const tr = {
+      ...this.taxReturn,
+      form1099Bs: [...(this.taxReturn.form1099Bs ?? []), form],
+    }
+    this.apply(tr)
+  }
+
+  removeForm1099B(id: string): void {
+    const tr = {
+      ...this.taxReturn,
+      form1099Bs: (this.taxReturn.form1099Bs ?? []).filter((f) => f.id !== id),
+    }
+    this.apply(tr)
+  }
+
+  setForm1099Bs(forms: Form1099B[]): void {
+    const tr = { ...this.taxReturn, form1099Bs: forms }
+    this.apply(tr)
+  }
+
+  // ── Dependent Care ───────────────────────────────────────────────
+
+  setDependentCare(updates: Partial<DependentCareExpenses>): void {
+    const prev = this.taxReturn
+    const existing = prev.dependentCare ?? { totalExpenses: 0, numQualifyingPersons: 0 }
+    const tr = {
+      ...prev,
+      dependentCare: { ...existing, ...updates },
+    }
+    this.apply(tr)
+  }
+
+  // ── Retirement Contributions ─────────────────────────────────────
+
+  setRetirementContributions(updates: Partial<RetirementContributions>): void {
+    const prev = this.taxReturn
+    const existing = prev.retirementContributions ?? { traditionalIRA: 0, rothIRA: 0 }
+    const tr = {
+      ...prev,
+      retirementContributions: { ...existing, ...updates },
+    }
+    this.apply(tr)
+  }
+
+  // ── Energy Credits ───────────────────────────────────────────────
+
+  setEnergyCredits(updates: Partial<EnergyCredits>): void {
+    const prev = this.taxReturn
+    const existing = prev.energyCredits ?? {
+      solarElectric: 0, solarWaterHeating: 0, batteryStorage: 0, geothermal: 0,
+      insulation: 0, windows: 0, exteriorDoors: 0, centralAC: 0,
+      waterHeater: 0, heatPump: 0, homeEnergyAudit: 0, biomassStove: 0,
+    }
+    const tr = {
+      ...prev,
+      energyCredits: { ...existing, ...updates },
+    }
+    this.apply(tr)
+  }
+
+  // ── HSA ──────────────────────────────────────────────────────────
+
+  setHSA(updates: Partial<HSAInfo>): void {
+    const prev = this.taxReturn
+    const existing = prev.hsa ?? {
+      coverageType: 'self-only' as const,
+      contributions: 0,
+      qualifiedExpenses: 0,
+      age55OrOlder: false,
+      age65OrDisabled: false,
+    }
+    const tr = {
+      ...prev,
+      hsa: { ...existing, ...updates },
+    }
+    this.apply(tr)
+  }
+
+  // ── 1099-SA ─────────────────────────────────────────────────────
+
+  addForm1099SA(form: Form1099SA): void {
+    const tr = {
+      ...this.taxReturn,
+      form1099SAs: [...(this.taxReturn.form1099SAs ?? []), form],
+    }
+    this.apply(tr)
+  }
+
+  removeForm1099SA(id: string): void {
+    const tr = {
+      ...this.taxReturn,
+      form1099SAs: (this.taxReturn.form1099SAs ?? []).filter((f) => f.id !== id),
+    }
+    this.apply(tr)
+  }
+
+  // ── ISO Exercises ────────────────────────────────────────────────
+
+  addISOExercise(exercise: ISOExercise): void {
+    const tr = {
+      ...this.taxReturn,
+      isoExercises: [...this.taxReturn.isoExercises, exercise],
+    }
+    this.apply(tr)
+  }
+
+  removeISOExercise(id: string): void {
+    const tr = {
+      ...this.taxReturn,
+      isoExercises: this.taxReturn.isoExercises.filter((e) => e.id !== id),
     }
     this.apply(tr)
   }
