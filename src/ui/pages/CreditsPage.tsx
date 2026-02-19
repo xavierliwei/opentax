@@ -4,7 +4,7 @@ import { useInterview } from '../../interview/useInterview.ts'
 import { CurrencyInput } from '../components/CurrencyInput.tsx'
 import { InfoTooltip } from '../components/InfoTooltip.tsx'
 import { InterviewNav } from './InterviewNav.tsx'
-import { SAVERS_CREDIT_THRESHOLDS } from '../../rules/2025/constants.ts'
+import { SAVERS_CREDIT_THRESHOLDS, CTC_PHASEOUT_THRESHOLD } from '../../rules/2025/constants.ts'
 import type { FilingStatus } from '../../model/types.ts'
 
 function formatCurrency(cents: number): string {
@@ -40,8 +40,6 @@ export function CreditsPage() {
   const dcCredit = form1040.dependentCareCredit
   const scCredit = form1040.saversCredit
   const ecCredit = form1040.energyCredit
-  const hasDependentsWithoutDOB = dependents.some((d) => !d.dateOfBirth)
-
   // Compute W-2 Box 12 elective deferrals for display
   const deferralCodes = new Set(['D', 'E', 'AA', 'BB', 'G', 'H'])
   let electiveDeferrals = 0
@@ -68,113 +66,167 @@ export function CreditsPage() {
         Credits computed from your dependents and income, plus additional credits you can claim below.
       </p>
 
-      {/* ── Missing DOB warning ─────────────────────────────── */}
-      {hasDependentsWithoutDOB && (
-        <div className="mt-4 rounded-md bg-amber-50 border border-amber-200 p-3">
-          <p className="text-sm text-amber-800">
-            Some dependents are missing a date of birth. Add DOB on the{' '}
-            <Link to="/interview/dependents" className="font-medium text-amber-900 underline">
-              Dependents page
-            </Link>{' '}
-            to compute child tax credits.
-          </p>
-        </div>
-      )}
-
       {/* ── Child Tax Credit (auto-computed) ────────────────── */}
-      {ctc && (ctc.numQualifyingChildren > 0 || ctc.numOtherDependents > 0) ? (
-        <div className="mt-6 bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
-          <div className="flex items-baseline justify-between">
-            <div className="flex items-center gap-1">
-              <span className="text-sm font-semibold text-gray-800">Child Tax Credit</span>
-              <InfoTooltip
-                explanation="A qualifying child must be under age 17 at the end of the tax year, have a valid SSN, be your son/daughter/stepchild/foster child/sibling/grandchild, and have lived with you for more than half the year. Each qualifying child generates a $2,000 credit."
-                pubName="IRS Schedule 8812 Instructions"
-                pubUrl="https://www.irs.gov/instructions/i1040s8"
-              />
-              <span className="text-xs text-gray-400">Schedule 8812</span>
-            </div>
-            {form1040.line19.amount > 0 && (
-              <span className="text-sm font-semibold text-tax-green">{formatCurrency(form1040.line19.amount)}</span>
-            )}
-          </div>
-          <div className="flex flex-col gap-1">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-700">Qualifying children (under 17)</span>
-              <span className="font-medium">{ctc.numQualifyingChildren}</span>
-            </div>
-            {ctc.numOtherDependents > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-700">Other dependents ($500 each)</span>
-                <span className="font-medium">{ctc.numOtherDependents}</span>
-              </div>
-            )}
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-700">Initial credit</span>
-              <span className="font-medium tabular-nums">{formatCurrency(ctc.initialCredit)}</span>
-            </div>
-            {ctc.phaseOutReduction > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-700 flex items-center">
-                  Phase-out reduction
-                  <InfoTooltip
-                    explanation="The child tax credit phases out by $50 for each $1,000 (or fraction thereof) of AGI above the threshold. Thresholds: $200,000 (Single/HOH/MFS) or $400,000 (MFJ/QW). The phase-out applies to the total credit including the $500 other dependent credit."
-                    pubName="IRC §24(b) — Phase-out"
-                    pubUrl="https://www.irs.gov/instructions/i1040s8"
-                  />
-                </span>
-                <span className="font-medium tabular-nums text-tax-red">
-                  −{formatCurrency(ctc.phaseOutReduction)}
-                </span>
-              </div>
-            )}
-          </div>
-          <div className="flex flex-col gap-1 border-t border-gray-100 pt-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-700 font-medium flex items-center">
-                Line 19 — Non-refundable CTC
+      {(() => {
+        const ctcThreshold = CTC_PHASEOUT_THRESHOLD[filingStatus]
+        const QUALIFYING_RELATIONSHIPS = new Set(['son', 'daughter', 'stepchild', 'foster child', 'sibling', 'grandchild'])
+
+        // Diagnose why each dependent doesn't qualify
+        const missingSSN: string[] = []
+        const missingDOB: string[] = []
+        const badRelationship: string[] = []
+        const tooOld: string[] = []
+        const lowMonths: string[] = []
+        for (const dep of dependents) {
+          const name = dep.firstName || '(unnamed)'
+          if (!dep.ssn || dep.ssn.length !== 9) missingSSN.push(name)
+          if (!dep.dateOfBirth) { missingDOB.push(name); continue }
+          const parts = dep.dateOfBirth.split('-')
+          if (parts.length === 3) {
+            const age = 2025 - parseInt(parts[0], 10)
+            if (age >= 17) tooOld.push(name)
+          }
+          if (!QUALIFYING_RELATIONSHIPS.has(dep.relationship)) badRelationship.push(name)
+          if (dep.monthsLived < 7) lowMonths.push(name)
+        }
+
+        const hasQualifying = ctc && (ctc.numQualifyingChildren > 0 || ctc.numOtherDependents > 0)
+
+        return (
+          <div className="mt-6 bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
+            <div className="flex items-baseline justify-between">
+              <div className="flex items-center gap-1">
+                <span className="text-sm font-semibold text-gray-800">Child Tax Credit</span>
                 <InfoTooltip
-                  explanation="The non-refundable portion of the child tax credit directly reduces your tax liability but cannot reduce it below zero. Any excess may become the refundable Additional Child Tax Credit on Line 28."
-                  pubName="Form 1040, Line 19"
-                  pubUrl="https://www.irs.gov/instructions/i1040gi"
+                  explanation="A qualifying child must be under age 17 at the end of the tax year, have a valid SSN, be your son/daughter/stepchild/foster child/sibling/grandchild, and have lived with you for more than half the year. Each qualifying child generates a $2,000 credit."
+                  pubName="IRS Schedule 8812 Instructions"
+                  pubUrl="https://www.irs.gov/instructions/i1040s8"
                 />
-              </span>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="font-medium tabular-nums">{formatCurrency(form1040.line19.amount)}</span>
-                <Link to="/explain/form1040.line19" className="text-xs text-tax-blue hover:text-blue-700" title="Why this number?">?</Link>
+                <span className="text-xs text-gray-400">Schedule 8812</span>
               </div>
+              {hasQualifying && form1040.line19.amount > 0 && (
+                <span className="text-sm font-semibold text-tax-green">{formatCurrency(form1040.line19.amount)}</span>
+              )}
             </div>
-            {form1040.line28.amount > 0 && (
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-700 font-medium flex items-center">
-                  Line 28 — Additional CTC (refundable)
-                  <InfoTooltip
-                    explanation="The Additional Child Tax Credit (Form 8812) is the refundable portion. It equals the lesser of: (a) $1,700 per qualifying child, and (b) 15% of earned income above $2,500. It cannot exceed the unused credit from Line 19."
-                    pubName="Schedule 8812 — Additional CTC"
-                    pubUrl="https://www.irs.gov/instructions/i1040s8"
-                  />
-                </span>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="font-medium tabular-nums text-tax-green">{formatCurrency(form1040.line28.amount)}</span>
-                  <Link to="/explain/form1040.line28" className="text-xs text-tax-blue hover:text-blue-700" title="Why this number?">?</Link>
-                </div>
+
+            {/* Diagnostic: missing fields preventing qualification */}
+            {dependents.length > 0 && (missingSSN.length > 0 || missingDOB.length > 0 || badRelationship.length > 0 || lowMonths.length > 0) && (
+              <div className="text-xs bg-amber-50 border border-amber-200 rounded px-3 py-2 flex flex-col gap-1">
+                <span className="font-medium text-amber-800">Some dependents may not qualify:</span>
+                {missingSSN.length > 0 && (
+                  <span className="text-amber-700">
+                    Missing SSN: {missingSSN.join(', ')} &mdash; a valid 9-digit SSN is required for the CTC
+                  </span>
+                )}
+                {missingDOB.length > 0 && (
+                  <span className="text-amber-700">
+                    Missing date of birth: {missingDOB.join(', ')}
+                  </span>
+                )}
+                {badRelationship.length > 0 && (
+                  <span className="text-amber-700">
+                    Relationship not eligible: {badRelationship.join(', ')} &mdash; must be son, daughter, stepchild, foster child, sibling, or grandchild
+                  </span>
+                )}
+                {lowMonths.length > 0 && (
+                  <span className="text-amber-700">
+                    Lived with you &lt;7 months: {lowMonths.join(', ')} &mdash; must live with you more than half the year
+                  </span>
+                )}
+                <Link to="/interview/dependents" className="font-medium text-amber-900 underline mt-0.5">
+                  Update on Dependents page
+                </Link>
               </div>
             )}
+
+            {dependents.length === 0 && (
+              <p className="text-sm text-gray-500">
+                No dependents on this return.{' '}
+                <Link to="/interview/dependents" className="text-tax-blue underline">Add dependents</Link> to compute credits.
+              </p>
+            )}
+
+            {hasQualifying && ctc && (
+              <>
+                <div className="flex flex-col gap-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-700">Qualifying children (under 17)</span>
+                    <span className="font-medium">{ctc.numQualifyingChildren}</span>
+                  </div>
+                  {ctc.numOtherDependents > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-700">Other dependents ($500 each)</span>
+                      <span className="font-medium">{ctc.numOtherDependents}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-700">Initial credit</span>
+                    <span className="font-medium tabular-nums">{formatCurrency(ctc.initialCredit)}</span>
+                  </div>
+                  {ctc.phaseOutReduction > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-700 flex items-center">
+                        Phase-out reduction
+                        <InfoTooltip
+                          explanation="The child tax credit phases out by $50 for each $1,000 (or fraction thereof) of AGI above the threshold. Thresholds: $200,000 (Single/HOH/MFS) or $400,000 (MFJ/QW). The phase-out applies to the total credit including the $500 other dependent credit."
+                          pubName="IRC §24(b) — Phase-out"
+                          pubUrl="https://www.irs.gov/instructions/i1040s8"
+                        />
+                      </span>
+                      <span className="font-medium tabular-nums text-tax-red">
+                        −{formatCurrency(ctc.phaseOutReduction)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-col gap-1 border-t border-gray-100 pt-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-700 font-medium flex items-center">
+                      Line 19 — Non-refundable CTC
+                      <InfoTooltip
+                        explanation="The non-refundable portion of the child tax credit directly reduces your tax liability but cannot reduce it below zero. Any excess may become the refundable Additional Child Tax Credit on Line 28."
+                        pubName="Form 1040, Line 19"
+                        pubUrl="https://www.irs.gov/instructions/i1040gi"
+                      />
+                    </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="font-medium tabular-nums">{formatCurrency(form1040.line19.amount)}</span>
+                      <Link to="/explain/form1040.line19" className="text-xs text-tax-blue hover:text-blue-700" title="Why this number?">?</Link>
+                    </div>
+                  </div>
+                  {form1040.line28.amount > 0 && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-700 font-medium flex items-center">
+                        Line 28 — Additional CTC (refundable)
+                        <InfoTooltip
+                          explanation="The Additional Child Tax Credit (Form 8812) is the refundable portion. It equals the lesser of: (a) $1,700 per qualifying child, and (b) 15% of earned income above $2,500. It cannot exceed the unused credit from Line 19."
+                          pubName="Schedule 8812 — Additional CTC"
+                          pubUrl="https://www.irs.gov/instructions/i1040s8"
+                        />
+                      </span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="font-medium tabular-nums text-tax-green">{formatCurrency(form1040.line28.amount)}</span>
+                        <Link to="/explain/form1040.line28" className="text-xs text-tax-blue hover:text-blue-700" title="Why this number?">?</Link>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* AGI phase-out info */}
+            <div className="text-xs text-gray-500 bg-gray-50 rounded px-2 py-1">
+              AGI phase-out starts at {formatCurrency(ctcThreshold)} for {STATUS_LABELS[filingStatus]} filers.
+              {agi > 0 && (
+                agi <= ctcThreshold
+                  ? <> Your AGI: {formatCurrency(agi)} &mdash; within the limit.</>
+                  : <> Your AGI: {formatCurrency(agi)} &mdash; <span className="text-amber-700">above the threshold, credit is being reduced.</span></>
+              )}
+              {agi === 0 && <> Your AGI will update as you add income.</>}
+            </div>
           </div>
-        </div>
-      ) : (
-        <div className="mt-6 bg-white rounded-xl border border-gray-200 p-4">
-          <div className="flex items-center gap-1 mb-2">
-            <span className="text-sm font-semibold text-gray-400">Child Tax Credit</span>
-            <span className="text-xs text-gray-400">Schedule 8812</span>
-          </div>
-          <p className="text-sm text-gray-500">
-            {dependents.length === 0
-              ? 'No dependents on this return. Add dependents to compute credits.'
-              : 'No dependents qualify for child tax credits. Ensure date of birth, SSN, and relationship are filled in.'}
-          </p>
-        </div>
-      )}
+        )
+      })()}
 
       {/* ── Earned Income Credit (auto-computed) ───────────── */}
       {eic && eic.eligible && eic.creditAmount > 0 ? (
