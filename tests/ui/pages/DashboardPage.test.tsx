@@ -157,8 +157,8 @@ describe('DashboardPage', () => {
       expect(screen.getByTestId('tax-summary')).toBeDefined()
       // AGI = $60,000
       expect(screen.getByText('AGI')).toBeDefined()
-      // Refund
-      expect(screen.getByText('Refund')).toBeDefined()
+      // Refund hero label
+      expect(screen.getByText('Estimated Refund')).toBeDefined()
     })
   })
 
