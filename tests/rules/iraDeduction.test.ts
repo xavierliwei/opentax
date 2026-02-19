@@ -246,6 +246,185 @@ describe('computeIRADeduction', () => {
     const result = computeIRADeduction(model, cents(50000))!
     expect(result.contributionLimit).toBe(cents(7000))
   })
+
+  // ── Spouse coverage tests (W-2 owner field) ──────────────
+
+  it('MFJ: taxpayer not covered, spouse covered → spouse phase-out ($236K–$246K)', () => {
+    // Taxpayer W-2 has no retirement plan; spouse W-2 does.
+    // Spouse-covered phase-out for MFJ: $236K–$246K
+    // MAGI = $241K → midpoint → 50% reduction
+    // Reduction = $7K × $5K / $10K = $3,500 → deductible = $3,500
+    const model = makeIRAReturn({
+      traditionalIRA: cents(7000),
+      filingStatus: 'mfj',
+      w2s: [
+        makeW2({
+          id: 'w2-tp',
+          employerName: 'Taxpayer Corp',
+          box1: cents(120000),
+          box2: cents(15000),
+          box13RetirementPlan: false,
+          owner: 'taxpayer',
+        }),
+        makeW2({
+          id: 'w2-sp',
+          employerName: 'Spouse Corp',
+          box1: cents(121000),
+          box2: cents(15000),
+          box13RetirementPlan: true,
+          owner: 'spouse',
+        }),
+      ],
+    })
+    const result = computeIRADeduction(model, cents(241000))!
+    expect(result.coveredByEmployerPlan).toBe(false)
+    expect(result.spouseCoveredByEmployerPlan).toBe(true)
+    expect(result.phaseOutApplies).toBe(true)
+    expect(result.phaseOutStart).toBe(cents(236000))
+    expect(result.phaseOutEnd).toBe(cents(246000))
+    expect(result.deductibleAmount).toBe(cents(3500))
+  })
+
+  it('MFJ: taxpayer not covered, spouse covered, MAGI below $236K → full deduction', () => {
+    const model = makeIRAReturn({
+      traditionalIRA: cents(7000),
+      filingStatus: 'mfj',
+      w2s: [
+        makeW2({
+          id: 'w2-tp',
+          employerName: 'Taxpayer Corp',
+          box1: cents(100000),
+          box2: cents(12000),
+          box13RetirementPlan: false,
+          owner: 'taxpayer',
+        }),
+        makeW2({
+          id: 'w2-sp',
+          employerName: 'Spouse Corp',
+          box1: cents(100000),
+          box2: cents(12000),
+          box13RetirementPlan: true,
+          owner: 'spouse',
+        }),
+      ],
+    })
+    const result = computeIRADeduction(model, cents(200000))!
+    expect(result.coveredByEmployerPlan).toBe(false)
+    expect(result.spouseCoveredByEmployerPlan).toBe(true)
+    expect(result.phaseOutApplies).toBe(true)
+    expect(result.deductibleAmount).toBe(cents(7000))
+  })
+
+  it('MFJ: taxpayer not covered, spouse covered, MAGI above $246K → $0 deduction', () => {
+    const model = makeIRAReturn({
+      traditionalIRA: cents(7000),
+      filingStatus: 'mfj',
+      w2s: [
+        makeW2({
+          id: 'w2-tp',
+          employerName: 'Taxpayer Corp',
+          box1: cents(150000),
+          box2: cents(20000),
+          box13RetirementPlan: false,
+          owner: 'taxpayer',
+        }),
+        makeW2({
+          id: 'w2-sp',
+          employerName: 'Spouse Corp',
+          box1: cents(150000),
+          box2: cents(20000),
+          box13RetirementPlan: true,
+          owner: 'spouse',
+        }),
+      ],
+    })
+    const result = computeIRADeduction(model, cents(300000))!
+    expect(result.deductibleAmount).toBe(0)
+  })
+
+  it('MFJ: both covered → uses taxpayer-covered phase-out ($126K–$146K), not spouse range', () => {
+    const model = makeIRAReturn({
+      traditionalIRA: cents(7000),
+      filingStatus: 'mfj',
+      w2s: [
+        makeW2({
+          id: 'w2-tp',
+          employerName: 'Taxpayer Corp',
+          box1: cents(70000),
+          box2: cents(8000),
+          box13RetirementPlan: true,
+          owner: 'taxpayer',
+        }),
+        makeW2({
+          id: 'w2-sp',
+          employerName: 'Spouse Corp',
+          box1: cents(66000),
+          box2: cents(8000),
+          box13RetirementPlan: true,
+          owner: 'spouse',
+        }),
+      ],
+    })
+    const result = computeIRADeduction(model, cents(136000))!
+    expect(result.coveredByEmployerPlan).toBe(true)
+    expect(result.phaseOutStart).toBe(cents(126000))
+    expect(result.phaseOutEnd).toBe(cents(146000))
+    expect(result.deductibleAmount).toBe(cents(3500))
+  })
+
+  it('MFJ: neither covered → no phase-out, full deduction', () => {
+    const model = makeIRAReturn({
+      traditionalIRA: cents(7000),
+      filingStatus: 'mfj',
+      w2s: [
+        makeW2({
+          id: 'w2-tp',
+          employerName: 'Taxpayer Corp',
+          box1: cents(120000),
+          box2: cents(15000),
+          box13RetirementPlan: false,
+          owner: 'taxpayer',
+        }),
+        makeW2({
+          id: 'w2-sp',
+          employerName: 'Spouse Corp',
+          box1: cents(120000),
+          box2: cents(15000),
+          box13RetirementPlan: false,
+          owner: 'spouse',
+        }),
+      ],
+    })
+    const result = computeIRADeduction(model, cents(240000))!
+    expect(result.coveredByEmployerPlan).toBe(false)
+    expect(result.spouseCoveredByEmployerPlan).toBe(false)
+    expect(result.phaseOutApplies).toBe(false)
+    expect(result.deductibleAmount).toBe(cents(7000))
+  })
+
+  it('single filer: spouse W-2 owner is ignored', () => {
+    // Single filer shouldn't get spouse coverage even if a W-2 is tagged as spouse
+    const model = makeIRAReturn({
+      traditionalIRA: cents(7000),
+      filingStatus: 'single',
+      w2s: [
+        makeW2({
+          id: 'w2-1',
+          employerName: 'Acme',
+          box1: cents(80000),
+          box2: cents(10000),
+          box13RetirementPlan: true,
+          owner: 'spouse',
+        }),
+      ],
+    })
+    const result = computeIRADeduction(model, cents(80000))!
+    // Tagged as spouse but single filer → taxpayer is not covered, spouse coverage doesn't apply
+    expect(result.coveredByEmployerPlan).toBe(false)
+    expect(result.spouseCoveredByEmployerPlan).toBe(false)
+    expect(result.phaseOutApplies).toBe(false)
+    expect(result.deductibleAmount).toBe(cents(7000))
+  })
 })
 
 // ── Integration tests ────────────────────────────────────────

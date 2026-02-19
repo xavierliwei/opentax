@@ -12,6 +12,11 @@ import {
   CHARITABLE_NONCASH_AGI_LIMIT,
   MORTGAGE_LIMIT_POST_TCJA,
   MORTGAGE_LIMIT_PRE_TCJA,
+  STUDENT_LOAN_DEDUCTION_MAX,
+  STUDENT_LOAN_PHASEOUT,
+  HSA_LIMIT_SELF_ONLY,
+  HSA_LIMIT_FAMILY,
+  HSA_CATCHUP_AMOUNT,
 } from '../../rules/2025/constants.ts'
 import { computeSaltCap } from '../../rules/2025/scheduleA.ts'
 import { dollars } from '../../model/traced.ts'

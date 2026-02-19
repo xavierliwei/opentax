@@ -47,6 +47,7 @@ export interface W2Box12Entry {
 
 export interface W2 {
   id: string             // unique within the return
+  owner?: 'taxpayer' | 'spouse'  // whose W-2 (MFJ returns); defaults to 'taxpayer'
 
   // Employer info
   employerEin: string    // XX-XXXXXXX

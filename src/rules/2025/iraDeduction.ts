@@ -70,18 +70,14 @@ export function computeIRADeduction(
 
   const allowableContribution = Math.min(traditionalIRA, contributionLimit)
 
-  // Determine employer plan coverage
-  const coveredByEmployerPlan = model.w2s.some(w => w.box13RetirementPlan === true)
+  // Determine employer plan coverage using W-2 owner field.
+  // W-2s with owner === 'spouse' belong to the spouse; all others belong to the taxpayer.
+  const isMFJLike = model.filingStatus === 'mfj' || model.filingStatus === 'qw'
+  const taxpayerW2s = model.w2s.filter(w => w.owner !== 'spouse')
+  const spouseW2s = model.w2s.filter(w => w.owner === 'spouse')
 
-  // For spouse coverage, check if MFJ/QW and any spouse W-2 has retirement plan
-  // In our model, all W-2s belong to the primary taxpayer or spouse.
-  // We approximate: if filing MFJ and there are multiple W-2s with at least one
-  // having retirement plan, but the taxpayer themselves may not be covered.
-  // For simplicity: if ANY W-2 has box13RetirementPlan, the taxpayer is "covered".
-  // The spouse-covered-but-not-taxpayer scenario requires explicit spouse W-2 tracking.
-  // We use a heuristic: if filing MFJ and coveredByEmployerPlan is true,
-  // we treat it as taxpayer covered (the common case).
-  const spouseCoveredByEmployerPlan = false // TODO: needs separate spouse W-2 tracking
+  const coveredByEmployerPlan = taxpayerW2s.some(w => w.box13RetirementPlan === true)
+  const spouseCoveredByEmployerPlan = isMFJLike && spouseW2s.some(w => w.box13RetirementPlan === true)
 
   // Determine phase-out range
   let phaseOutStart = 0

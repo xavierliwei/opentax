@@ -43,10 +43,12 @@ const CARD_ACCENTS = [
 
 function W2Card({ w2, index }: { w2: W2; index: number }) {
   const updateW2 = useTaxStore((s) => s.updateW2)
+  const filingStatus = useTaxStore((s) => s.taxReturn.filingStatus)
   const [showAdvanced, setShowAdvanced] = useState(false)
 
   const update = (fields: Partial<W2>) => updateW2(w2.id, fields)
   const accent = CARD_ACCENTS[index % CARD_ACCENTS.length]
+  const isMFJ = filingStatus === 'mfj'
 
   return (
     <div className="flex flex-col gap-4">
@@ -58,6 +60,16 @@ function W2Card({ w2, index }: { w2: W2; index: number }) {
         <span className="text-sm font-medium text-gray-700 truncate">
           {w2.employerName || <span className="text-gray-400 font-normal">Employer name not entered</span>}
         </span>
+        {isMFJ && (
+          <select
+            className="ml-auto text-xs border border-gray-300 rounded px-1.5 py-0.5 bg-white focus:outline-none focus:ring-1 focus:ring-tax-blue"
+            value={w2.owner ?? 'taxpayer'}
+            onChange={(e) => update({ owner: e.target.value as 'taxpayer' | 'spouse' })}
+          >
+            <option value="taxpayer">Taxpayer</option>
+            <option value="spouse">Spouse</option>
+          </select>
+        )}
       </div>
       {/* Employer info */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
