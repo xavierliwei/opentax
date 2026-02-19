@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTaxStore } from '../../store/taxStore.ts'
 import { useInterview } from '../../interview/useInterview.ts'
 import { CurrencyInput } from '../components/CurrencyInput.tsx'
@@ -37,14 +37,24 @@ function InfoTooltip({ explanation, pubName, pubUrl }: {
   pubUrl: string
 }) {
   const [visible, setVisible] = useState(false)
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const show = () => {
+    if (hideTimer.current) clearTimeout(hideTimer.current)
+    setVisible(true)
+  }
+  const hide = () => {
+    hideTimer.current = setTimeout(() => setVisible(false), 120)
+  }
+
   return (
     <span className="relative inline-flex items-center ml-1.5">
       <button
         type="button"
-        onMouseEnter={() => setVisible(true)}
-        onMouseLeave={() => setVisible(false)}
-        onFocus={() => setVisible(true)}
-        onBlur={() => setVisible(false)}
+        onMouseEnter={show}
+        onMouseLeave={hide}
+        onFocus={show}
+        onBlur={hide}
         className="text-gray-400 hover:text-blue-500 transition-colors focus:outline-none"
         aria-label="More information"
       >
@@ -53,7 +63,11 @@ function InfoTooltip({ explanation, pubName, pubUrl }: {
         </svg>
       </button>
       {visible && (
-        <div className="absolute left-0 bottom-full mb-2 w-72 bg-white border border-gray-200 rounded-lg shadow-xl p-3 z-50 text-left pointer-events-none">
+        <div
+          className="absolute left-0 bottom-full mb-2 w-72 bg-white border border-gray-200 rounded-lg shadow-xl p-3 z-50 text-left"
+          onMouseEnter={show}
+          onMouseLeave={hide}
+        >
           <p className="text-xs text-gray-600 leading-relaxed">{explanation}</p>
           <p className="mt-2 text-xs font-medium text-blue-700 flex items-center gap-1">
             <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -63,8 +77,7 @@ function InfoTooltip({ explanation, pubName, pubUrl }: {
               href={pubUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="pointer-events-auto hover:underline"
-              onClick={(e) => e.stopPropagation()}
+              className="hover:underline"
             >
               {pubName}
             </a>
