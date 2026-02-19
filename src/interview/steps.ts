@@ -11,6 +11,7 @@ import { DividendIncomePage } from '../ui/pages/DividendIncomePage.tsx'
 import { MiscIncomePage } from '../ui/pages/MiscIncomePage.tsx'
 import { StockSalesPage } from '../ui/pages/StockSalesPage.tsx'
 import { RSUIncomePage } from '../ui/pages/RSUIncomePage.tsx'
+import { ISOExercisesPage } from '../ui/pages/ISOExercisesPage.tsx'
 import { PriorYearPage } from '../ui/pages/PriorYearPage.tsx'
 import { DeductionsPage } from '../ui/pages/DeductionsPage.tsx'
 import { CreditsPage } from '../ui/pages/CreditsPage.tsx'
@@ -135,6 +136,14 @@ export const STEPS: InterviewStep[] = [
       tr.w2s.some((w) => w.box12.some((e) => e.code === 'V')),
     isComplete: () => true,
     component: RSUIncomePage,
+  },
+  {
+    id: 'iso-exercises',
+    label: 'ISO Exercises',
+    path: '/interview/iso-exercises',
+    isVisible: (tr) => tr.isoExercises.length > 0,
+    isComplete: () => true,
+    component: ISOExercisesPage,
   },
   {
     id: 'deductions',

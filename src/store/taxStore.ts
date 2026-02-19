@@ -13,6 +13,7 @@ import type {
   Taxpayer,
   Dependent,
   RSUVestEvent,
+  ISOExercise,
   ItemizedDeductions,
   PriorYearInfo,
   DependentCareExpenses,
@@ -65,6 +66,8 @@ export interface TaxStoreState {
   removeForm1099BsByBroker: (brokerName: string) => void
   addRSUVestEvent: (event: RSUVestEvent) => void
   removeRSUVestEvent: (id: string) => void
+  addISOExercise: (exercise: ISOExercise) => void
+  removeISOExercise: (id: string) => void
   setCapitalTransactions: (txns: CapitalTransaction[]) => void
   setPriorYear: (updates: Partial<PriorYearInfo>) => void
   setDeductionMethod: (method: 'standard' | 'itemized') => void
@@ -413,6 +416,18 @@ export const useTaxStore = create<TaxStoreState>()(
           ...prev,
           rsuVestEvents: prev.rsuVestEvents.filter((e) => e.id !== id),
         })
+        set(recompute(tr))
+      },
+
+      addISOExercise: (exercise) => {
+        const prev = get().taxReturn
+        const tr = { ...prev, isoExercises: [...prev.isoExercises, exercise] }
+        set(recompute(tr))
+      },
+
+      removeISOExercise: (id) => {
+        const prev = get().taxReturn
+        const tr = { ...prev, isoExercises: prev.isoExercises.filter((e) => e.id !== id) }
         set(recompute(tr))
       },
 
