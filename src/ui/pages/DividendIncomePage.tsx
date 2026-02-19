@@ -2,6 +2,7 @@ import { useTaxStore } from '../../store/taxStore.ts'
 import { useInterview } from '../../interview/useInterview.ts'
 import { RepeatableSection } from '../components/RepeatableSection.tsx'
 import { CurrencyInput } from '../components/CurrencyInput.tsx'
+import { InfoTooltip } from '../components/InfoTooltip.tsx'
 import { OCRUpload } from '../components/OCRUpload.tsx'
 import { InterviewNav } from './InterviewNav.tsx'
 import type { Form1099DIV } from '../../model/types.ts'
@@ -45,12 +46,20 @@ function Form1099DIVCard({ form }: { form: Form1099DIV }) {
           onChange={(v) => update({ box1a: v })}
         />
         <CurrencyInput
-          label="Box 1b — Qualified dividends"
+          label={<>Box 1b — Qualified dividends<InfoTooltip
+            explanation="Qualified dividends are a subset of Box 1a that meet IRS holding period and payer requirements (IRC §1(h)(11)). They are taxed at the lower long-term capital gains rates (0%, 15%, or 20%) rather than ordinary income rates. To qualify, you must have held the stock more than 60 days in the 121-day window around the ex-dividend date."
+            pubName="IRS Publication 550 — Qualified Dividends"
+            pubUrl="https://www.irs.gov/publications/p550"
+          /></>}
           value={form.box1b}
           onChange={(v) => update({ box1b: v })}
         />
         <CurrencyInput
-          label="Box 2a — Capital gain distributions"
+          label={<>Box 2a — Capital gain distributions<InfoTooltip
+            explanation="Box 2a reports capital gain distributions from mutual funds or REITs — gains the fund realized from selling assets. These are treated as long-term capital gains regardless of how long you held the fund shares, and flow to Schedule D taxed at preferential long-term capital gains rates."
+            pubName="IRS Publication 550 — Capital Gain Distributions"
+            pubUrl="https://www.irs.gov/publications/p550"
+          /></>}
           value={form.box2a}
           onChange={(v) => update({ box2a: v })}
         />

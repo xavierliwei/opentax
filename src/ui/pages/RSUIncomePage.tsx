@@ -1,9 +1,13 @@
+import { useMemo } from 'react'
 import { useTaxStore } from '../../store/taxStore.ts'
+import { InfoTooltip } from '../components/InfoTooltip.tsx'
 import { useInterview } from '../../interview/useInterview.ts'
 import { RepeatableSection } from '../components/RepeatableSection.tsx'
 import { CurrencyInput } from '../components/CurrencyInput.tsx'
 import { DateInput } from '../components/DateInput.tsx'
+import { RSUBasisSummary } from '../components/RSUBasisBanner.tsx'
 import { InterviewNav } from './InterviewNav.tsx'
+import { processRSUAdjustments, estimateRSUImpact } from '../../rules/2025/rsuAdjustment.ts'
 import type { RSUVestEvent } from '../../model/types.ts'
 import { dollars } from '../../model/traced.ts'
 
@@ -70,7 +74,14 @@ function RSUVestCard({ event }: { event: RSUVestEvent }) {
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-gray-700">Shares withheld for tax</label>
+          <label className="text-sm font-medium text-gray-700 flex items-center">
+            Shares withheld for tax
+            <InfoTooltip
+              explanation="Many employers withhold a portion of vested shares to cover income tax — called 'sell-to-cover' or 'withhold-to-cover.' The withheld shares are treated as sold at FMV and the proceeds remitted as withholding (reflected in W-2 Box 2). These shares are not a separate taxable sale on Form 8949 because the withholding is already captured in your W-2."
+              pubName="IRS Publication 525 — Employee Compensation"
+              pubUrl="https://www.irs.gov/publications/p525"
+            />
+          </label>
           <input
             type="number"
             min={0}
@@ -92,7 +103,11 @@ function RSUVestCard({ event }: { event: RSUVestEvent }) {
 
       <div className="grid grid-cols-2 gap-3">
         <CurrencyInput
-          label="FMV at vest (per share)"
+          label={<>FMV at vest (per share)<InfoTooltip
+            explanation="Fair Market Value at vest is the closing stock price on the vest date. This amount × shares vested is included in your W-2 Box 1 as ordinary income. The FMV at vest becomes your cost basis for future sales — your broker's 1099-B may report a lower or zero basis if they did not account for the W-2 income inclusion."
+            pubName="IRS Publication 525 — Restricted Property (RSUs)"
+            pubUrl="https://www.irs.gov/publications/p525"
+          /></>}
           value={event.fmvAtVest}
           onChange={(v) => update({ fmvAtVest: v })}
         />
@@ -127,9 +142,19 @@ function RSUVestCard({ event }: { event: RSUVestEvent }) {
 
 export function RSUIncomePage() {
   const rsuVestEvents = useTaxStore((s) => s.taxReturn.rsuVestEvents)
+  const form1099Bs = useTaxStore((s) => s.taxReturn.form1099Bs)
   const addRSUVestEvent = useTaxStore((s) => s.addRSUVestEvent)
   const removeRSUVestEvent = useTaxStore((s) => s.removeRSUVestEvent)
   const interview = useInterview()
+
+  const rsuSummary = useMemo(() => {
+    if (rsuVestEvents.length === 0 || form1099Bs.length === 0) return null
+    const { analyses } = processRSUAdjustments(form1099Bs, rsuVestEvents)
+    const adjustments = analyses.filter(a => a.status !== 'correct')
+    if (adjustments.length === 0) return null
+    const impact = estimateRSUImpact(analyses)
+    return { count: adjustments.length, totalAdjustment: impact.totalAdjustmentAmount, estimatedTaxSaved: impact.estimatedTaxSaved }
+  }, [rsuVestEvents, form1099Bs])
 
   return (
     <div data-testid="page-rsu-income" className="max-w-xl mx-auto">
@@ -156,6 +181,16 @@ export function RSUIncomePage() {
       <div className="mt-4 bg-blue-50 border border-blue-200 rounded-md p-3 text-sm text-blue-800">
         RSU income is already included in your W-2 Box 1 wages. The cost basis for your shares equals the FMV at vest.
       </div>
+
+      {rsuSummary && (
+        <div className="mt-3">
+          <RSUBasisSummary
+            adjustmentCount={rsuSummary.count}
+            totalAdjustment={rsuSummary.totalAdjustment}
+            estimatedTaxSaved={rsuSummary.estimatedTaxSaved}
+          />
+        </div>
+      )}
 
       <InterviewNav interview={interview} />
     </div>

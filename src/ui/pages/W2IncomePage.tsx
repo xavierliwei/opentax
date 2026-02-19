@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import { useTaxStore } from '../../store/taxStore.ts'
+import { InfoTooltip } from '../components/InfoTooltip.tsx'
 import { useInterview } from '../../interview/useInterview.ts'
 import { RepeatableSection } from '../components/RepeatableSection.tsx'
 import { CurrencyInput } from '../components/CurrencyInput.tsx'
@@ -153,9 +154,26 @@ function W2Card({ w2, index }: { w2: W2; index: number }) {
             />
           </div>
 
+          {/* Box 12 — informational */}
+          <div className="flex items-center gap-1">
+            <span className="text-sm font-medium text-gray-700">Box 12 — Deferred compensation &amp; benefits</span>
+            <InfoTooltip
+              explanation="Box 12 uses letter codes to report various amounts. Common codes: D = 401(k) deferrals, E = 403(b) deferrals, G = 457(b) deferrals (reduce Box 1 wages), W = employer HSA contributions (not taxable), DD = employer-paid health insurance premiums (informational only). Codes D/E/G reduce taxable wages in Boxes 1, 3, and 5 accordingly."
+              pubName="IRS Form W-2 Instructions — Box 12 Codes"
+              pubUrl="https://www.irs.gov/instructions/iw2w3"
+            />
+          </div>
+
           {/* Box 13 checkboxes */}
           <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-gray-700">Box 13</span>
+            <span className="text-sm font-medium text-gray-700 flex items-center">
+              Box 13
+              <InfoTooltip
+                explanation="Box 13 has three checkboxes. 'Statutory employee' means your employer withheld SS and Medicare but not income tax — report income on Schedule C. 'Retirement plan' means you are an active participant in an employer plan, which may limit your traditional IRA deduction (see Pub 590-A). 'Third-party sick pay' is informational."
+                pubName="IRS Publication 590-A — IRA Deductibility and Retirement Plan Coverage"
+                pubUrl="https://www.irs.gov/publications/p590a"
+              />
+            </span>
             <div className="flex flex-wrap gap-x-4 gap-y-2">
               <label className="flex items-center gap-1.5 text-sm text-gray-700">
                 <input
@@ -189,7 +207,14 @@ function W2Card({ w2, index }: { w2: W2; index: number }) {
 
           {/* Box 14 */}
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700">Box 14 — Other</label>
+            <label className="text-sm font-medium text-gray-700 flex items-center">
+              Box 14 — Other
+              <InfoTooltip
+                explanation="Box 14 is used by employers to report additional tax information. Common entries include union dues, after-tax contributions, educational assistance, and state disability insurance (SDI/VPDI). Some Box 14 items may be deductible — for example, state disability contributions are deductible on Schedule A. Check your employer's description for details."
+                pubName="IRS Form W-2 Instructions — Box 14"
+                pubUrl="https://www.irs.gov/instructions/iw2w3"
+              />
+            </label>
             <input
               type="text"
               className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-tax-blue focus:border-transparent"

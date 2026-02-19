@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom'
 import { useTaxStore } from '../../store/taxStore.ts'
 import { useInterview } from '../../interview/useInterview.ts'
+import { InfoTooltip } from '../components/InfoTooltip.tsx'
 import { InterviewNav } from './InterviewNav.tsx'
+
 function formatCurrency(cents: number): string {
   const d = Math.abs(cents) / 100
   const formatted = d.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
@@ -17,12 +19,16 @@ interface LineItemProps {
   label: string
   nodeId: string
   amount: number
+  tooltip?: { explanation: string; pubName: string; pubUrl: string }
 }
 
-function LineItem({ label, nodeId, amount }: LineItemProps) {
+function LineItem({ label, nodeId, amount, tooltip }: LineItemProps) {
   return (
     <div className="flex items-center justify-between gap-3 py-1">
-      <span className="text-sm text-gray-700 min-w-0">{label}</span>
+      <span className="text-sm text-gray-700 min-w-0 inline-flex items-center">
+        {label}
+        {tooltip && <InfoTooltip {...tooltip} />}
+      </span>
       <div className="flex items-center gap-2 shrink-0">
         <span className="text-sm font-medium tabular-nums">{formatCurrency(amount)}</span>
         <Link
@@ -89,11 +95,56 @@ export function ReviewPage() {
           Income
         </h2>
         <div className="mt-2 flex flex-col">
-          <LineItem label="Line 1a — Wages" nodeId="form1040.line1a" amount={form1040.line1a.amount} />
-          <LineItem label="Line 2b — Taxable interest" nodeId="form1040.line2b" amount={form1040.line2b.amount} />
-          <LineItem label="Line 3b — Ordinary dividends" nodeId="form1040.line3b" amount={form1040.line3b.amount} />
-          <LineItem label="Line 7 — Capital gain/loss" nodeId="form1040.line7" amount={form1040.line7.amount} />
-          <LineItem label="Line 9 — Total income" nodeId="form1040.line9" amount={form1040.line9.amount} />
+          <LineItem
+            label="Line 1a — Wages"
+            nodeId="form1040.line1a"
+            amount={form1040.line1a.amount}
+            tooltip={{
+              explanation: 'Line 1a is the sum of all W-2 Box 1 wages, salaries, tips, and other compensation. RSU income, severance pay, and taxable fringe benefits are all included here. This flows directly from your W-2 forms.',
+              pubName: 'IRS Form 1040 Instructions — Line 1a',
+              pubUrl: 'https://www.irs.gov/instructions/i1040gi',
+            }}
+          />
+          <LineItem
+            label="Line 2b — Taxable interest"
+            nodeId="form1040.line2b"
+            amount={form1040.line2b.amount}
+            tooltip={{
+              explanation: 'Line 2b is total taxable interest from Form(s) 1099-INT Box 1 and Box 3. Tax-exempt interest (Box 8) is reported on Line 2a but not included in taxable income.',
+              pubName: 'IRS Form 1040 Instructions — Line 2b',
+              pubUrl: 'https://www.irs.gov/instructions/i1040gi',
+            }}
+          />
+          <LineItem
+            label="Line 3b — Ordinary dividends"
+            nodeId="form1040.line3b"
+            amount={form1040.line3b.amount}
+            tooltip={{
+              explanation: 'Line 3b is total ordinary dividends from Form(s) 1099-DIV Box 1a. Qualified dividends (Box 1b) are a subset taxed at preferential rates — they are tracked on Line 3a and reduce your tax via the Qualified Dividends and Capital Gain Tax Worksheet.',
+              pubName: 'IRS Form 1040 Instructions — Line 3b',
+              pubUrl: 'https://www.irs.gov/instructions/i1040gi',
+            }}
+          />
+          <LineItem
+            label="Line 7 — Capital gain/loss"
+            nodeId="form1040.line7"
+            amount={form1040.line7.amount}
+            tooltip={{
+              explanation: 'Line 7 comes from Schedule D. Net capital losses are limited to $3,000 per year ($1,500 if MFS); unused losses carry forward to future years. Long-term gains and qualified dividends are taxed at preferential rates via the QDCGT Worksheet.',
+              pubName: 'IRS Form 1040 Instructions — Line 7 / Schedule D',
+              pubUrl: 'https://www.irs.gov/instructions/i1040gi',
+            }}
+          />
+          <LineItem
+            label="Line 9 — Total income"
+            nodeId="form1040.line9"
+            amount={form1040.line9.amount}
+            tooltip={{
+              explanation: 'Line 9 is the sum of Lines 1z through 8 — your gross income before any adjustments. It includes wages, interest, dividends, capital gains, business income (Schedule C), retirement distributions, and other income from Schedule 1.',
+              pubName: 'IRS Form 1040 Instructions — Line 9',
+              pubUrl: 'https://www.irs.gov/instructions/i1040gi',
+            }}
+          />
         </div>
       </section>
 
@@ -103,9 +154,36 @@ export function ReviewPage() {
           Deductions
         </h2>
         <div className="mt-2 flex flex-col">
-          <LineItem label="Line 11 — AGI" nodeId="form1040.line11" amount={form1040.line11.amount} />
-          <LineItem label="Line 12 — Deductions" nodeId="form1040.line12" amount={form1040.line12.amount} />
-          <LineItem label="Line 15 — Taxable income" nodeId="form1040.line15" amount={form1040.line15.amount} />
+          <LineItem
+            label="Line 11 — AGI"
+            nodeId="form1040.line11"
+            amount={form1040.line11.amount}
+            tooltip={{
+              explanation: 'Adjusted Gross Income (AGI) is Total Income minus above-the-line deductions from Schedule 1 Part II (student loan interest, educator expenses, HSA contributions, self-employment tax deduction, etc.). AGI is the baseline for many phase-outs such as the 7.5% medical floor and the SALT cap phase-out.',
+              pubName: 'IRS Form 1040 Instructions — Line 11 (AGI)',
+              pubUrl: 'https://www.irs.gov/instructions/i1040gi',
+            }}
+          />
+          <LineItem
+            label="Line 12 — Deductions"
+            nodeId="form1040.line12"
+            amount={form1040.line12.amount}
+            tooltip={{
+              explanation: 'Line 12 is the greater of your standard deduction or itemized deductions (Schedule A Line 17). For 2025: $15,000 (Single), $30,000 (MFJ), $22,500 (HOH), $15,000 (MFS). Additional amounts apply if you are 65 or older or blind.',
+              pubName: 'IRS Form 1040 Instructions — Line 12',
+              pubUrl: 'https://www.irs.gov/instructions/i1040gi',
+            }}
+          />
+          <LineItem
+            label="Line 15 — Taxable income"
+            nodeId="form1040.line15"
+            amount={form1040.line15.amount}
+            tooltip={{
+              explanation: 'Taxable income is AGI minus your deductions (Line 12) and the qualified business income deduction (Line 13, if applicable). This is the base on which your income tax is calculated using the tax brackets or the Qualified Dividends and Capital Gain Tax Worksheet.',
+              pubName: 'IRS Form 1040 Instructions — Line 15',
+              pubUrl: 'https://www.irs.gov/instructions/i1040gi',
+            }}
+          />
         </div>
       </section>
 
@@ -115,10 +193,46 @@ export function ReviewPage() {
           Tax & Payments
         </h2>
         <div className="mt-2 flex flex-col">
-          <LineItem label="Line 16 — Tax" nodeId="form1040.line16" amount={form1040.line16.amount} />
-          <LineItem label="Line 24 — Total tax" nodeId="form1040.line24" amount={form1040.line24.amount} />
-          <LineItem label="Line 25 — Withheld" nodeId="form1040.line25" amount={form1040.line25.amount} />
-          <LineItem label="Line 33 — Total payments" nodeId="form1040.line33" amount={form1040.line33.amount} />
+          <LineItem
+            label="Line 16 — Tax"
+            nodeId="form1040.line16"
+            amount={form1040.line16.amount}
+            tooltip={{
+              explanation: 'Line 16 is your regular income tax from the tax tables or rate schedules (or the QDCGT Worksheet if you have qualified dividends or long-term capital gains). It does not include the Net Investment Income Tax (NIIT), self-employment tax, or AMT — those appear on Schedule 2.',
+              pubName: 'IRS Form 1040 Instructions — Line 16',
+              pubUrl: 'https://www.irs.gov/instructions/i1040gi',
+            }}
+          />
+          <LineItem
+            label="Line 24 — Total tax"
+            nodeId="form1040.line24"
+            amount={form1040.line24.amount}
+            tooltip={{
+              explanation: 'Line 24 is your total tax liability including regular income tax (Line 16), self-employment tax, the Net Investment Income Tax (Form 8960), the Additional Medicare Tax (Form 8959), and any other taxes from Schedule 2. This is your total federal tax before payments and credits.',
+              pubName: 'IRS Form 1040 Instructions — Line 24',
+              pubUrl: 'https://www.irs.gov/instructions/i1040gi',
+            }}
+          />
+          <LineItem
+            label="Line 25 — Withheld"
+            nodeId="form1040.line25"
+            amount={form1040.line25.amount}
+            tooltip={{
+              explanation: 'Line 25 is federal income tax withheld from your W-2 Box 2 and 1099 forms. This is tax you already paid during the year through payroll withholding. If withholding exceeds your total tax (Line 24), you receive a refund for the difference.',
+              pubName: 'IRS Form 1040 Instructions — Line 25',
+              pubUrl: 'https://www.irs.gov/instructions/i1040gi',
+            }}
+          />
+          <LineItem
+            label="Line 33 — Total payments"
+            nodeId="form1040.line33"
+            amount={form1040.line33.amount}
+            tooltip={{
+              explanation: 'Line 33 sums all tax payments: federal withholding (Line 25), estimated tax payments (Line 26), and refundable credits (Lines 27–32) such as the Earned Income Credit, Additional Child Tax Credit, and American Opportunity Credit. Total payments are compared to total tax to determine your refund or amount owed.',
+              pubName: 'IRS Form 1040 Instructions — Line 33',
+              pubUrl: 'https://www.irs.gov/instructions/i1040gi',
+            }}
+          />
         </div>
       </section>
 

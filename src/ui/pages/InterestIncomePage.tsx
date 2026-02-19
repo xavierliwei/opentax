@@ -2,6 +2,7 @@ import { useTaxStore } from '../../store/taxStore.ts'
 import { useInterview } from '../../interview/useInterview.ts'
 import { RepeatableSection } from '../components/RepeatableSection.tsx'
 import { CurrencyInput } from '../components/CurrencyInput.tsx'
+import { InfoTooltip } from '../components/InfoTooltip.tsx'
 import { OCRUpload } from '../components/OCRUpload.tsx'
 import { InterviewNav } from './InterviewNav.tsx'
 import type { Form1099INT } from '../../model/types.ts'
@@ -38,12 +39,20 @@ function Form1099INTCard({ form }: { form: Form1099INT }) {
 
       <div className="grid grid-cols-2 gap-3">
         <CurrencyInput
-          label="Box 1 — Interest income"
+          label={<>Box 1 — Interest income<InfoTooltip
+            explanation="Box 1 reports taxable interest income from bank accounts, money market funds, CDs, and most bonds. It is fully taxable as ordinary income and flows to Form 1040 Line 2b (taxable interest)."
+            pubName="IRS Publication 550 — Interest Income"
+            pubUrl="https://www.irs.gov/publications/p550"
+          /></>}
           value={form.box1}
           onChange={(v) => update({ box1: v })}
         />
         <CurrencyInput
-          label="Box 3 — US Savings Bonds"
+          label={<>Box 3 — US Savings Bonds<InfoTooltip
+            explanation="Box 3 reports interest on U.S. Savings Bonds (Series EE, E, I) and U.S. Treasury obligations. This interest is taxable federally but exempt from state and local income taxes. It flows to Form 1040 Line 2b along with Box 1 interest."
+            pubName="IRS Publication 550 — U.S. Savings Bonds Interest"
+            pubUrl="https://www.irs.gov/publications/p550"
+          /></>}
           value={form.box3}
           onChange={(v) => update({ box3: v })}
         />
@@ -53,7 +62,11 @@ function Form1099INTCard({ form }: { form: Form1099INT }) {
           onChange={(v) => update({ box4: v })}
         />
         <CurrencyInput
-          label="Box 8 — Tax-exempt interest"
+          label={<>Box 8 — Tax-exempt interest<InfoTooltip
+            explanation="Box 8 reports tax-exempt interest, typically from municipal bonds or municipal bond funds. It is not subject to federal income tax and is reported on Form 1040 Line 2a (not added to taxable income). However, it may still be subject to the Alternative Minimum Tax (AMT) if it is from private activity bonds."
+            pubName="IRS Publication 550 — Tax-Exempt Interest"
+            pubUrl="https://www.irs.gov/publications/p550"
+          /></>}
           value={form.box8}
           onChange={(v) => update({ box8: v })}
         />

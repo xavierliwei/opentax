@@ -1,8 +1,9 @@
 import { useState, useCallback } from 'react'
+import type { ReactNode } from 'react'
 import { cents, dollars } from '../../model/traced.ts'
 
 interface CurrencyInputProps {
-  label: string
+  label: ReactNode
   value: number // integer cents
   onChange: (cents: number) => void
   placeholder?: string
@@ -63,7 +64,7 @@ export function CurrencyInput({
 
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-sm font-medium text-gray-700">
+      <label className="text-sm font-medium text-gray-700 flex items-center">
         {label}
         {required && <span className="text-red-500 ml-0.5">*</span>}
       </label>

@@ -1,5 +1,6 @@
 import { useRef, useMemo, useState } from 'react'
 import { useTaxStore } from '../../store/taxStore.ts'
+import { InfoTooltip } from '../components/InfoTooltip.tsx'
 import { useInterview } from '../../interview/useInterview.ts'
 import { CurrencyInput } from '../components/CurrencyInput.tsx'
 import { RSUBasisBanner } from '../components/RSUBasisBanner.tsx'
@@ -242,32 +243,39 @@ function CategorySection({
   return (
     <div className="border-t border-gray-100 first:border-t-0">
       {/* Category header */}
-      <button
-        type="button"
-        onClick={() => setCollapsed(!collapsed)}
-        className="w-full flex items-center justify-between gap-3 px-4 py-2.5 bg-gray-50/70 hover:bg-gray-100/80 transition-colors text-left"
-      >
-        <div className="flex items-center gap-2 min-w-0">
-          <svg
-            className={`w-3.5 h-3.5 text-gray-400 shrink-0 transition-transform ${collapsed ? '' : 'rotate-90'}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-          <span className="text-xs font-semibold text-gray-600 truncate">
-            {CATEGORY_LABEL[cat]}
+      <div className="flex items-center bg-gray-50/70 hover:bg-gray-100/80 transition-colors pr-2">
+        <button
+          type="button"
+          onClick={() => setCollapsed(!collapsed)}
+          className="flex-1 flex items-center justify-between gap-3 px-4 py-2.5 text-left"
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <svg
+              className={`w-3.5 h-3.5 text-gray-400 shrink-0 transition-transform ${collapsed ? '' : 'rotate-90'}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+            <span className="text-xs font-semibold text-gray-600 truncate">
+              {CATEGORY_LABEL[cat]}
+            </span>
+            <span className="text-xs text-gray-400 shrink-0">
+              {forms.length} trade{forms.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+          <span className={`text-xs font-semibold tabular-nums shrink-0 ${isNetGain ? 'text-emerald-600' : 'text-red-600'}`}>
+            {isNetGain ? '+' : '−'}{formatCents(Math.abs(netGL))}
           </span>
-          <span className="text-xs text-gray-400 shrink-0">
-            {forms.length} trade{forms.length !== 1 ? 's' : ''}
-          </span>
-        </div>
-        <span className={`text-xs font-semibold tabular-nums shrink-0 ${isNetGain ? 'text-emerald-600' : 'text-red-600'}`}>
-          {isNetGain ? '+' : '−'}{formatCents(Math.abs(netGL))}
-        </span>
-      </button>
+        </button>
+        <InfoTooltip
+          explanation="Form 8949 categories determine whether cost basis was reported to the IRS and the holding period. Category A: short-term (≤ 1 year), basis reported to IRS. Category B: short-term, basis NOT reported (non-covered securities, pre-2012 acquisitions). Category D: long-term (> 1 year), basis reported. Category E: long-term, basis NOT reported. Short-term gains are taxed as ordinary income; long-term gains at preferential rates (0%, 15%, or 20%)."
+          pubName="IRS Form 8949 Instructions — Categories A, B, D, E"
+          pubUrl="https://www.irs.gov/instructions/i8949"
+        />
+      </div>
 
       {/* Table */}
       {!collapsed && (
@@ -530,7 +538,14 @@ function ManualEntryForm({
         </div>
 
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-gray-700">Holding period</label>
+          <label className="text-sm font-medium text-gray-700 flex items-center">
+            Holding period
+            <InfoTooltip
+              explanation="Short-term: held 1 year or less — gains taxed at ordinary income rates. Long-term: held more than 1 year — gains taxed at preferential capital gains rates (0%, 15%, or 20% based on income). The period runs from the day after acquisition through and including the sale date. Inherited assets are automatically considered long-term regardless of actual holding period."
+              pubName="IRS Publication 550 — Holding Period"
+              pubUrl="https://www.irs.gov/publications/p550"
+            />
+          </label>
           <div className="flex flex-wrap gap-x-4 gap-y-2 mt-1">
             {(
               [
@@ -559,7 +574,11 @@ function ManualEntryForm({
             onChange={updateCostBasis}
           />
           <CurrencyInput
-            label="Wash sale loss disallowed"
+            label={<>Wash sale loss disallowed<InfoTooltip
+              explanation="A wash sale occurs when you sell a security at a loss and buy the same or substantially identical security within 30 days before or after the sale (IRC §1091). The disallowed loss is reported in Box 1g of your 1099-B. It is not permanently lost — it is added to the cost basis of the replacement shares."
+              pubName="IRS Publication 550 — Wash Sales"
+              pubUrl="https://www.irs.gov/publications/p550"
+            /></>}
             value={form.washSaleLossDisallowed}
             onChange={updateWashSale}
           />
@@ -577,8 +596,13 @@ function ManualEntryForm({
             checked={form.basisReportedToIrs}
             onChange={(e) => update({ basisReportedToIrs: e.target.checked })}
           />
-          <label htmlFor="basisReported-new" className="text-sm text-gray-700">
+          <label htmlFor="basisReported-new" className="text-sm text-gray-700 flex items-center">
             Basis reported to IRS (Box 12 checked)
+            <InfoTooltip
+              explanation="When checked, your broker reported your cost basis to the IRS (a 'covered security'). This determines your Form 8949 category — covered securities use Category A (short-term) or D (long-term); non-covered use B or E. Most securities purchased after 2011 are covered. Non-covered securities require you to supply the basis yourself."
+              pubName="IRS Form 8949 Instructions — Covered vs. Non-Covered Securities"
+              pubUrl="https://www.irs.gov/instructions/i8949"
+            />
           </label>
         </div>
 

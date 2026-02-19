@@ -2,6 +2,7 @@ import { useTaxStore } from '../../store/taxStore.ts'
 import { useInterview } from '../../interview/useInterview.ts'
 import { RepeatableSection } from '../components/RepeatableSection.tsx'
 import { SSNInput } from '../components/SSNInput.tsx'
+import { InfoTooltip } from '../components/InfoTooltip.tsx'
 import { InterviewNav } from './InterviewNav.tsx'
 import type { Dependent } from '../../model/types.ts'
 
@@ -82,7 +83,14 @@ export function DependentsPage() {
                   onChange={(ssn) => updateDependent(index, { ssn })}
                 />
                 <div className="flex flex-col gap-1">
-                  <label className="text-sm font-medium text-gray-700">Relationship</label>
+                  <label className="text-sm font-medium text-gray-700 flex items-center">
+                    Relationship
+                    <InfoTooltip
+                      explanation="A qualifying child must meet the relationship, age, residency, and support tests (IRC §152). Qualifying relationships include son, daughter, stepchild, foster child, sibling, and their descendants. A qualifying relative (parent, grandchild, other relative) must meet different tests — relationship, gross income, and support. See Pub 501 for full rules."
+                      pubName="IRS Publication 501 — Dependents"
+                      pubUrl="https://www.irs.gov/publications/p501"
+                    />
+                  </label>
                   <select
                     className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tax-blue focus:border-transparent"
                     value={dep.relationship}
@@ -99,7 +107,14 @@ export function DependentsPage() {
                   </select>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-sm font-medium text-gray-700">Months lived with you</label>
+                  <label className="text-sm font-medium text-gray-700 flex items-center">
+                    Months lived with you
+                    <InfoTooltip
+                      explanation="A qualifying child must have lived with you for more than half the year (more than 6 months). Temporary absences for school, medical care, military service, or business count as time lived with you. For a qualifying relative, the residency test is different — a parent, for example, does not need to live with you."
+                      pubName="IRS Publication 501 — Residency Test"
+                      pubUrl="https://www.irs.gov/publications/p501"
+                    />
+                  </label>
                   <select
                     className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tax-blue focus:border-transparent"
                     value={dep.monthsLived}
