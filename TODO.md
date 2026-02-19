@@ -10,10 +10,10 @@ These features have working computation engines but **no way for users to input 
 
 ## Quick Wins
 
-- [ ] IRA spouse coverage — `spouseCoveredByEmployerPlan` hardcoded to `false` in `iraDeduction.ts`; needs separate spouse W-2 tracking for MFJ
-- [ ] Form 1040 Line 1z — hardcoded to equal Line 1a (MVP comment in filler); should sum all Line 1 sub-components
-- [ ] Additional standard deduction for age 65+ ($2,000 single/HOH, $1,600 MFJ per person)
-- [ ] Additional standard deduction for blind ($2,000 single/HOH, $1,600 MFJ per person)
+- [x] IRA spouse coverage — `spouseCoveredByEmployerPlan` hardcoded to `false` in `iraDeduction.ts`; needs separate spouse W-2 tracking for MFJ
+- [x] Form 1040 Line 1z — hardcoded to equal Line 1a (MVP comment in filler); should sum all Line 1 sub-components
+- [x] Additional standard deduction for age 65+ ($2,000 single/HOH, $1,600 MFJ per person)
+- [x] Additional standard deduction for blind ($2,000 single/HOH, $1,600 MFJ per person)
 - [ ] Dependent filer standard deduction limitation (greater of $1,350 or earned income + $450)
 - [ ] Estimated tax payments input — Form 1040-ES quarterly payments, sum on Line 26
 
@@ -58,10 +58,10 @@ Lines currently returning **placeholder $0** that need real computation:
 - [ ] Household employment taxes — Schedule H
 
 ### Line 29 — American Opportunity Credit (AOTC)
-- [ ] AOTC — Form 8863: up to $2,500/student. 40% refundable. Requires Form 1098-T. Phase-out $80K–$90K single, $160K–$180K MFJ.
+- [x] AOTC — Form 8863: up to $2,500/student. 40% refundable. Requires Form 1098-T. Phase-out $80K–$90K single, $160K–$180K MFJ.
 
 ### Line 31 — Other Payments & Refundable Credits
-- [ ] Lifetime Learning Credit (LLC) — Form 8863: 20% of up to $10K. Phase-out $80K–$90K.
+- [x] Lifetime Learning Credit (LLC) — Form 8863: 20% of up to $10K. Phase-out $80K–$90K.
 - [ ] Premium tax credit — Form 8962 (ACA marketplace)
 
 ---
@@ -94,8 +94,8 @@ Lines currently returning **placeholder $0** that need real computation:
 - [ ] AMT credit carryforward (Form 8801)
 
 ### Form 8863 — Education Credits
-- [ ] American Opportunity Credit (refundable portion)
-- [ ] Lifetime Learning Credit
+- [x] American Opportunity Credit (refundable portion)
+- [x] Lifetime Learning Credit
 - [ ] Requires Form 1098-T data model
 
 ### Form 1116 — Foreign Tax Credit
@@ -178,6 +178,8 @@ Lines currently returning **placeholder $0** that need real computation:
 - [x] Dependent Care Credit (Form 2441)
 - [x] Saver's Credit (Form 8880)
 - [x] Residential Energy Credit (Form 5695, Parts I & II)
+- [x] Education Credits — AOTC + LLC (Form 8863) with multi-student support
+- [x] Additional standard deduction for age 65+ and blind
 - [x] IRA deduction (Schedule 1, Line 20)
 - [x] HSA deduction computation (Form 8889) — UI input pending
 - [x] Student loan interest deduction (Schedule 1, Line 21) — UI input pending
