@@ -15,7 +15,7 @@
 import type { TaxReturn, FilingStatus } from '../../model/types'
 import type { TracedValue } from '../../model/traced'
 import { tracedFromComputation, tracedZero } from '../../model/traced'
-import { STANDARD_DEDUCTION } from './constants'
+import { STANDARD_DEDUCTION, ADDITIONAL_STANDARD_DEDUCTION } from './constants'
 import { computeScheduleA } from './scheduleA'
 import type { ScheduleAResult } from './scheduleA'
 import { computeScheduleD } from './scheduleD'
@@ -57,6 +57,21 @@ export function computeLine1a(model: TaxReturn): TracedValue {
     'form1040.line1a',
     inputIds,
     'Form 1040, Line 1a',
+  )
+}
+
+// ── Line 1z — Total from Lines 1a through 1i ───────────────────
+// Sum of all Line 1 sub-components.
+// Currently: 1a (wages). Future sub-components (1b–1i) will be added here.
+
+export function computeLine1z(line1a: TracedValue): TracedValue {
+  // When we add 1b–1i, sum them here. For now, 1z = 1a.
+  const inputs: string[] = ['form1040.line1a']
+  return tracedFromComputation(
+    line1a.amount,
+    'form1040.line1z',
+    inputs,
+    'Form 1040, Line 1z',
   )
 }
 
@@ -158,7 +173,7 @@ export function computeLine8(schedule1?: Schedule1Result, hsaDeduction?: HSAResu
 }
 
 // ── Line 9 — Total income ─────────────────────────────────────
-// Line 1a + Line 2b + Line 3b + Line 7 + Line 8
+// Line 1z + Line 2b + Line 3b + Line 7 + Line 8
 //
 // Note: Line 3a (qualified dividends) is informational only —
 // it's used in the QDCG worksheet but NOT added to total income.
@@ -170,18 +185,19 @@ export function computeLine9(
   schedule1Result?: Schedule1Result,
 ): TracedValue {
   const line1a = computeLine1a(model)
+  const line1z = computeLine1z(line1a)
   const line2b = computeLine2b(model)
   const line3b = computeLine3b(model)
   const line7 = computeLine7(scheduleDResult)
   const line8 = computeLine8(schedule1Result)
 
-  const total = line1a.amount + line2b.amount + line3b.amount + line7.amount + line8.amount
+  const total = line1z.amount + line2b.amount + line3b.amount + line7.amount + line8.amount
 
   return tracedFromComputation(
     total,
     'form1040.line9',
     [
-      'form1040.line1a',
+      'form1040.line1z',
       'form1040.line2b',
       'form1040.line3b',
       'form1040.line7',
@@ -236,7 +252,15 @@ export function computeLine12(
   agi: number,
   netInvestmentIncome: number,
 ): { deduction: TracedValue; scheduleA: ScheduleAResult | null } {
-  const standardAmount = STANDARD_DEDUCTION[model.filingStatus]
+  const additionalPer = ADDITIONAL_STANDARD_DEDUCTION[model.filingStatus]
+  let additionalCount = 0
+  if (model.deductions.taxpayerAge65) additionalCount++
+  if (model.deductions.taxpayerBlind) additionalCount++
+  if (model.filingStatus === 'mfj' || model.filingStatus === 'mfs') {
+    if (model.deductions.spouseAge65) additionalCount++
+    if (model.deductions.spouseBlind) additionalCount++
+  }
+  const standardAmount = STANDARD_DEDUCTION[model.filingStatus] + additionalPer * additionalCount
 
   if (model.deductions.method === 'itemized' && model.deductions.itemized) {
     const scheduleA = computeScheduleA(model, agi, netInvestmentIncome)
@@ -570,6 +594,7 @@ export function computeLine37(line24: TracedValue, line33: TracedValue): TracedV
 export interface Form1040Result {
   // Income (Lines 1–9)
   line1a: TracedValue
+  line1z: TracedValue
   line2a: TracedValue
   line2b: TracedValue
   line3a: TracedValue
@@ -668,6 +693,7 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
 
   // ── Income ──────────────────────────────────────────────
   const line1a = computeLine1a(model)
+  const line1z = computeLine1z(line1a)
   const line2a = computeLine2a(model)
   const line2b = computeLine2b(model)
   const line3a = computeLine3a(model)
@@ -676,9 +702,9 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   const line8 = computeLine8(schedule1 ?? undefined, hsaResult)
 
   const line9 = tracedFromComputation(
-    line1a.amount + line2b.amount + line3b.amount + line7.amount + line8.amount,
+    line1z.amount + line2b.amount + line3b.amount + line7.amount + line8.amount,
     'form1040.line9',
-    ['form1040.line1a', 'form1040.line2b', 'form1040.line3b', 'form1040.line7', 'form1040.line8'],
+    ['form1040.line1z', 'form1040.line2b', 'form1040.line3b', 'form1040.line7', 'form1040.line8'],
     'Form 1040, Line 9',
   )
 
@@ -827,7 +853,7 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   const line37 = computeLine37(line24, line33)
 
   return {
-    line1a, line2a, line2b, line3a, line3b, line7, line8, line9,
+    line1a, line1z, line2a, line2b, line3a, line3b, line7, line8, line9,
     line10, line11,
     line12, line13, line14, line15,
     line16, line17, line18, line19, line20, line21, line22, line23, line24,

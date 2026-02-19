@@ -39,6 +39,7 @@ export interface ComputeTrace {
 export const NODE_LABELS: Record<string, string> = {
   // Form 1040
   'form1040.line1a': 'Wages, salaries, tips',
+  'form1040.line1z': 'Add lines 1a through 1i',
   'form1040.line2a': 'Tax-exempt interest',
   'form1040.line2b': 'Taxable interest',
   'form1040.line3a': 'Qualified dividends',
@@ -215,6 +216,7 @@ export function collectAllValues(
 
   // Form 1040 lines
   add(form1040.line1a)
+  add(form1040.line1z)
   add(form1040.line2a)
   add(form1040.line2b)
   add(form1040.line3a)

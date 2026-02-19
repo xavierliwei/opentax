@@ -317,7 +317,7 @@ describe('computeLine9 (Total income)', () => {
     const result = computeLine9(simpleW2Return())
     if (result.source.kind === 'computed') {
       expect(result.source.inputs).toEqual([
-        'form1040.line1a',
+        'form1040.line1z',
         'form1040.line2b',
         'form1040.line3b',
         'form1040.line7',

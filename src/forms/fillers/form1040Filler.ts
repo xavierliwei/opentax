@@ -47,7 +47,7 @@ export async function fillForm1040(
 
   // ── Page 1: Income ──────────────────────────────────────────
   setDollarField(form, F1040_INCOME.line1a, result.line1a.amount)
-  setDollarField(form, F1040_INCOME.line1z, result.line1a.amount) // MVP: 1z = 1a
+  setDollarField(form, F1040_INCOME.line1z, result.line1z.amount)
   setDollarField(form, F1040_INCOME.line2a, result.line2a.amount)
   setDollarField(form, F1040_INCOME.line2b, result.line2b.amount)
   setDollarField(form, F1040_INCOME.line3a, result.line3a.amount)
