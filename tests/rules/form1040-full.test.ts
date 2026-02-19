@@ -33,9 +33,8 @@ import { tracedFromComputation } from '../../src/model/traced'
 // ── Individual line tests ────────────────────────────────────────
 
 describe('Line 10 — Adjustments to income', () => {
-  it('returns $0 (placeholder for MVP)', () => {
-    const model = emptyTaxReturn(2025)
-    expect(computeLine10(model).amount).toBe(0)
+  it('returns $0 when no adjustments', () => {
+    expect(computeLine10(null, null).amount).toBe(0)
   })
 })
 

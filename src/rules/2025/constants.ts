@@ -367,6 +367,16 @@ export const IRA_PHASEOUT_COVERED: Record<FilingStatus, { start: number; end: nu
 // Phase-out when taxpayer NOT covered but spouse IS covered (MFJ only)
 export const IRA_PHASEOUT_SPOUSE_COVERED = { start: c(236000), end: c(246000) }
 
+// ── HSA (Form 8889) ──────────────────────────────────────────────
+// Source: Rev. Proc. 2024-25
+
+export const HSA_LIMIT_SELF_ONLY = c(4300)
+export const HSA_LIMIT_FAMILY = c(8550)
+export const HSA_CATCHUP_AMOUNT = c(1000)
+export const HSA_CATCHUP_AGE = 55
+export const HSA_EXCESS_PENALTY_RATE = 0.06
+export const HSA_DISTRIBUTION_PENALTY_RATE = 0.20
+
 // ── Tax Year ───────────────────────────────────────────────────
 
 export const TAX_YEAR = 2025

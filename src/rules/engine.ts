@@ -143,6 +143,9 @@ export const NODE_LABELS: Record<string, string> = {
 
   // Adjustments (Line 10 components)
   'adjustments.ira': 'IRA deduction (Schedule 1, Line 20)',
+  'adjustments.hsa': 'HSA deduction (Form 8889)',
+  'hsa.taxableDistributions': 'Taxable HSA distributions',
+  'hsa.penalties': 'HSA penalties',
 
   // Other credits (Line 20 components)
   'credits.dependentCare': 'Dependent care credit (Form 2441)',
@@ -246,6 +249,36 @@ export function collectAllValues(
       [],
       'IRA deduction (Schedule 1, Line 20)',
     ))
+  }
+
+  // HSA deduction detail nodes (Form 8889)
+  if (form1040.hsaResult) {
+    const hsa = form1040.hsaResult
+    if (hsa.deductibleAmount > 0) {
+      values.set('adjustments.hsa', tracedFromComputation(
+        hsa.deductibleAmount,
+        'adjustments.hsa',
+        [],
+        'HSA deduction (Form 8889)',
+      ))
+    }
+    if (hsa.taxableDistributions > 0) {
+      values.set('hsa.taxableDistributions', tracedFromComputation(
+        hsa.taxableDistributions,
+        'hsa.taxableDistributions',
+        [],
+        'Taxable HSA distributions',
+      ))
+    }
+    const totalPenalty = hsa.distributionPenalty + hsa.excessPenalty
+    if (totalPenalty > 0) {
+      values.set('hsa.penalties', tracedFromComputation(
+        totalPenalty,
+        'hsa.penalties',
+        [],
+        'HSA penalties',
+      ))
+    }
   }
 
   // Child Tax Credit detail nodes

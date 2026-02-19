@@ -36,6 +36,8 @@ import type { EnergyCreditResult } from './energyCredit'
 import { TAX_YEAR } from './constants'
 import { computeIRADeduction } from './iraDeduction'
 import type { IRADeductionResult } from './iraDeduction'
+import { computeHSADeduction } from './hsaDeduction'
+import type { HSAResult } from './hsaDeduction'
 import { computeSchedule1 } from './schedule1'
 import type { Schedule1Result } from './schedule1'
 
@@ -134,16 +136,19 @@ export function computeLine7(scheduleDResult?: TracedValue): TracedValue {
 }
 
 // ── Line 8 — Other income from Schedule 1 ──────────────────────
-// Schedule 1 Part I, Line 10 (additional income: rents, royalties, other).
+// Schedule 1 Part I, Line 10 (additional income: rents, royalties, other)
+// plus taxable HSA distributions.
 
-export function computeLine8(schedule1?: Schedule1Result): TracedValue {
-  if (schedule1 && schedule1.line10.amount > 0) {
-    return tracedFromComputation(
-      schedule1.line10.amount,
-      'form1040.line8',
-      ['schedule1.line10'],
-      'Form 1040, Line 8',
-    )
+export function computeLine8(schedule1?: Schedule1Result, hsaDeduction?: HSAResult | null): TracedValue {
+  const schedule1Amount = schedule1?.line10.amount ?? 0
+  const hsaTaxable = hsaDeduction?.taxableDistributions ?? 0
+  const total = schedule1Amount + hsaTaxable
+
+  if (total > 0) {
+    const inputs: string[] = []
+    if (schedule1Amount > 0) inputs.push('schedule1.line10')
+    if (hsaTaxable > 0) inputs.push('hsa.taxableDistributions')
+    return tracedFromComputation(total, 'form1040.line8', inputs, 'Form 1040, Line 8')
   }
   return tracedZero('form1040.line8', 'Form 1040, Line 8')
 }
@@ -183,14 +188,20 @@ export function computeLine9(
 }
 
 // ── Line 10 — Adjustments to income ─────────────────────────────
-// Schedule 1 Part II adjustments (IRA deduction, etc.)
+// Schedule 1 Part II adjustments (IRA deduction, HSA deduction, etc.)
 
 export function computeLine10(
   iraDeduction: IRADeductionResult | null,
+  hsaDeduction: HSAResult | null,
 ): TracedValue {
-  const amount = iraDeduction?.deductibleAmount ?? 0
+  const ira = iraDeduction?.deductibleAmount ?? 0
+  const hsa = hsaDeduction?.deductibleAmount ?? 0
+  const amount = ira + hsa
+  const inputs: string[] = []
+  if (ira > 0) inputs.push('adjustments.ira')
+  if (hsa > 0) inputs.push('adjustments.hsa')
   return amount > 0
-    ? tracedFromComputation(amount, 'form1040.line10', ['adjustments.ira'], 'Form 1040, Line 10')
+    ? tracedFromComputation(amount, 'form1040.line10', inputs, 'Form 1040, Line 10')
     : tracedZero('form1040.line10', 'Form 1040, Line 10')
 }
 
@@ -390,9 +401,16 @@ export function computeLine22(line18: TracedValue, line21: TracedValue): TracedV
 }
 
 // ── Line 23 — Other taxes (Schedule 2, Part II) ────────────────
-// Placeholder $0 — no SE tax, NIIT, etc.
+// Includes HSA penalties (distribution 20% + excess 6%).
 
-export function computeLine23(): TracedValue {
+export function computeLine23(hsaDeduction?: HSAResult | null): TracedValue {
+  const distributionPenalty = hsaDeduction?.distributionPenalty ?? 0
+  const excessPenalty = hsaDeduction?.excessPenalty ?? 0
+  const total = distributionPenalty + excessPenalty
+
+  if (total > 0) {
+    return tracedFromComputation(total, 'form1040.line23', ['hsa.penalties'], 'Form 1040, Line 23')
+  }
   return tracedZero('form1040.line23', 'Form 1040, Line 23')
 }
 
@@ -598,6 +616,9 @@ export interface Form1040Result {
   // IRA deduction detail (Schedule 1, Line 20)
   iraDeduction: IRADeductionResult | null
 
+  // HSA deduction detail (Form 8889)
+  hsaResult: HSAResult | null
+
   // AMT detail (Form 6251)
   amtResult: AMTResult | null
 
@@ -628,6 +649,9 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   )
   const schedule1 = has1099MISCIncome ? computeSchedule1(model) : null
 
+  // ── HSA (computed early — no dependency on Line 9) ──────
+  const hsaResult = computeHSADeduction(model)
+
   // ── Income ──────────────────────────────────────────────
   const line1a = computeLine1a(model)
   const line2a = computeLine2a(model)
@@ -635,7 +659,7 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   const line3a = computeLine3a(model)
   const line3b = computeLine3b(model)
   const line7 = computeLine7(scheduleD?.line21)
-  const line8 = computeLine8(schedule1 ?? undefined)
+  const line8 = computeLine8(schedule1 ?? undefined, hsaResult)
 
   const line9 = tracedFromComputation(
     line1a.amount + line2b.amount + line3b.amount + line7.amount + line8.amount,
@@ -647,7 +671,7 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   // ── Adjustments & AGI ───────────────────────────────────
   // MAGI for IRA deduction = Line 9 (total income), per IRC §219(g)(3)(A)(ii)
   const iraDeduction = computeIRADeduction(model, line9.amount)
-  const line10 = computeLine10(iraDeduction)
+  const line10 = computeLine10(iraDeduction, hsaResult)
   const line11 = computeLine11(line9, line10)
 
   // ── Deductions ──────────────────────────────────────────
@@ -721,7 +745,7 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
 
   const line21 = computeLine21(line19, line20)
   const line22 = computeLine22(line18, line21)
-  const line23 = computeLine23()
+  const line23 = computeLine23(hsaResult)
   const line24 = computeLine24(line22, line23)
 
   // ── Payments & refundable credits ──────────────────────
@@ -787,6 +811,7 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     saversCredit,
     energyCredit: energyCreditResult,
     iraDeduction,
+    hsaResult,
     amtResult,
     schedule1, scheduleA, scheduleD,
   }

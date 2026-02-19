@@ -156,6 +156,25 @@ export interface Form1099MISC {
   box4: number   // Federal income tax withheld (cents)
 }
 
+// ── 1099-SA (HSA distributions) ──────────────────────────────
+
+export interface Form1099SA {
+  id: string
+  payerName: string
+  box1: number    // Gross distribution (cents)
+  box2: number    // Earnings on excess contributions (cents)
+}
+
+// ── HSA Info ─────────────────────────────────────────────────
+
+export interface HSAInfo {
+  coverageType: 'self-only' | 'family'
+  contributions: number       // cents — taxpayer's direct HSA contributions
+  qualifiedExpenses: number   // cents — qualified medical expenses paid from HSA
+  age55OrOlder: boolean       // catch-up contribution eligible
+  age65OrDisabled: boolean    // exempt from 20% distribution penalty
+}
+
 // ── RSU vest events ────────────────────────────────────────────
 
 export interface RSUVestEvent {
@@ -345,6 +364,10 @@ export interface TaxReturn {
     itemized?: ItemizedDeductions
   }
   credits: Credit[]
+
+  // HSA data
+  hsa?: HSAInfo
+  form1099SAs?: Form1099SA[]
 
   // Other credit inputs
   dependentCare?: DependentCareExpenses
