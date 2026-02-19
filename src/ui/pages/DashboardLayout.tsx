@@ -1,5 +1,5 @@
 /**
- * Minimal dashboard layout — no sidebar, just header + scrollable content.
+ * Minimal dashboard layout — no sidebar, just a sticky header + scrollable content.
  * Mobile-friendly for viewing on phone via Tailscale.
  */
 
@@ -8,14 +8,22 @@ import { Outlet } from 'react-router-dom'
 export function DashboardLayout() {
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-4 py-3">
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-gray-900">OpenTax Dashboard</h1>
+      <header className="sticky top-0 z-10 bg-white border-b border-gray-200">
+        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-base font-bold text-gray-900 tracking-tight">OpenTax</span>
+            <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 border border-blue-100 rounded px-1.5 py-0.5 tracking-wide">
+              2025
+            </span>
+          </div>
           <a
             href="/interview/filing-status"
-            className="text-sm text-blue-600 hover:text-blue-800 underline"
+            className="flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors"
           >
             Open Interview
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
           </a>
         </div>
       </header>
