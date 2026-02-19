@@ -7,7 +7,7 @@
  * Source: 2025 Form 8949 instructions
  */
 
-import type { CapitalTransaction, Form8949Category } from '../../model/types'
+import type { CapitalTransaction, Form8949Category, Form1099B } from '../../model/types'
 import type { TracedValue } from '../../model/traced'
 import { tracedFromComputation } from '../../model/traced'
 
@@ -37,13 +37,25 @@ export interface Form8949Result {
 function computeCategoryTotals(
   category: Form8949Category,
   transactions: CapitalTransaction[],
+  form1099Bs: Form1099B[],
 ): Form8949CategoryTotals {
   const proceeds = transactions.reduce((s, t) => s + t.proceeds, 0)
   const basis = transactions.reduce((s, t) => s + t.adjustedBasis, 0)
   const adjustments = transactions.reduce((s, t) => s + t.adjustmentAmount, 0)
   const gainLoss = transactions.reduce((s, t) => s + t.gainLoss, 0)
 
-  const txIds = transactions.map(t => `tx:${t.id}`)
+  // Aggregate inputs at broker level when 1099-Bs are available
+  let inputIds: string[]
+  if (form1099Bs.length > 0) {
+    const brokerNames = new Set<string>()
+    for (const t of transactions) {
+      const b = form1099Bs.find(b => b.id === t.source1099BId)
+      brokerNames.add(b?.brokerName || 'Unknown')
+    }
+    inputIds = [...brokerNames].map(name => `broker:${name}:${category}`)
+  } else {
+    inputIds = transactions.map(t => `tx:${t.id}`)
+  }
 
   return {
     category,
@@ -51,39 +63,39 @@ function computeCategoryTotals(
     totalProceeds: tracedFromComputation(
       proceeds,
       `form8949.${category}.proceeds`,
-      txIds,
+      inputIds,
       `Form 8949, Box ${category} — Total Proceeds`,
     ),
     totalBasis: tracedFromComputation(
       basis,
       `form8949.${category}.basis`,
-      txIds,
+      inputIds,
       `Form 8949, Box ${category} — Total Basis`,
     ),
     totalAdjustments: tracedFromComputation(
       adjustments,
       `form8949.${category}.adjustments`,
-      txIds,
+      inputIds,
       `Form 8949, Box ${category} — Total Adjustments`,
     ),
     totalGainLoss: tracedFromComputation(
       gainLoss,
       `form8949.${category}.gainLoss`,
-      txIds,
+      inputIds,
       `Form 8949, Box ${category} — Total Gain/Loss`,
     ),
   }
 }
 
 function emptyCategoryTotals(category: Form8949Category): Form8949CategoryTotals {
-  return computeCategoryTotals(category, [])
+  return computeCategoryTotals(category, [], [])
 }
 
 /**
  * Compute Form 8949 from capital transactions.
  * Transactions must already have their category assigned (done during intake/RSU step).
  */
-export function computeForm8949(transactions: CapitalTransaction[]): Form8949Result {
+export function computeForm8949(transactions: CapitalTransaction[], form1099Bs: Form1099B[] = []): Form8949Result {
   const grouped: Record<Form8949Category, CapitalTransaction[]> = {
     A: [], B: [], D: [], E: [],
   }
@@ -95,7 +107,7 @@ export function computeForm8949(transactions: CapitalTransaction[]): Form8949Res
   const allCategories: Form8949Category[] = ['A', 'B', 'D', 'E']
   const categories = allCategories
     .filter(cat => grouped[cat].length > 0)
-    .map(cat => computeCategoryTotals(cat, grouped[cat]))
+    .map(cat => computeCategoryTotals(cat, grouped[cat], form1099Bs))
 
   const byCategory: Partial<Record<Form8949Category, Form8949CategoryTotals>> = {}
   for (const cat of categories) {

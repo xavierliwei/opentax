@@ -308,19 +308,49 @@ export function collectAllValues(
     }
   }
 
-  // Capital transactions
-  for (const tx of model.capitalTransactions) {
-    values.set(`tx:${tx.id}`, {
-      amount: tx.gainLoss,
-      source: {
-        kind: 'document',
-        documentType: 'Transaction',
-        documentId: tx.id,
-        field: 'Gain/Loss',
-        description: `Sale of ${tx.description}`,
-      },
-      confidence: 1.0,
-    })
+  // Capital transactions — aggregated by broker + category when 1099-Bs exist
+  if (model.form1099Bs.length > 0) {
+    const brokerCatAgg = new Map<string, { count: number; gainLoss: number; brokerName: string; category: string }>()
+    for (const tx of model.capitalTransactions) {
+      const b = model.form1099Bs.find(b => b.id === tx.source1099BId)
+      const brokerName = b?.brokerName || 'Unknown'
+      const key = `broker:${brokerName}:${tx.category}`
+      const existing = brokerCatAgg.get(key)
+      if (existing) {
+        existing.count++
+        existing.gainLoss += tx.gainLoss
+      } else {
+        brokerCatAgg.set(key, { count: 1, gainLoss: tx.gainLoss, brokerName, category: tx.category })
+      }
+    }
+    for (const [key, agg] of brokerCatAgg) {
+      values.set(key, {
+        amount: agg.gainLoss,
+        source: {
+          kind: 'document',
+          documentType: '1099-B',
+          documentId: key,
+          field: 'Net Gain/Loss',
+          description: `${agg.brokerName} — ${agg.count} sale${agg.count !== 1 ? 's' : ''} (Category ${agg.category})`,
+        },
+        confidence: 1.0,
+      })
+    }
+  } else {
+    // Fallback: per-transaction nodes when no 1099-Bs
+    for (const tx of model.capitalTransactions) {
+      values.set(`tx:${tx.id}`, {
+        amount: tx.gainLoss,
+        source: {
+          kind: 'document',
+          documentType: 'Transaction',
+          documentId: tx.id,
+          field: 'Gain/Loss',
+          description: `Sale of ${tx.description}`,
+        },
+        confidence: 1.0,
+      })
+    }
   }
 
   // Standard deduction pseudo-node
@@ -539,7 +569,23 @@ export function resolveDocumentRef(
     }
   }
 
-  // Transaction: tx:{id}
+  // Broker aggregate: broker:{name}:{category}
+  m = refId.match(/^broker:(.+):([ABDE])$/)
+  if (m) {
+    const brokerName = m[1]
+    const category = m[2]
+    const txs = model.capitalTransactions.filter(t => {
+      const b = model.form1099Bs.find(b => b.id === t.source1099BId)
+      return (b?.brokerName || 'Unknown') === brokerName && t.category === category
+    })
+    const total = txs.reduce((s, t) => s + t.gainLoss, 0)
+    return {
+      label: `${brokerName} — ${txs.length} sale${txs.length !== 1 ? 's' : ''} (Category ${category})`,
+      amount: total,
+    }
+  }
+
+  // Transaction: tx:{id} (legacy fallback)
   m = refId.match(/^tx:(.+)$/)
   if (m) {
     const tx = model.capitalTransactions.find(t => t.id === m![1])

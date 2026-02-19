@@ -42,7 +42,7 @@ export interface ScheduleDResult {
 // ── Computation ────────────────────────────────────────────────
 
 export function computeScheduleD(model: TaxReturn): ScheduleDResult {
-  const form8949 = computeForm8949(model.capitalTransactions)
+  const form8949 = computeForm8949(model.capitalTransactions, model.form1099Bs)
 
   // ── Part I — Short-Term ──────────────────────────────────────
 
