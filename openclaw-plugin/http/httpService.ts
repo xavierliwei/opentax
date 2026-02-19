@@ -16,6 +16,7 @@ const DEFAULT_PORT = 7890
 const MIME_TYPES: Record<string, string> = {
   '.html': 'text/html',
   '.js': 'application/javascript',
+  '.mjs': 'application/javascript',
   '.css': 'text/css',
   '.json': 'application/json',
   '.svg': 'image/svg+xml',

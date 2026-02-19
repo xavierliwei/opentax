@@ -447,9 +447,15 @@ export function itemizedDeductionReturn(): TaxReturn {
     deductions: {
       method: 'itemized',
       itemized: {
-        medicalExpenses: cents(15000),    // above 7.5% floor ($11,250) → $3,750 deductible
-        stateLocalTaxes: cents(18000),    // capped at $10,000
+        medicalExpenses: cents(15000),      // above 7.5% floor ($11,250) → $3,750 deductible
+        stateLocalIncomeTaxes: cents(18000), // under $40K SALT cap → $18,000
+        stateLocalSalesTaxes: 0,
+        realEstateTaxes: 0,
+        personalPropertyTaxes: 0,
         mortgageInterest: cents(12000),
+        mortgagePrincipal: 0,               // not filled → pass-through (no cap applied)
+        mortgagePreTCJA: false,
+        investmentInterest: 0,
         charitableCash: cents(4000),
         charitableNoncash: cents(1000),
         otherDeductions: 0,
@@ -459,8 +465,10 @@ export function itemizedDeductionReturn(): TaxReturn {
     // Medical floor = $150,000 × 7.5% = $11,250
     // Medical deduction = $15,000 - $11,250 = $3,750
     // SALT = min($18,000, $40,000) = $18,000 (under $40K cap)
-    // Mortgage = $12,000
-    // Charitable = $4,000 + $1,000 = $5,000
+    // Mortgage = $12,000 (principal=0 → pass-through)
+    // Charitable cash = $4,000 (below 60% AGI = $90,000)
+    // Charitable noncash = $1,000 (below 30% AGI = $45,000)
+    // Total charitable = $5,000 (below 60% AGI cap)
     // Total Schedule A = $3,750 + $18,000 + $12,000 + $5,000 = $38,750
     // Standard deduction (single) = $15,000
     // Uses itemized ($38,750 > $15,000)

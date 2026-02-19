@@ -329,10 +329,10 @@ describe('Document resolution', () => {
     expect(result.amount).toBe(cents(15000))
   })
 
-  it('resolves itemized.stateLocalTaxes ref', () => {
+  it('resolves itemized.stateLocalIncomeTaxes ref', () => {
     const model = itemizedDeductionReturn()
-    const result = resolveDocumentRef(model, 'itemized.stateLocalTaxes')
-    expect(result.label).toContain('State and local taxes')
+    const result = resolveDocumentRef(model, 'itemized.stateLocalIncomeTaxes')
+    expect(result.label).toContain('income taxes')
     expect(result.amount).toBe(cents(18000))
   })
 

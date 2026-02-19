@@ -51,13 +51,13 @@ describe('Line 11 — AGI', () => {
 describe('Line 12 — Deductions', () => {
   it('uses standard deduction for single filer', () => {
     const model = simpleW2Return()
-    const { deduction } = computeLine12(model, cents(75000))
+    const { deduction } = computeLine12(model, cents(75000), 0)
     expect(deduction.amount).toBe(STANDARD_DEDUCTION.single)
   })
 
   it('uses MFJ standard deduction', () => {
     const model = { ...emptyTaxReturn(2025), filingStatus: 'mfj' as const }
-    const { deduction } = computeLine12(model, cents(120000))
+    const { deduction } = computeLine12(model, cents(120000), 0)
     expect(deduction.amount).toBe(STANDARD_DEDUCTION.mfj)
   })
 
@@ -68,8 +68,14 @@ describe('Line 12 — Deductions', () => {
         method: 'itemized',
         itemized: {
           medicalExpenses: 0,
-          stateLocalTaxes: cents(10000),  // under $40K SALT cap
+          stateLocalIncomeTaxes: cents(10000),  // under $40K SALT cap
+          stateLocalSalesTaxes: 0,
+          realEstateTaxes: 0,
+          personalPropertyTaxes: 0,
           mortgageInterest: cents(8000),
+          mortgagePrincipal: 0,
+          mortgagePreTCJA: false,
+          investmentInterest: 0,
           charitableCash: cents(2000),
           charitableNoncash: 0,
           otherDeductions: 0,
@@ -77,7 +83,7 @@ describe('Line 12 — Deductions', () => {
       },
     }
     // Schedule A: SALT $10K (under $40K cap), mortgage $8K, charitable $2K → $20,000 > standard $15,000
-    const { deduction, scheduleA } = computeLine12(model, cents(100000))
+    const { deduction, scheduleA } = computeLine12(model, cents(100000), 0)
     expect(deduction.amount).toBe(cents(20000))
     expect(scheduleA).not.toBeNull()
     expect(scheduleA!.line17.amount).toBe(cents(20000))
@@ -90,8 +96,14 @@ describe('Line 12 — Deductions', () => {
         method: 'itemized',
         itemized: {
           medicalExpenses: 0,
-          stateLocalTaxes: cents(5000),
+          stateLocalIncomeTaxes: cents(5000),
+          stateLocalSalesTaxes: 0,
+          realEstateTaxes: 0,
+          personalPropertyTaxes: 0,
           mortgageInterest: cents(3000),
+          mortgagePrincipal: 0,
+          mortgagePreTCJA: false,
+          investmentInterest: 0,
           charitableCash: cents(1000),
           charitableNoncash: 0,
           otherDeductions: 0,
@@ -99,7 +111,7 @@ describe('Line 12 — Deductions', () => {
       },
     }
     // Schedule A total: $9,000 < standard $15,000
-    const { deduction, scheduleA } = computeLine12(model, cents(100000))
+    const { deduction, scheduleA } = computeLine12(model, cents(100000), 0)
     expect(deduction.amount).toBe(STANDARD_DEDUCTION.single)
     // Schedule A still computed (for comparison display)
     expect(scheduleA).not.toBeNull()
@@ -107,7 +119,7 @@ describe('Line 12 — Deductions', () => {
 
   it('returns null scheduleA when using standard deduction method', () => {
     const model = simpleW2Return()
-    const { scheduleA } = computeLine12(model, cents(75000))
+    const { scheduleA } = computeLine12(model, cents(75000), 0)
     expect(scheduleA).toBeNull()
   })
 })

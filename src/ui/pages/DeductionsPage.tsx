@@ -2,7 +2,13 @@ import { useTaxStore } from '../../store/taxStore.ts'
 import { useInterview } from '../../interview/useInterview.ts'
 import { CurrencyInput } from '../components/CurrencyInput.tsx'
 import { InterviewNav } from './InterviewNav.tsx'
-import { STANDARD_DEDUCTION, SALT_BASE_CAP, MEDICAL_AGI_FLOOR_RATE } from '../../rules/2025/constants.ts'
+import {
+  STANDARD_DEDUCTION,
+  MEDICAL_AGI_FLOOR_RATE,
+  CHARITABLE_CASH_AGI_LIMIT,
+  CHARITABLE_NONCASH_AGI_LIMIT,
+} from '../../rules/2025/constants.ts'
+import { computeSaltCap } from '../../rules/2025/scheduleA.ts'
 import { dollars } from '../../model/traced.ts'
 
 function formatCurrency(cents: number): string {
@@ -17,13 +23,25 @@ export function DeductionsPage() {
   const filingStatus = useTaxStore((s) => s.taxReturn.filingStatus)
   const deductions = useTaxStore((s) => s.taxReturn.deductions)
   const agi = useTaxStore((s) => s.computeResult.form1040.line11.amount)
+  const computeResult = useTaxStore((s) => s.computeResult)
+  const line2b = useTaxStore((s) => s.computeResult.form1040.line2b.amount)
+  const line3a = useTaxStore((s) => s.computeResult.form1040.line3a.amount)
+  const line3b = useTaxStore((s) => s.computeResult.form1040.line3b.amount)
+  const scheduleD = useTaxStore((s) => s.computeResult.form1040.scheduleD)
   const setDeductionMethod = useTaxStore((s) => s.setDeductionMethod)
   const setItemizedDeductions = useTaxStore((s) => s.setItemizedDeductions)
   const interview = useInterview()
 
   const standardAmount = STANDARD_DEDUCTION[filingStatus]
-  const saltCap = SALT_BASE_CAP[filingStatus]
   const medicalFloor = Math.round(agi * MEDICAL_AGI_FLOOR_RATE)
+  const effectiveSaltCap = computeSaltCap(filingStatus, agi)
+  const cashAgiLimit = Math.round(agi * CHARITABLE_CASH_AGI_LIMIT)
+  const noncashAgiLimit = Math.round(agi * CHARITABLE_NONCASH_AGI_LIMIT)
+
+  // Net investment income for investment interest limit display
+  const nonQualifiedDivs = Math.max(0, line3b - line3a)
+  const netSTGain = Math.max(0, scheduleD?.line7.amount ?? 0)
+  const netInvestmentIncome = line2b + nonQualifiedDivs + netSTGain
 
   const itemized = deductions.itemized ?? {
     medicalExpenses: 0,
@@ -40,20 +58,21 @@ export function DeductionsPage() {
     otherDeductions: 0,
   }
 
-  // SALT: system uses max(income, sales) + real estate + personal property
-  const salt =
-    Math.max(itemized.stateLocalIncomeTaxes, itemized.stateLocalSalesTaxes) +
-    itemized.realEstateTaxes +
-    itemized.personalPropertyTaxes
-
-  const itemizedTotal =
-    itemized.medicalExpenses +
-    salt +
+  // Use post-limit total from engine when available (method=itemized),
+  // otherwise compute a rough estimate for comparison display.
+  const itemizedTotal = computeResult.form1040.scheduleA?.line17.amount ?? (
+    Math.max(0, itemized.medicalExpenses - medicalFloor) +
+    Math.min(
+      Math.max(itemized.stateLocalIncomeTaxes, itemized.stateLocalSalesTaxes) +
+        itemized.realEstateTaxes + itemized.personalPropertyTaxes,
+      effectiveSaltCap,
+    ) +
     itemized.mortgageInterest +
     itemized.investmentInterest +
     itemized.charitableCash +
     itemized.charitableNoncash +
     itemized.otherDeductions
+  )
 
   const diff = Math.abs(standardAmount - itemizedTotal)
   const standardBetter = standardAmount >= itemizedTotal
@@ -111,46 +130,112 @@ export function DeductionsPage() {
 
       {/* Itemized detail form */}
       {deductions.method === 'itemized' && (
-        <div className="mt-6 flex flex-col gap-4">
+        <div className="mt-6 flex flex-col gap-6">
+          {/* Medical */}
           <CurrencyInput
             label="Medical expenses"
             value={itemized.medicalExpenses}
             onChange={(v) => setItemizedDeductions({ medicalExpenses: v })}
             helperText={`Only the amount above 7.5% of your AGI (${formatCurrency(medicalFloor)}) is deductible.`}
           />
-          <CurrencyInput
-            label="State and local income taxes (SALT)"
-            value={itemized.stateLocalIncomeTaxes}
-            onChange={(v) => setItemizedDeductions({ stateLocalIncomeTaxes: v })}
-            helperText={`Capped at ${formatCurrency(saltCap)} for ${filingStatus === 'mfj' ? 'married filing jointly' : 'your filing status'}. Also add real estate and personal property taxes below.`}
-          />
-          <CurrencyInput
-            label="Real estate taxes"
-            value={itemized.realEstateTaxes}
-            onChange={(v) => setItemizedDeductions({ realEstateTaxes: v })}
-            helperText="State and local real estate taxes on property you own."
-          />
-          <CurrencyInput
-            label="Personal property taxes"
-            value={itemized.personalPropertyTaxes}
-            onChange={(v) => setItemizedDeductions({ personalPropertyTaxes: v })}
-            helperText="Value-based taxes on vehicles or other personal property."
-          />
-          <CurrencyInput
-            label="Mortgage interest"
-            value={itemized.mortgageInterest}
-            onChange={(v) => setItemizedDeductions({ mortgageInterest: v })}
-          />
-          <CurrencyInput
-            label="Charitable contributions (cash)"
-            value={itemized.charitableCash}
-            onChange={(v) => setItemizedDeductions({ charitableCash: v })}
-          />
-          <CurrencyInput
-            label="Charitable contributions (non-cash)"
-            value={itemized.charitableNoncash}
-            onChange={(v) => setItemizedDeductions({ charitableNoncash: v })}
-          />
+
+          {/* State & Local Taxes */}
+          <div className="flex flex-col gap-3">
+            <p className="text-sm font-semibold text-gray-700 border-t border-gray-100 pt-4">
+              State &amp; Local Taxes
+            </p>
+            <CurrencyInput
+              label="State/local income taxes (Line 5a)"
+              value={itemized.stateLocalIncomeTaxes}
+              onChange={(v) => setItemizedDeductions({ stateLocalIncomeTaxes: v })}
+              helperText="OR enter sales taxes below — the higher amount is used"
+            />
+            <CurrencyInput
+              label="General sales taxes paid (Line 5a)"
+              value={itemized.stateLocalSalesTaxes}
+              onChange={(v) => setItemizedDeductions({ stateLocalSalesTaxes: v })}
+            />
+            <CurrencyInput
+              label="Real estate taxes (property taxes) (Line 5b)"
+              value={itemized.realEstateTaxes}
+              onChange={(v) => setItemizedDeductions({ realEstateTaxes: v })}
+            />
+            <CurrencyInput
+              label="Personal property taxes (Line 5c)"
+              value={itemized.personalPropertyTaxes}
+              onChange={(v) => setItemizedDeductions({ personalPropertyTaxes: v })}
+              helperText="e.g., vehicle registration fees based on value"
+            />
+            <p className="text-xs text-gray-500">
+              Combined SALT deductible:{' '}
+              {formatCurrency(Math.min(
+                Math.max(itemized.stateLocalIncomeTaxes, itemized.stateLocalSalesTaxes) +
+                  itemized.realEstateTaxes + itemized.personalPropertyTaxes,
+                effectiveSaltCap,
+              ))}{' '}
+              (cap: {formatCurrency(effectiveSaltCap)})
+            </p>
+          </div>
+
+          {/* Interest */}
+          <div className="flex flex-col gap-3">
+            <p className="text-sm font-semibold text-gray-700 border-t border-gray-100 pt-4">
+              Interest
+            </p>
+            <CurrencyInput
+              label="Home mortgage interest (Line 8a)"
+              value={itemized.mortgageInterest}
+              onChange={(v) => setItemizedDeductions({ mortgageInterest: v })}
+              helperText="From Form 1098 Box 1"
+            />
+            <CurrencyInput
+              label="Outstanding loan balance"
+              value={itemized.mortgagePrincipal}
+              onChange={(v) => setItemizedDeductions({ mortgagePrincipal: v })}
+              helperText="From Form 1098 Box 2 — used to check the $750K/$1M limit"
+            />
+            <label className="flex items-start gap-2">
+              <input
+                type="checkbox"
+                checked={itemized.mortgagePreTCJA}
+                onChange={(e) => setItemizedDeductions({ mortgagePreTCJA: e.target.checked })}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600"
+              />
+              <span className="text-sm text-gray-700">
+                Loan originated before December 16, 2017?
+                <span className="block text-xs text-gray-500 mt-0.5">
+                  Yes → $1,000,000 limit; No → $750,000 limit
+                </span>
+              </span>
+            </label>
+            <CurrencyInput
+              label="Margin / investment interest (Line 9)"
+              value={itemized.investmentInterest}
+              onChange={(v) => setItemizedDeductions({ investmentInterest: v })}
+              helperText={`Limited to your net investment income (~${formatCurrency(netInvestmentIncome)} for this return)`}
+            />
+          </div>
+
+          {/* Charitable Contributions */}
+          <div className="flex flex-col gap-3">
+            <p className="text-sm font-semibold text-gray-700 border-t border-gray-100 pt-4">
+              Charitable Contributions
+            </p>
+            <CurrencyInput
+              label="Cash / check donations (Line 11)"
+              value={itemized.charitableCash}
+              onChange={(v) => setItemizedDeductions({ charitableCash: v })}
+              helperText={`Limited to 60% of AGI (${formatCurrency(cashAgiLimit)})`}
+            />
+            <CurrencyInput
+              label="Non-cash donations (Line 12)"
+              value={itemized.charitableNoncash}
+              onChange={(v) => setItemizedDeductions({ charitableNoncash: v })}
+              helperText={`Limited to 30% of AGI (${formatCurrency(noncashAgiLimit)})`}
+            />
+          </div>
+
+          {/* Other */}
           <CurrencyInput
             label="Other deductions"
             value={itemized.otherDeductions}
