@@ -24,16 +24,16 @@ interface LineItemProps {
 
 function LineItem({ label, nodeId, amount, tooltip }: LineItemProps) {
   return (
-    <div className="flex items-center justify-between gap-3 py-1">
-      <span className="text-sm text-gray-700 min-w-0 inline-flex items-center">
-        {label}
+    <div className="flex items-baseline justify-between gap-2 sm:gap-3 py-1.5 sm:py-1">
+      <span className="text-sm text-gray-700 min-w-0 inline-flex items-center flex-wrap">
+        <span className="break-words">{label}</span>
         {tooltip && <InfoTooltip {...tooltip} />}
       </span>
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
         <span className="text-sm font-medium tabular-nums">{formatCurrency(amount)}</span>
         <Link
           to={`/explain/${nodeId}`}
-          className="text-xs text-tax-blue hover:text-blue-700"
+          className="inline-flex items-center justify-center w-6 h-6 sm:w-auto sm:h-auto text-xs text-tax-blue hover:text-blue-700 rounded-full sm:rounded-none hover:bg-blue-50 sm:hover:bg-transparent"
           title="Why this number?"
         >
           ?
@@ -279,26 +279,32 @@ export function ReviewPage() {
         </h2>
         <div className="mt-2 flex flex-col">
           {form1040.line34.amount > 0 && (
-            <div className="flex items-center justify-between py-1">
+            <div className="flex items-center justify-between gap-2 py-1.5 sm:py-1">
               <span className="text-sm font-medium text-tax-green">Line 34 — Refund</span>
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-bold text-tax-green">
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                <span className="text-base sm:text-lg font-bold text-tax-green tabular-nums">
                   {formatCurrency(form1040.line34.amount)}
                 </span>
-                <Link to="/explain/form1040.line34" className="text-xs text-tax-blue hover:text-blue-700">
+                <Link
+                  to="/explain/form1040.line34"
+                  className="inline-flex items-center justify-center w-6 h-6 sm:w-auto sm:h-auto text-xs text-tax-blue hover:text-blue-700 rounded-full sm:rounded-none hover:bg-blue-50 sm:hover:bg-transparent"
+                >
                   ?
                 </Link>
               </div>
             </div>
           )}
           {form1040.line37.amount > 0 && (
-            <div className="flex items-center justify-between py-1">
+            <div className="flex items-center justify-between gap-2 py-1.5 sm:py-1">
               <span className="text-sm font-medium text-tax-red">Line 37 — Amount you owe</span>
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-bold text-tax-red">
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                <span className="text-base sm:text-lg font-bold text-tax-red tabular-nums">
                   {formatCurrency(form1040.line37.amount)}
                 </span>
-                <Link to="/explain/form1040.line37" className="text-xs text-tax-blue hover:text-blue-700">
+                <Link
+                  to="/explain/form1040.line37"
+                  className="inline-flex items-center justify-center w-6 h-6 sm:w-auto sm:h-auto text-xs text-tax-blue hover:text-blue-700 rounded-full sm:rounded-none hover:bg-blue-50 sm:hover:bg-transparent"
+                >
                   ?
                 </Link>
               </div>

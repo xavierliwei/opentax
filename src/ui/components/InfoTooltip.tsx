@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 
 export function InfoTooltip({ explanation, pubName, pubUrl }: {
   explanation: string
@@ -7,6 +7,7 @@ export function InfoTooltip({ explanation, pubName, pubUrl }: {
 }) {
   const [visible, setVisible] = useState(false)
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const containerRef = useRef<HTMLSpanElement>(null)
 
   const show = () => {
     if (hideTimer.current) clearTimeout(hideTimer.current)
@@ -15,16 +16,33 @@ export function InfoTooltip({ explanation, pubName, pubUrl }: {
   const hide = () => {
     hideTimer.current = setTimeout(() => setVisible(false), 120)
   }
+  const toggle = () => {
+    if (visible) hide()
+    else show()
+  }
+
+  // Close on outside tap (mobile)
+  useEffect(() => {
+    if (!visible) return
+    const onTouchOutside = (e: TouchEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setVisible(false)
+      }
+    }
+    document.addEventListener('touchstart', onTouchOutside)
+    return () => document.removeEventListener('touchstart', onTouchOutside)
+  }, [visible])
 
   return (
-    <span className="relative inline-flex items-center ml-1.5">
+    <span ref={containerRef} className="relative inline-flex items-center ml-1.5" onClick={(e) => e.stopPropagation()}>
       <button
         type="button"
         onMouseEnter={show}
         onMouseLeave={hide}
         onFocus={show}
         onBlur={hide}
-        className="text-gray-400 hover:text-blue-500 transition-colors focus:outline-none"
+        onClick={toggle}
+        className="text-gray-400 hover:text-blue-500 transition-colors focus:outline-none p-1 -m-1"
         aria-label="More information"
       >
         <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
@@ -33,7 +51,7 @@ export function InfoTooltip({ explanation, pubName, pubUrl }: {
       </button>
       {visible && (
         <div
-          className="absolute left-0 bottom-full mb-2 w-72 bg-white border border-gray-200 rounded-lg shadow-xl p-3 z-50 text-left"
+          className="absolute left-0 bottom-full mb-2 w-[min(18rem,calc(100vw-3rem))] bg-white border border-gray-200 rounded-lg shadow-xl p-3 z-50 text-left"
           onMouseEnter={show}
           onMouseLeave={hide}
         >

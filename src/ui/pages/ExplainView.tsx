@@ -115,6 +115,81 @@ export function ExplainView() {
     }
   }, [isDragging])
 
+  // ── Touch pan + pinch-to-zoom ─────────────────────────────────
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+
+    let lastTouchX = 0
+    let lastTouchY = 0
+    let lastPinchDist = 0
+
+    function dist(a: Touch, b: Touch) {
+      return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY)
+    }
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        lastTouchX = e.touches[0].clientX
+        lastTouchY = e.touches[0].clientY
+      } else if (e.touches.length === 2) {
+        lastPinchDist = dist(e.touches[0], e.touches[1])
+        lastTouchX = (e.touches[0].clientX + e.touches[1].clientX) / 2
+        lastTouchY = (e.touches[0].clientY + e.touches[1].clientY) / 2
+      }
+    }
+
+    const onTouchMove = (e: TouchEvent) => {
+      e.preventDefault()
+      if (e.touches.length === 1) {
+        const dx = e.touches[0].clientX - lastTouchX
+        const dy = e.touches[0].clientY - lastTouchY
+        lastTouchX = e.touches[0].clientX
+        lastTouchY = e.touches[0].clientY
+        setPan(p => ({ x: p.x + dx, y: p.y + dy }))
+      } else if (e.touches.length === 2) {
+        const newDist = dist(e.touches[0], e.touches[1])
+        const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2
+        const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2
+        const rect = el.getBoundingClientRect()
+        const cx = midX - rect.left
+        const cy = midY - rect.top
+
+        // Pan
+        const dx = midX - lastTouchX
+        const dy = midY - lastTouchY
+        lastTouchX = midX
+        lastTouchY = midY
+
+        // Pinch zoom
+        if (lastPinchDist > 0) {
+          const factor = newDist / lastPinchDist
+          const oldZoom = zoomRef.current
+          const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, oldZoom * factor))
+          const r = newZoom / oldZoom
+          setZoom(newZoom)
+          setPan(p => ({ x: cx - (cx - p.x - dx) * r, y: cy - (cy - p.y - dy) * r }))
+        } else {
+          setPan(p => ({ x: p.x + dx, y: p.y + dy }))
+        }
+        lastPinchDist = newDist
+      }
+    }
+
+    const onTouchEnd = () => {
+      lastPinchDist = 0
+    }
+
+    el.addEventListener('touchstart', onTouchStart, { passive: true })
+    el.addEventListener('touchmove', onTouchMove, { passive: false })
+    el.addEventListener('touchend', onTouchEnd, { passive: true })
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart)
+      el.removeEventListener('touchmove', onTouchMove)
+      el.removeEventListener('touchend', onTouchEnd)
+    }
+  }, [])
+
   // ── Keyboard ───────────────────────────────────────────────────
   function handleKeyDown(e: React.KeyboardEvent) {
     const PAN = 60
@@ -196,6 +271,9 @@ export function ExplainView() {
         <span className="text-xs text-gray-400 ml-1 hidden sm:inline">
           Scroll or +/− to zoom · Drag or arrow keys to pan · 0 to fit
         </span>
+        <span className="text-xs text-gray-400 ml-1 sm:hidden">
+          Drag to pan · Pinch to zoom
+        </span>
       </div>
 
       {/* Canvas */}
@@ -204,7 +282,7 @@ export function ExplainView() {
         className={`mt-2 border border-gray-200 rounded-lg bg-gray-50 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 select-none ${
           isDragging ? 'cursor-grabbing' : 'cursor-grab'
         }`}
-        style={{ height: '62vh', minHeight: 380 }}
+        style={{ height: 'clamp(280px, 55vh, 800px)' }}
         tabIndex={0}
         aria-label="Trace diagram. Drag to pan, scroll to zoom, arrow keys to navigate, 0 to fit."
         data-testid="trace-svg-container"
