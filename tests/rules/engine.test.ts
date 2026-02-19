@@ -223,6 +223,23 @@ describe('Selective computation', () => {
     expect(result.values.has('scheduleA.line17')).toBe(true)
     expect(result.values.has('scheduleA.line4')).toBe(true)
   })
+
+  it('itemized return has all expanded Schedule A lines in values map', () => {
+    const result = computeAll(itemizedDeductionReturn())
+    const newLines = [
+      'scheduleA.line5a',
+      'scheduleA.line5b',
+      'scheduleA.line5c',
+      'scheduleA.line8a',
+      'scheduleA.line9',
+      'scheduleA.line10',
+      'scheduleA.line11',
+      'scheduleA.line12',
+    ]
+    for (const key of newLines) {
+      expect(result.values.has(key), `missing ${key}`).toBe(true)
+    }
+  })
 })
 
 // ── 5. Cycle detection ──────────────────────────────────────────
@@ -336,6 +353,34 @@ describe('Document resolution', () => {
     expect(result.amount).toBe(cents(18000))
   })
 
+  it('resolves itemized.stateLocalSalesTaxes ref', () => {
+    const model = itemizedDeductionReturn()
+    const result = resolveDocumentRef(model, 'itemized.stateLocalSalesTaxes')
+    expect(result.label).toContain('sales taxes')
+    expect(result.amount).toBe(0)
+  })
+
+  it('resolves itemized.realEstateTaxes ref', () => {
+    const model = itemizedDeductionReturn()
+    const result = resolveDocumentRef(model, 'itemized.realEstateTaxes')
+    expect(result.label).toContain('Real estate')
+    expect(result.amount).toBe(0)
+  })
+
+  it('resolves itemized.personalPropertyTaxes ref', () => {
+    const model = itemizedDeductionReturn()
+    const result = resolveDocumentRef(model, 'itemized.personalPropertyTaxes')
+    expect(result.label).toContain('Personal property')
+    expect(result.amount).toBe(0)
+  })
+
+  it('resolves itemized.investmentInterest ref', () => {
+    const model = itemizedDeductionReturn()
+    const result = resolveDocumentRef(model, 'itemized.investmentInterest')
+    expect(result.label).toContain('Investment interest')
+    expect(result.amount).toBe(0)
+  })
+
   it('returns Unknown for unrecognized ref', () => {
     const model = simpleW2Return()
     const result = resolveDocumentRef(model, 'foo:bar')
@@ -418,5 +463,16 @@ describe('explainLine formatting', () => {
     expect(NODE_LABELS['form1040.line37']).toBe('Amount you owe')
     expect(NODE_LABELS['scheduleD.line21']).toBe('Capital gain/loss for Form 1040')
     expect(NODE_LABELS['standardDeduction']).toBe('Standard deduction')
+  })
+
+  it('NODE_LABELS covers all new Schedule A lines', () => {
+    expect(NODE_LABELS['scheduleA.line5a']).toBe('State/local income or sales taxes (elected)')
+    expect(NODE_LABELS['scheduleA.line5b']).toBe('Real estate taxes')
+    expect(NODE_LABELS['scheduleA.line5c']).toBe('Personal property taxes')
+    expect(NODE_LABELS['scheduleA.line8a']).toBe('Home mortgage interest (after limit)')
+    expect(NODE_LABELS['scheduleA.line9']).toBe('Investment interest')
+    expect(NODE_LABELS['scheduleA.line10']).toBe('Total interest you paid')
+    expect(NODE_LABELS['scheduleA.line11']).toBe('Cash charitable contributions')
+    expect(NODE_LABELS['scheduleA.line12']).toBe('Non-cash charitable contributions')
   })
 })
