@@ -236,6 +236,105 @@ describe('parseGenericFormPdf', () => {
     })
   })
 
+  describe('positional parsing (IRS grid layout)', () => {
+    it('extracts 1099-INT fields from grid layout (Discover-style)', async () => {
+      // Simulate the IRS form grid: box labels and values in different rows
+      // This mirrors the actual Discover 1099-INT PDF layout
+      const items: RawItem[] = [
+        // Form identification text
+        makeItem('Interest', 1, 545, 487),
+        makeItem('Income', 1, 547, 499),
+        makeItem('Form', 1, 419, 512),
+        makeItem('1099-INT', 1, 439, 512),
+
+        // PAYER'S label and payer name
+        makeItem("PAYER'S", 1, 44, 472),
+        makeItem('name,', 1, 71, 472),
+        makeItem('street', 1, 90, 472),
+        makeItem('address,', 1, 109, 472),
+        makeItem('ACME BANK, N.A.', 1, 48, 488),
+        makeItem('123 MAIN ST', 1, 48, 500),
+        makeItem('ANYTOWN, CA 90210', 1, 48, 512),
+
+        // Box 1: Interest income — label row
+        { str: '1', page: 1, x: 306, y: 498, width: 4 },
+        makeItem('Interest income', 1, 314, 498),
+        // Box 1: value row ($ sign + amount on next row)
+        { str: '$', page: 1, x: 302, y: 512, width: 4 },
+        { str: '946.72', page: 1, x: 310, y: 512, width: 25 },
+
+        // Box 2: Early withdrawal penalty — label row
+        { str: '2', page: 1, x: 306, y: 522, width: 4 },
+        makeItem('Early withdrawal penalty', 1, 314, 522),
+        // Box 2: value row (empty — just $)
+        { str: '$', page: 1, x: 302, y: 536, width: 4 },
+
+        // Box 3: Interest on U.S. Savings Bonds
+        { str: '3', page: 1, x: 306, y: 546, width: 4 },
+        makeItem('Interest on U.S. Savings Bonds and Treasury obligations', 1, 314, 546),
+        { str: '$', page: 1, x: 302, y: 560, width: 4 },
+
+        // Box 4: Federal income tax withheld
+        makeItem('4 Federal income tax withheld', 1, 306, 570),
+        { str: '$', page: 1, x: 302, y: 584, width: 4 },
+        { str: '50.00', page: 1, x: 310, y: 584, width: 20 },
+
+        // Box 8: Tax-exempt interest
+        { str: '8', page: 1, x: 306, y: 617, width: 4 },
+        makeItem('Tax-exempt interest', 1, 314, 617),
+        { str: '$', page: 1, x: 302, y: 631, width: 4 },
+
+        // Box 15: State
+        { str: '15', page: 1, x: 410, y: 690, width: 8 },
+        makeItem('State', 1, 422, 690),
+        { str: 'CA', page: 1, x: 418, y: 716, width: 12 },
+      ]
+
+      // groupLines returns lines that merge left/right columns —
+      // the line-scan parser won't find separate label+value rows
+      const lines = [
+        makeLine("PAYER'S name, street address, city...", 1, 472),
+        makeLine('ACME BANK, N.A. Interest', 1, 488),
+        makeLine('123 MAIN ST 1 Interest income Income', 1, 498),
+        makeLine('ANYTOWN, CA 90210 $ 946.72 Form 1099-INT', 1, 512),
+        makeLine('2 Early withdrawal penalty', 1, 522),
+        makeLine('$', 1, 536),
+        makeLine('3 Interest on U.S. Savings Bonds and Treasury obligations', 1, 546),
+        makeLine('$', 1, 560),
+        makeLine('4 Federal income tax withheld', 1, 570),
+        makeLine('$ 50.00', 1, 584),
+        makeLine('8 Tax-exempt interest', 1, 617),
+        makeLine('$', 1, 631),
+      ]
+      setupPdfMock(items, lines)
+
+      const result = await parseGenericFormPdf(new ArrayBuffer(8))
+      expect(result.formType).toBe('1099-INT')
+      expect(result.fields.get('payerName')?.value).toBe('ACME BANK, N.A.')
+      expect(result.fields.get('box1')?.value).toBe('94672')  // $946.72
+      expect(result.fields.get('box4')?.value).toBe('5000')   // $50.00
+      expect(result.fields.get('box1')?.confidence).toBe(1.0)
+    })
+
+    it('falls back to line-scan when positional finds nothing', async () => {
+      // Items have no grid-layout box labels (x < 250)
+      const items = [makeItem('Form 1099-INT')]
+      const lines = [
+        makeLine('Form 1099-INT', 1, 10),
+        makeLine("PAYER'S name: Some Bank", 1, 20),
+        makeLine('1 Interest Income 500.00', 1, 50),
+        makeLine('4 Federal income tax withheld 75.00', 1, 60),
+      ]
+      setupPdfMock(items, lines)
+
+      const result = await parseGenericFormPdf(new ArrayBuffer(8))
+      expect(result.formType).toBe('1099-INT')
+      expect(result.fields.get('payerName')?.value).toBe('Some Bank')
+      expect(result.fields.get('box1')?.value).toBe('50000')
+      expect(result.fields.get('box4')?.value).toBe('7500')
+    })
+  })
+
   describe('warnings', () => {
     it('warns when form type is detected but no fields extracted', async () => {
       const items = [makeItem('Form 1099-INT')]
