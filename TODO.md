@@ -1,7 +1,7 @@
 # OpenTax TODO
 
 ## Quick Wins
-- [ ] Fix `better-sqlite3` version mismatch — `npm rebuild better-sqlite3` to unblock 53 backend tests
+- [x] Fix `better-sqlite3` version mismatch — vitest alias resolves root copy (Node 24) while openclaw-plugin keeps Node 25 binary
 - [x] Add IRS 2025 fillable PDF templates to `/public/forms/` + fix field name mappings for Schedule D and Form 8949
 - [x] Granular API endpoint for itemized deductions — dedicated GET/PUT instead of full return sync
 - [x] Accessibility pass — ARIA labels, keyboard nav, trace graph `<title>`/`<desc>` tags
