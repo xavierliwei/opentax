@@ -5,7 +5,7 @@
  * implements the BrokerParser interface and produces a ParseResult.
  */
 
-import type { Form1099B } from '../../model/types'
+import type { Form1099B, Form1099DIV, Form1099INT } from '../../model/types'
 
 // ── Parse result ─────────────────────────────────────────────
 
@@ -18,6 +18,12 @@ export interface ParseResult {
     parsed: number   // successfully parsed
     skipped: number  // skipped (summary rows, blanks, etc.)
   }
+}
+
+/** Extended result for consolidated PDFs that contain DIV/INT alongside 1099-B */
+export interface ConsolidatedParseResult extends ParseResult {
+  form1099DIVs: Form1099DIV[]
+  form1099INTs: Form1099INT[]
 }
 
 // ── Broker parser interface ──────────────────────────────────

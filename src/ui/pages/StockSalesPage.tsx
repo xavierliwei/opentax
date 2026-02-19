@@ -5,7 +5,7 @@ import { CurrencyInput } from '../components/CurrencyInput.tsx'
 import { RSUBasisBanner } from '../components/RSUBasisBanner.tsx'
 import { InterviewNav } from './InterviewNav.tsx'
 import { autoDetectBroker } from '../../intake/csv/autoDetect.ts'
-import { parseRobinhoodPdf } from '../../intake/pdf/robinhoodPdfParser.ts'
+import { autoDetectPdfBroker } from '../../intake/pdf/autoDetectPdf.ts'
 import { processRSUAdjustments, estimateRSUImpact } from '../../rules/2025/rsuAdjustment.ts'
 import type { ParseResult } from '../../intake/csv/types.ts'
 import type { Form1099B, Form8949Category } from '../../model/types.ts'
@@ -80,7 +80,7 @@ function BrokerUploadZone({ onUpload }: { onUpload: (file: File) => void }) {
         Drop your 1099-B here or click to browse
       </p>
       <p className="text-xs text-gray-400 mt-1">
-        Supports Robinhood PDF (consolidated 1099) · CSV also accepted
+        Supports Fidelity & Robinhood PDF (consolidated 1099) · CSV also accepted
       </p>
       <input
         ref={inputRef}
@@ -102,10 +102,12 @@ function BrokerUploadZone({ onUpload }: { onUpload: (file: File) => void }) {
 function ImportBanner({
   brokerName,
   result,
+  extras,
   onReplace,
 }: {
   brokerName: string
   result: ParseResult
+  extras?: { divCount: number; intCount: number } | null
   onReplace: () => void
 }) {
   // Fatal error = no transactions could be extracted at all
@@ -132,6 +134,14 @@ function ImportBanner({
             {result.rowCounts.skipped > 0 && (
               <p className="text-xs text-amber-700 mt-1">
                 {result.rowCounts.skipped} row{result.rowCounts.skipped !== 1 ? 's' : ''} skipped (non-1099B or unrecognized format)
+              </p>
+            )}
+            {extras && (extras.divCount > 0 || extras.intCount > 0) && (
+              <p className="text-xs text-green-700 mt-1">
+                + {[
+                  extras.divCount > 0 && `${extras.divCount} dividend form (1099-DIV)`,
+                  extras.intCount > 0 && `${extras.intCount} interest form (1099-INT)`,
+                ].filter(Boolean).join(' and ')} also added
               </p>
             )}
           </div>
@@ -633,6 +643,8 @@ export function StockSalesPage() {
   const addForm1099B = useTaxStore((s) => s.addForm1099B)
   const removeForm1099B = useTaxStore((s) => s.removeForm1099B)
   const removeForm1099BsByBroker = useTaxStore((s) => s.removeForm1099BsByBroker)
+  const appendForm1099DIVs = useTaxStore((s) => s.appendForm1099DIVs)
+  const appendForm1099INTs = useTaxStore((s) => s.appendForm1099INTs)
   const interview = useInterview()
 
   const rsuAnalysis = useMemo(() => {
@@ -647,6 +659,7 @@ export function StockSalesPage() {
   const [brokerImports, setBrokerImports] = useState<BrokerImport[]>([])
   const [lastImportResult, setLastImportResult] = useState<ParseResult | null>(null)
   const [lastImportBroker, setLastImportBroker] = useState<string | null>(null)
+  const [lastImportExtras, setLastImportExtras] = useState<{ divCount: number; intCount: number } | null>(null)
   const [importing, setImporting] = useState(false)
   const [showManualForm, setShowManualForm] = useState(false)
 
@@ -663,14 +676,28 @@ export function StockSalesPage() {
     setImporting(true)
     setLastImportResult(null)
     setLastImportBroker(null)
+    setLastImportExtras(null)
     try {
       let brokerName: string
       let result: ParseResult
+      let divCount = 0
+      let intCount = 0
 
       if (file.name.toLowerCase().endsWith('.pdf')) {
         const buf = await file.arrayBuffer()
-        result = await parseRobinhoodPdf(buf)
-        brokerName = 'Robinhood'
+        const pdfResult = await autoDetectPdfBroker(buf)
+        brokerName = pdfResult.brokerName
+        result = pdfResult
+
+        // Store any 1099-DIV and 1099-INT forms extracted from consolidated PDF
+        if (pdfResult.form1099DIVs.length > 0) {
+          appendForm1099DIVs(pdfResult.form1099DIVs)
+          divCount = pdfResult.form1099DIVs.length
+        }
+        if (pdfResult.form1099INTs.length > 0) {
+          appendForm1099INTs(pdfResult.form1099INTs)
+          intCount = pdfResult.form1099INTs.length
+        }
       } else {
         const csv = await file.text()
         const detected = autoDetectBroker(csv)
@@ -680,11 +707,15 @@ export function StockSalesPage() {
 
       setLastImportBroker(brokerName)
       setLastImportResult(result)
+      if (divCount > 0 || intCount > 0) {
+        setLastImportExtras({ divCount, intCount })
+      }
 
       if (result.transactions.length > 0) {
         // Remove any existing transactions from this broker, then append new ones
         // This handles re-importing from the same broker cleanly
-        const existing = forms.filter(f => f.brokerName !== brokerName)
+        const fullBrokerName = result.transactions[0]?.brokerName ?? brokerName
+        const existing = forms.filter(f => f.brokerName !== fullBrokerName)
         setForm1099Bs([...existing, ...result.transactions])
 
         setBrokerImports(prev => {
@@ -772,6 +803,7 @@ export function StockSalesPage() {
           <ImportBanner
             brokerName={lastImportBroker ?? 'Broker'}
             result={lastImportResult}
+            extras={lastImportExtras}
             onReplace={() => setLastImportResult(null)}
           />
         )}

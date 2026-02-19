@@ -37,15 +37,19 @@ export interface TaxStoreState {
   updateW2: (id: string, w2: Partial<W2>) => void
   removeW2: (id: string) => void
   addForm1099INT: (form: Form1099INT) => void
+  appendForm1099INTs: (forms: Form1099INT[]) => void
   updateForm1099INT: (id: string, form: Partial<Form1099INT>) => void
   removeForm1099INT: (id: string) => void
   addForm1099DIV: (form: Form1099DIV) => void
+  appendForm1099DIVs: (forms: Form1099DIV[]) => void
   updateForm1099DIV: (id: string, form: Partial<Form1099DIV>) => void
   removeForm1099DIV: (id: string) => void
   setForm1099Bs: (forms: Form1099B[]) => void
+  appendForm1099Bs: (forms: Form1099B[]) => void
   addForm1099B: (form: Form1099B) => void
   updateForm1099B: (id: string, form: Partial<Form1099B>) => void
   removeForm1099B: (id: string) => void
+  removeForm1099BsByBroker: (brokerName: string) => void
   addRSUVestEvent: (event: RSUVestEvent) => void
   removeRSUVestEvent: (id: string) => void
   setCapitalTransactions: (txns: CapitalTransaction[]) => void
@@ -225,6 +229,14 @@ export const useTaxStore = create<TaxStoreState>()(
         set(recompute(tr))
       },
 
+      appendForm1099INTs: (forms) => {
+        const tr = {
+          ...get().taxReturn,
+          form1099INTs: [...get().taxReturn.form1099INTs, ...forms],
+        }
+        set(recompute(tr))
+      },
+
       updateForm1099INT: (id, updates) => {
         const tr = {
           ...get().taxReturn,
@@ -247,6 +259,14 @@ export const useTaxStore = create<TaxStoreState>()(
         const tr = {
           ...get().taxReturn,
           form1099DIVs: [...get().taxReturn.form1099DIVs, form],
+        }
+        set(recompute(tr))
+      },
+
+      appendForm1099DIVs: (forms) => {
+        const tr = {
+          ...get().taxReturn,
+          form1099DIVs: [...get().taxReturn.form1099DIVs, ...forms],
         }
         set(recompute(tr))
       },
@@ -274,6 +294,15 @@ export const useTaxStore = create<TaxStoreState>()(
         set(recompute(tr))
       },
 
+      appendForm1099Bs: (forms) => {
+        const prev = get().taxReturn
+        const tr = withDerivedCapital({
+          ...prev,
+          form1099Bs: [...prev.form1099Bs, ...forms],
+        })
+        set(recompute(tr))
+      },
+
       addForm1099B: (form) => {
         const prev = get().taxReturn
         const tr = withDerivedCapital({
@@ -297,6 +326,15 @@ export const useTaxStore = create<TaxStoreState>()(
         const tr = withDerivedCapital({
           ...prev,
           form1099Bs: prev.form1099Bs.filter((f) => f.id !== id),
+        })
+        set(recompute(tr))
+      },
+
+      removeForm1099BsByBroker: (brokerName) => {
+        const prev = get().taxReturn
+        const tr = withDerivedCapital({
+          ...prev,
+          form1099Bs: prev.form1099Bs.filter((f) => f.brokerName !== brokerName),
         })
         set(recompute(tr))
       },
