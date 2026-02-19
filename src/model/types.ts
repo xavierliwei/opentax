@@ -383,6 +383,11 @@ export interface TaxReturn {
   deductions: {
     method: 'standard' | 'itemized'
     itemized?: ItemizedDeductions
+    // Additional standard deduction flags (age 65+ / blind)
+    taxpayerAge65: boolean
+    taxpayerBlind: boolean
+    spouseAge65: boolean
+    spouseBlind: boolean
   }
   credits: Credit[]
 
@@ -428,7 +433,13 @@ export function emptyTaxReturn(taxYear: number): TaxReturn {
     isoExercises: [],
     capitalTransactions: [],
     adjustments: [],
-    deductions: { method: 'standard' },
+    deductions: {
+      method: 'standard',
+      taxpayerAge65: false,
+      taxpayerBlind: false,
+      spouseAge65: false,
+      spouseBlind: false,
+    },
     credits: [],
   }
 }

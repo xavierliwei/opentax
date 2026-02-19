@@ -68,6 +68,7 @@ export interface TaxStoreState {
   setCapitalTransactions: (txns: CapitalTransaction[]) => void
   setPriorYear: (updates: Partial<PriorYearInfo>) => void
   setDeductionMethod: (method: 'standard' | 'itemized') => void
+  setDeductionFlags: (flags: Partial<Pick<TaxReturn['deductions'], 'taxpayerAge65' | 'taxpayerBlind' | 'spouseAge65' | 'spouseBlind'>>) => void
   setItemizedDeductions: (itemized: Partial<ItemizedDeductions>) => void
   setDependentCare: (updates: Partial<DependentCareExpenses>) => void
   setRetirementContributions: (updates: Partial<RetirementContributions>) => void
@@ -441,6 +442,14 @@ export const useTaxStore = create<TaxStoreState>()(
         }
         set(recompute(tr, 'deductions'))
         putDeductions({ method })
+      },
+
+      setDeductionFlags: (flags) => {
+        const tr = {
+          ...get().taxReturn,
+          deductions: { ...get().taxReturn.deductions, ...flags },
+        }
+        set(recompute(tr, 'deductions'))
       },
 
       setItemizedDeductions: (itemized) => {

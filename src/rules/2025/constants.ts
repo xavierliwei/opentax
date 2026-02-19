@@ -30,6 +30,16 @@ export const STANDARD_DEDUCTION: Record<FilingStatus, number> = {
   qw:     c(30000),
 }
 
+// Additional standard deduction for age 65+ or blind (per person, per condition)
+// Source: Rev. Proc. 2024-40, §3.02
+export const ADDITIONAL_STANDARD_DEDUCTION: Record<FilingStatus, number> = {
+  single: c(2000),
+  hoh:    c(2000),
+  mfj:    c(1600),
+  mfs:    c(1600),
+  qw:     c(1600),
+}
+
 // ── Ordinary Income Tax Brackets ───────────────────────────────
 // Source: IRS.gov "Federal income tax rates and brackets" (2025)
 // Rev. Proc. 2024-40, §3.01

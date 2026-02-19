@@ -7,6 +7,7 @@ import { InfoTooltip } from '../components/InfoTooltip.tsx'
 import { InterviewNav } from './InterviewNav.tsx'
 import {
   STANDARD_DEDUCTION,
+  ADDITIONAL_STANDARD_DEDUCTION,
   MEDICAL_AGI_FLOOR_RATE,
   CHARITABLE_CASH_AGI_LIMIT,
   CHARITABLE_NONCASH_AGI_LIMIT,
@@ -49,10 +50,20 @@ export function DeductionsPage() {
   const line3b = useTaxStore((s) => s.computeResult.form1040.line3b.amount)
   const scheduleD = useTaxStore((s) => s.computeResult.form1040.scheduleD)
   const setDeductionMethod = useTaxStore((s) => s.setDeductionMethod)
+  const setDeductionFlags = useTaxStore((s) => s.setDeductionFlags)
   const setItemizedDeductions = useTaxStore((s) => s.setItemizedDeductions)
   const interview = useInterview()
 
-  const standardAmount = STANDARD_DEDUCTION[filingStatus]
+  const additionalPer = ADDITIONAL_STANDARD_DEDUCTION[filingStatus]
+  let additionalCount = 0
+  if (deductions.taxpayerAge65) additionalCount++
+  if (deductions.taxpayerBlind) additionalCount++
+  if (filingStatus === 'mfj' || filingStatus === 'mfs') {
+    if (deductions.spouseAge65) additionalCount++
+    if (deductions.spouseBlind) additionalCount++
+  }
+  const additionalAmount = additionalPer * additionalCount
+  const standardAmount = STANDARD_DEDUCTION[filingStatus] + additionalAmount
   const medicalFloor = Math.round(agi * MEDICAL_AGI_FLOOR_RATE)
   const effectiveSaltCap = computeSaltCap(filingStatus, agi)
   const cashAgiLimit = Math.round(agi * CHARITABLE_CASH_AGI_LIMIT)
@@ -229,6 +240,67 @@ export function DeductionsPage() {
           )}
         </label>
       </fieldset>
+
+      {/* Additional standard deduction for age 65+ / blind */}
+      <div className="mt-4 bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
+        <div className="flex items-center gap-1">
+          <span className="text-sm font-semibold text-gray-800">Additional Standard Deduction</span>
+          <InfoTooltip
+            explanation={`If you or your spouse are age 65 or older or blind, you qualify for an additional standard deduction of ${formatCurrency(additionalPer)} per person per condition. These amounts increase your standard deduction whether you choose standard or itemized (they affect the standard deduction comparison).`}
+            pubName="IRS Form 1040 Instructions — Standard Deduction Chart"
+            pubUrl="https://www.irs.gov/instructions/i1040gi"
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Taxpayer</p>
+          <label className="flex items-center gap-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={deductions.taxpayerAge65}
+              onChange={(e) => setDeductionFlags({ taxpayerAge65: e.target.checked })}
+              className="rounded border-gray-300"
+            />
+            Age 65 or older
+          </label>
+          <label className="flex items-center gap-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={deductions.taxpayerBlind}
+              onChange={(e) => setDeductionFlags({ taxpayerBlind: e.target.checked })}
+              className="rounded border-gray-300"
+            />
+            Legally blind
+          </label>
+        </div>
+        {(filingStatus === 'mfj' || filingStatus === 'mfs') && (
+          <div className="flex flex-col gap-2 border-t border-gray-100 pt-3">
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Spouse</p>
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={deductions.spouseAge65}
+                onChange={(e) => setDeductionFlags({ spouseAge65: e.target.checked })}
+                className="rounded border-gray-300"
+              />
+              Age 65 or older
+            </label>
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={deductions.spouseBlind}
+                onChange={(e) => setDeductionFlags({ spouseBlind: e.target.checked })}
+                className="rounded border-gray-300"
+              />
+              Legally blind
+            </label>
+          </div>
+        )}
+        {additionalAmount > 0 && (
+          <div className="text-xs text-gray-500 bg-gray-50 rounded px-2 py-1">
+            Additional deduction: {formatCurrency(additionalAmount)} ({additionalCount} &times; {formatCurrency(additionalPer)})
+          </div>
+        )}
+      </div>
 
       {/* Itemized detail form */}
       {deductions.method === 'itemized' && (
