@@ -14,6 +14,9 @@ import type {
   RSUVestEvent,
   ItemizedDeductions,
   PriorYearInfo,
+  DependentCareExpenses,
+  RetirementContributions,
+  EnergyCredits,
 } from '../model/types.ts'
 import { emptyTaxReturn } from '../model/types.ts'
 import { computeAll } from '../rules/engine.ts'
@@ -57,6 +60,9 @@ export interface TaxStoreState {
   setPriorYear: (updates: Partial<PriorYearInfo>) => void
   setDeductionMethod: (method: 'standard' | 'itemized') => void
   setItemizedDeductions: (itemized: Partial<ItemizedDeductions>) => void
+  setDependentCare: (updates: Partial<DependentCareExpenses>) => void
+  setRetirementContributions: (updates: Partial<RetirementContributions>) => void
+  setEnergyCredits: (updates: Partial<EnergyCredits>) => void
   importReturn: (taxReturn: TaxReturn) => void
   resetReturn: () => void
 }
@@ -409,6 +415,55 @@ export const useTaxStore = create<TaxStoreState>()(
             ...prev.deductions,
             itemized: { ...existing, ...itemized },
           },
+        }
+        set(recompute(tr))
+      },
+
+      setDependentCare: (updates) => {
+        const prev = get().taxReturn
+        const existing = prev.dependentCare ?? {
+          totalExpenses: 0,
+          numQualifyingPersons: 0,
+        }
+        const tr = {
+          ...prev,
+          dependentCare: { ...existing, ...updates },
+        }
+        set(recompute(tr))
+      },
+
+      setRetirementContributions: (updates) => {
+        const prev = get().taxReturn
+        const existing = prev.retirementContributions ?? {
+          traditionalIRA: 0,
+          rothIRA: 0,
+        }
+        const tr = {
+          ...prev,
+          retirementContributions: { ...existing, ...updates },
+        }
+        set(recompute(tr))
+      },
+
+      setEnergyCredits: (updates) => {
+        const prev = get().taxReturn
+        const existing = prev.energyCredits ?? {
+          solarElectric: 0,
+          solarWaterHeating: 0,
+          batteryStorage: 0,
+          geothermal: 0,
+          insulation: 0,
+          windows: 0,
+          exteriorDoors: 0,
+          centralAC: 0,
+          waterHeater: 0,
+          heatPump: 0,
+          homeEnergyAudit: 0,
+          biomassStove: 0,
+        }
+        const tr = {
+          ...prev,
+          energyCredits: { ...existing, ...updates },
         }
         set(recompute(tr))
       },

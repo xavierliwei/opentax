@@ -25,6 +25,12 @@ import { computeChildTaxCredit } from './childTaxCredit'
 import type { ChildTaxCreditResult } from './childTaxCredit'
 import { computeEarnedIncomeCredit } from './earnedIncomeCredit'
 import type { EarnedIncomeCreditResult } from './earnedIncomeCredit'
+import { computeDependentCareCredit } from './dependentCareCredit'
+import type { DependentCareCreditResult } from './dependentCareCredit'
+import { computeSaversCredit } from './saversCredit'
+import type { SaversCreditResult } from './saversCredit'
+import { computeEnergyCredit } from './energyCredit'
+import type { EnergyCreditResult } from './energyCredit'
 import { TAX_YEAR } from './constants'
 
 // ── Line 1a — Wages, salaries, tips ────────────────────────────
@@ -322,11 +328,7 @@ export function computeLine18(line16: TracedValue, line17: TracedValue): TracedV
 // Computed by childTaxCredit module; set externally in orchestrator.
 
 // ── Line 20 — Other non-refundable credits ─────────────────────
-// Placeholder $0 — no education credits, foreign tax credit, etc.
-
-export function computeLine20(): TracedValue {
-  return tracedZero('form1040.line20', 'Form 1040, Line 20')
-}
+// Computed in orchestrator from dependent care, saver's, and energy credits.
 
 // ── Line 21 — Total credits (Line 19 + Line 20) ───────────────
 
@@ -545,6 +547,11 @@ export interface Form1040Result {
   // Earned Income Credit detail
   earnedIncomeCredit: EarnedIncomeCreditResult | null
 
+  // Other credits detail (Line 20 components)
+  dependentCareCredit: DependentCareCreditResult | null
+  saversCredit: SaversCreditResult | null
+  energyCredit: EnergyCreditResult | null
+
   // Attached schedules
   scheduleA: ScheduleAResult | null
   scheduleD: ScheduleDResult | null
@@ -619,7 +626,33 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
       )
     : tracedZero('form1040.line19', 'Form 1040, Line 19')
 
-  const line20 = computeLine20()
+  // ── Other non-refundable credits (Line 20) ────────────────
+  const dependentCareCredit = model.dependentCare
+    ? computeDependentCareCredit(model.dependentCare, model.dependents, line11.amount, earnedIncome)
+    : null
+
+  const saversCredit = model.retirementContributions
+    ? computeSaversCredit(model.retirementContributions, model.w2s, model.filingStatus, line11.amount)
+    : null
+
+  const energyCreditResult = model.energyCredits
+    ? computeEnergyCredit(model.energyCredits)
+    : null
+
+  const line20amount =
+    (dependentCareCredit?.creditAmount ?? 0) +
+    (saversCredit?.creditAmount ?? 0) +
+    (energyCreditResult?.totalCredit ?? 0)
+
+  const line20inputs: string[] = []
+  if (dependentCareCredit && dependentCareCredit.creditAmount > 0) line20inputs.push('credits.dependentCare')
+  if (saversCredit && saversCredit.creditAmount > 0) line20inputs.push('credits.savers')
+  if (energyCreditResult && energyCreditResult.totalCredit > 0) line20inputs.push('credits.energy')
+
+  const line20 = line20amount > 0
+    ? tracedFromComputation(line20amount, 'form1040.line20', line20inputs, 'Form 1040, Line 20')
+    : tracedZero('form1040.line20', 'Form 1040, Line 20')
+
   const line21 = computeLine21(line19, line20)
   const line22 = computeLine22(line18, line21)
   const line23 = computeLine23()
@@ -684,6 +717,9 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     line34, line37,
     childTaxCredit,
     earnedIncomeCredit,
+    dependentCareCredit,
+    saversCredit,
+    energyCredit: energyCreditResult,
     scheduleA, scheduleD,
   }
 }

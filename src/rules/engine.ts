@@ -136,6 +136,11 @@ export const NODE_LABELS: Record<string, string> = {
   'eic.creditAtAGI': 'EIC at AGI',
   'eic.creditAmount': 'Earned income credit',
 
+  // Other credits (Line 20 components)
+  'credits.dependentCare': 'Dependent care credit (Form 2441)',
+  'credits.savers': "Saver's credit (Form 8880)",
+  'credits.energy': 'Residential energy credit (Form 5695)',
+
   // Pseudo-nodes
   'standardDeduction': 'Standard deduction',
   'itemized.medicalExpenses': 'Medical expenses',
@@ -256,6 +261,32 @@ export function collectAllValues(
       'eic.creditAmount',
       ['eic.creditAtEarnedIncome', 'eic.creditAtAGI'],
       'Earned Income Credit',
+    ))
+  }
+
+  // Other credits detail nodes (Line 20 components)
+  if (form1040.dependentCareCredit && form1040.dependentCareCredit.creditAmount > 0) {
+    values.set('credits.dependentCare', tracedFromComputation(
+      form1040.dependentCareCredit.creditAmount,
+      'credits.dependentCare',
+      [],
+      'Dependent care credit (Form 2441)',
+    ))
+  }
+  if (form1040.saversCredit && form1040.saversCredit.creditAmount > 0) {
+    values.set('credits.savers', tracedFromComputation(
+      form1040.saversCredit.creditAmount,
+      'credits.savers',
+      [],
+      "Saver's credit (Form 8880)",
+    ))
+  }
+  if (form1040.energyCredit && form1040.energyCredit.totalCredit > 0) {
+    values.set('credits.energy', tracedFromComputation(
+      form1040.energyCredit.totalCredit,
+      'credits.energy',
+      [],
+      'Residential energy credit (Form 5695)',
     ))
   }
 

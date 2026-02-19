@@ -231,6 +231,50 @@ export function CreditsPage() {
         </div>
       ) : null}
 
+      {/* ── Other Non-refundable Credits (Line 20) ──────────── */}
+      {form1040.line20.amount > 0 && (
+        <div className="mt-6 flex flex-col gap-4">
+          <section>
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-200 pb-1">
+              Other Non-refundable Credits (Line 20)
+            </h2>
+            <div className="mt-2 flex flex-col gap-1">
+              {form1040.dependentCareCredit && form1040.dependentCareCredit.creditAmount > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-700">Dependent care credit (Form 2441)</span>
+                  <span className="font-medium tabular-nums">{formatCurrency(form1040.dependentCareCredit.creditAmount)}</span>
+                </div>
+              )}
+              {form1040.saversCredit && form1040.saversCredit.creditAmount > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-700">Saver&apos;s credit (Form 8880)</span>
+                  <span className="font-medium tabular-nums">{formatCurrency(form1040.saversCredit.creditAmount)}</span>
+                </div>
+              )}
+              {form1040.energyCredit && form1040.energyCredit.totalCredit > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-700">Energy credit (Form 5695)</span>
+                  <span className="font-medium tabular-nums">{formatCurrency(form1040.energyCredit.totalCredit)}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between text-sm border-t border-gray-100 pt-1">
+                <span className="text-gray-700 font-medium">Line 20 — Total other credits</span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="font-medium tabular-nums">{formatCurrency(form1040.line20.amount)}</span>
+                  <Link
+                    to="/explain/form1040.line20"
+                    className="text-xs text-tax-blue hover:text-blue-700"
+                    title="Why this number?"
+                  >
+                    ?
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
+
       <InterviewNav interview={interview} />
     </div>
   )

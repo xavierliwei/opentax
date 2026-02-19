@@ -215,6 +215,18 @@ export function ReviewPage() {
               }}
             />
           )}
+          {form1040.line20.amount > 0 && (
+            <LineItem
+              label="Line 20 — Other credits"
+              nodeId="form1040.line20"
+              amount={form1040.line20.amount}
+              tooltip={{
+                explanation: 'Line 20 is other non-refundable credits from Schedule 3, including the Dependent Care Credit (Form 2441), Saver\'s Credit (Form 8880), and Residential Energy Credits (Form 5695). These credits reduce your tax liability but cannot reduce it below zero.',
+                pubName: 'IRS Form 1040 Instructions — Line 20',
+                pubUrl: 'https://www.irs.gov/instructions/i1040gi',
+              }}
+            />
+          )}
           <LineItem
             label="Line 24 — Total tax"
             nodeId="form1040.line24"

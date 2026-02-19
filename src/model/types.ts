@@ -244,6 +244,40 @@ export interface PriorYearInfo {
   capitalLossCarryforwardLT: number  // cents — long-term capital loss carryover (positive)
 }
 
+// ── Dependent Care (Form 2441) ──────────────────────────────────
+
+export interface DependentCareExpenses {
+  totalExpenses: number         // cents — total paid to care providers
+  numQualifyingPersons: number  // 1 or 2+ (determines $3K vs $6K limit)
+}
+
+// ── Retirement Contributions (Form 8880 — Saver's Credit) ───────
+
+export interface RetirementContributions {
+  traditionalIRA: number        // cents
+  rothIRA: number               // cents
+  // 401(k)/403(b) auto-derived from W-2 Box 12 codes D, E, AA, BB, G, H
+}
+
+// ── Energy Credits (Form 5695) ──────────────────────────────────
+
+export interface EnergyCredits {
+  // Part I — Residential Clean Energy (§25D) — 30%, no annual cap
+  solarElectric: number
+  solarWaterHeating: number
+  batteryStorage: number        // ≥3 kWh
+  geothermal: number
+  // Part II — Energy Efficient Home Improvement (§25C) — 30%, capped
+  insulation: number
+  windows: number               // $600 sub-cap
+  exteriorDoors: number         // $250 each, $500 total
+  centralAC: number
+  waterHeater: number
+  heatPump: number              // $2,000 separate cap
+  homeEnergyAudit: number       // $150 sub-cap
+  biomassStove: number
+}
+
 // ── Credits ────────────────────────────────────────────────────
 
 export interface Credit {
@@ -284,6 +318,11 @@ export interface TaxReturn {
     itemized?: ItemizedDeductions
   }
   credits: Credit[]
+
+  // Other credit inputs
+  dependentCare?: DependentCareExpenses
+  retirementContributions?: RetirementContributions
+  energyCredits?: EnergyCredits
 }
 
 // ── Factory ────────────────────────────────────────────────────

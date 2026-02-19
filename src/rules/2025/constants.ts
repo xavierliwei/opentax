@@ -279,6 +279,46 @@ export const EIC_INVESTMENT_INCOME_LIMIT = c(11950)
 export const EIC_MIN_AGE_NO_CHILDREN = 25
 export const EIC_MAX_AGE_NO_CHILDREN = 64
 
+// ── Dependent Care Credit (Form 2441) ──────────────────────────
+// Source: IRC §21
+
+export const DEPENDENT_CARE_MAX_ONE = c(3000)    // 1 qualifying person
+export const DEPENDENT_CARE_MAX_TWO = c(6000)    // 2+ qualifying persons
+export const DEPENDENT_CARE_BASE_RATE = 0.35     // 35% starting rate
+export const DEPENDENT_CARE_MIN_RATE = 0.20      // 20% floor
+export const DEPENDENT_CARE_AGI_STEP = c(2000)   // rate drops 1% per $2K
+export const DEPENDENT_CARE_AGI_FLOOR = c(15000) // rate starts declining above this
+
+// ── Saver's Credit (Form 8880) ──────────────────────────────────
+// Source: Rev. Proc. 2024-40 §3.10
+
+export interface SaversCreditThreshold {
+  rate50: number  // cents — AGI up to this → 50% rate
+  rate20: number  // cents — AGI up to this → 20% rate
+  rate10: number  // cents — AGI up to this → 10% rate; above → 0%
+}
+
+export const SAVERS_CREDIT_THRESHOLDS: Record<FilingStatus, SaversCreditThreshold> = {
+  single: { rate50: c(23750),  rate20: c(25500),  rate10: c(39000) },
+  mfs:    { rate50: c(23750),  rate20: c(25500),  rate10: c(39000) },
+  hoh:    { rate50: c(35625),  rate20: c(38250),  rate10: c(58500) },
+  mfj:    { rate50: c(47500),  rate20: c(51000),  rate10: c(78000) },
+  qw:     { rate50: c(47500),  rate20: c(51000),  rate10: c(78000) },
+}
+
+export const SAVERS_CREDIT_MAX_CONTRIBUTION = c(2000)  // per person
+
+// ── Energy Credit (Form 5695) ───────────────────────────────────
+// Source: IRC §25C, §25D (IRA 2022)
+
+export const ENERGY_CLEAN_RATE = 0.30                 // Part I — 30%, no cap
+export const ENERGY_IMPROVEMENT_RATE = 0.30           // Part II — 30%, capped
+export const ENERGY_IMPROVEMENT_ANNUAL_CAP = c(1200)  // general annual cap
+export const ENERGY_HEAT_PUMP_CAP = c(2000)           // separate from $1,200
+export const ENERGY_WINDOWS_CAP = c(600)
+export const ENERGY_DOORS_CAP = c(500)
+export const ENERGY_AUDIT_CAP = c(150)
+
 // ── Tax Year ───────────────────────────────────────────────────
 
 export const TAX_YEAR = 2025
