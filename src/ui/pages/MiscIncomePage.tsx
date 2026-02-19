@@ -35,7 +35,7 @@ function Form1099MISCCard({ form }: { form: Form1099MISC }) {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <CurrencyInput
           label={<>Box 1 — Rents<InfoTooltip
             explanation="Box 1 reports rental income you received from real property. This flows to Schedule 1 Line 5 and then to Form 1040 Line 8 (other income)."

@@ -529,6 +529,9 @@ export const useTaxStore = create<TaxStoreState>()(
       partialize: (state) => ({ taxReturn: state.taxReturn }),
       onRehydrateStorage: () => (state) => {
         if (state) {
+          // Merge with defaults so fields added after the user's last save
+          // (e.g. form1099MISCs) are initialised instead of undefined.
+          state.taxReturn = { ...emptyTaxReturn(state.taxReturn.taxYear), ...state.taxReturn }
           state.computeResult = computeAll(state.taxReturn)
         }
       },
