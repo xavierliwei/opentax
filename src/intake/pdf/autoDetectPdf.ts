@@ -18,8 +18,12 @@ export interface PdfParseOutput extends ConsolidatedParseResult {
 export async function autoDetectPdfBroker(data: ArrayBuffer): Promise<PdfParseOutput> {
   await ensureWorker()
 
+  // PDF.js transfers (detaches) the ArrayBuffer, so we must clone it
+  // before the detection scan so the actual parser gets a usable copy.
+  const detectionCopy = data.slice(0)
+
   // Scan first-page text for broker identification
-  const items = await extractItems(data)
+  const items = await extractItems(detectionCopy)
   const firstPageText = items
     .filter((it) => it.page === 1)
     .map((it) => it.str)
