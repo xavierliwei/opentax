@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useTaxStore } from '../../store/taxStore.ts'
 import { useInterview } from '../../interview/useInterview.ts'
 import { CurrencyInput } from '../components/CurrencyInput.tsx'
@@ -27,6 +28,52 @@ function LimitedBadge({ entered, deductible }: { entered: number; deductible: nu
     <p className="text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-1">
       Limited to {formatCurrency(deductible)} (you entered {formatCurrency(entered)})
     </p>
+  )
+}
+
+function InfoTooltip({ explanation, pubName, pubUrl }: {
+  explanation: string
+  pubName: string
+  pubUrl: string
+}) {
+  const [visible, setVisible] = useState(false)
+  return (
+    <span className="relative inline-flex items-center ml-1.5">
+      <button
+        type="button"
+        onMouseEnter={() => setVisible(true)}
+        onMouseLeave={() => setVisible(false)}
+        onFocus={() => setVisible(true)}
+        onBlur={() => setVisible(false)}
+        className="text-gray-400 hover:text-blue-500 transition-colors focus:outline-none"
+        aria-label="More information"
+      >
+        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+        </svg>
+      </button>
+      {visible && (
+        <div className="absolute left-0 bottom-full mb-2 w-72 bg-white border border-gray-200 rounded-lg shadow-xl p-3 z-50 text-left pointer-events-none">
+          <p className="text-xs text-gray-600 leading-relaxed">{explanation}</p>
+          <p className="mt-2 text-xs font-medium text-blue-700 flex items-center gap-1">
+            <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+            <a
+              href={pubUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="pointer-events-auto hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {pubName}
+            </a>
+          </p>
+          {/* Caret */}
+          <span className="absolute left-3 top-full -mt-[5px] w-2.5 h-2.5 bg-white border-r border-b border-gray-200 rotate-45" />
+        </div>
+      )}
+    </span>
   )
 }
 
@@ -176,9 +223,14 @@ export function DeductionsPage() {
           {/* Medical & Dental */}
           <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
             <div className="flex items-baseline justify-between">
-              <div>
+              <div className="flex items-center gap-1">
                 <span className="text-sm font-semibold text-gray-800">Medical &amp; Dental</span>
-                <span className="ml-2 text-xs text-gray-400">Lines 1–4</span>
+                <InfoTooltip
+                  explanation="Deductible medical and dental expenses include costs for diagnosis, treatment, and prevention of disease. Only the portion exceeding 7.5% of your AGI qualifies. Eligible expenses include doctor visits, prescriptions, dental and vision care, and long-term care premiums."
+                  pubName="IRS Publication 502 — Medical and Dental Expenses"
+                  pubUrl="https://www.irs.gov/publications/p502"
+                />
+                <span className="text-xs text-gray-400">Lines 1–4</span>
               </div>
               {scheduleA && (
                 <span className="text-sm font-semibold text-gray-700">
@@ -200,9 +252,14 @@ export function DeductionsPage() {
           {/* State & Local Taxes */}
           <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
             <div className="flex items-baseline justify-between">
-              <div>
+              <div className="flex items-center gap-1">
                 <span className="text-sm font-semibold text-gray-800">State &amp; Local Taxes</span>
-                <span className="ml-2 text-xs text-gray-400">Lines 5a–7</span>
+                <InfoTooltip
+                  explanation="Deduct state/local income taxes OR general sales taxes — whichever is higher (not both). Add real estate taxes and personal property taxes. For 2025 the combined SALT deduction is capped at $40,000 (One Big Beautiful Bill Act §70120), with a 30% phase-out above $500,000 AGI and a $10,000 floor."
+                  pubName="IRS Schedule A Instructions — Taxes You Paid (Lines 5–6)"
+                  pubUrl="https://www.irs.gov/instructions/i1040sca"
+                />
+                <span className="text-xs text-gray-400">Lines 5a–7</span>
               </div>
               {scheduleA && (
                 <span className="text-sm font-semibold text-gray-700">
@@ -246,9 +303,14 @@ export function DeductionsPage() {
           {/* Interest */}
           <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
             <div className="flex items-baseline justify-between">
-              <div>
+              <div className="flex items-center gap-1">
                 <span className="text-sm font-semibold text-gray-800">Interest</span>
-                <span className="ml-2 text-xs text-gray-400">Lines 8–10</span>
+                <InfoTooltip
+                  explanation="Home mortgage interest (Form 1098) is deductible on acquisition debt up to $750,000 for loans originated after Dec 15, 2017, or $1,000,000 for earlier loans (IRC §163(h)(3)). Investment interest expense is deductible only up to your net investment income for the year (IRC §163(d))."
+                  pubName="IRS Publication 936 — Home Mortgage Interest Deduction"
+                  pubUrl="https://www.irs.gov/publications/p936"
+                />
+                <span className="text-xs text-gray-400">Lines 8–10</span>
               </div>
               {scheduleA && (
                 <span className="text-sm font-semibold text-gray-700">
@@ -298,9 +360,14 @@ export function DeductionsPage() {
           {/* Charitable Contributions */}
           <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
             <div className="flex items-baseline justify-between">
-              <div>
+              <div className="flex items-center gap-1">
                 <span className="text-sm font-semibold text-gray-800">Charitable Contributions</span>
-                <span className="ml-2 text-xs text-gray-400">Lines 11–14</span>
+                <InfoTooltip
+                  explanation="Donations to qualifying 501(c)(3) organizations are deductible. Cash contributions are limited to 60% of AGI; non-cash property donations to 30% of AGI (IRC §170(b)). Keep written acknowledgment for any single donation of $250 or more. Non-cash donations over $500 require Form 8283."
+                  pubName="IRS Publication 526 — Charitable Contributions"
+                  pubUrl="https://www.irs.gov/publications/p526"
+                />
+                <span className="text-xs text-gray-400">Lines 11–14</span>
               </div>
               {scheduleA && (
                 <span className="text-sm font-semibold text-gray-700">
@@ -331,9 +398,14 @@ export function DeductionsPage() {
           {/* Other Deductions */}
           <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
             <div className="flex items-baseline justify-between">
-              <div>
+              <div className="flex items-center gap-1">
                 <span className="text-sm font-semibold text-gray-800">Other Deductions</span>
-                <span className="ml-2 text-xs text-gray-400">Line 16</span>
+                <InfoTooltip
+                  explanation="Includes gambling losses (limited to gambling winnings reported on Schedule 1), casualty and theft losses from federally declared disaster areas (Form 4684), federal estate tax on income in respect of a decedent, and certain other deductions listed in the Schedule A instructions."
+                  pubName="IRS Schedule A Instructions — Other Itemized Deductions (Line 16)"
+                  pubUrl="https://www.irs.gov/instructions/i1040sca"
+                />
+                <span className="text-xs text-gray-400">Line 16</span>
               </div>
               {scheduleA && (
                 <span className="text-sm font-semibold text-gray-700">
