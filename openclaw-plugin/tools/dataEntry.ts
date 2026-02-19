@@ -689,8 +689,11 @@ export function createDataEntryTools(service: TaxService): ToolDef[] {
           supplies: { type: 'number', description: 'Supplies (dollars)' },
           taxes: { type: 'number', description: 'Taxes (dollars)' },
           utilities: { type: 'number', description: 'Utilities (dollars)' },
-          depreciation: { type: 'number', description: 'Depreciation — manual entry (dollars)' },
+          depreciation: { type: 'number', description: 'Depreciation — manual entry (dollars). Overridden when depreciableBasis and placedInServiceMonth/Year are provided.' },
           other: { type: 'number', description: 'Other expenses (dollars)' },
+          depreciableBasis: { type: 'number', description: 'Building cost excluding land (dollars). When set with placed-in-service date, auto-computes straight-line depreciation.' },
+          placedInServiceMonth: { type: 'number', description: 'Month placed in service (1–12)' },
+          placedInServiceYear: { type: 'number', description: 'Year placed in service (e.g. 2020)' },
         },
         required: ['address', 'rentsReceived'],
       },
@@ -720,9 +723,39 @@ export function createDataEntryTools(service: TaxService): ToolDef[] {
           utilities: c(args.utilities),
           depreciation: c(args.depreciation),
           other: c(args.other),
+          depreciableBasis: c(args.depreciableBasis),
+          placedInServiceMonth: (args.placedInServiceMonth as number) ?? 0,
+          placedInServiceYear: (args.placedInServiceYear as number) ?? 0,
         })
         const rent = args.rentsReceived as number
         return `Added rental property at ${args.address} ($${rent.toLocaleString('en-US')} rent). ${formatRefund(service)}`
+      },
+    },
+
+    {
+      name: 'tax_set_estimated_payments',
+      description: 'Set quarterly estimated tax payments (Form 1040-ES). Amounts in dollars. These are credited on Line 26.',
+      parameters: {
+        type: 'object',
+        properties: {
+          q1: { type: 'number', description: 'Q1 payment due April 15 (dollars)' },
+          q2: { type: 'number', description: 'Q2 payment due June 15 (dollars)' },
+          q3: { type: 'number', description: 'Q3 payment due September 15 (dollars)' },
+          q4: { type: 'number', description: 'Q4 payment due January 15 (dollars)' },
+        },
+        required: [],
+      },
+      execute(args) {
+        const q1 = args.q1 != null ? cents(args.q1 as number) : 0
+        const q2 = args.q2 != null ? cents(args.q2 as number) : 0
+        const q3 = args.q3 != null ? cents(args.q3 as number) : 0
+        const q4 = args.q4 != null ? cents(args.q4 as number) : 0
+        if (q1) service.setEstimatedTaxPayment('q1', q1)
+        if (q2) service.setEstimatedTaxPayment('q2', q2)
+        if (q3) service.setEstimatedTaxPayment('q3', q3)
+        if (q4) service.setEstimatedTaxPayment('q4', q4)
+        const total = dollars(q1 + q2 + q3 + q4)
+        return `Set estimated tax payments: $${total.toLocaleString('en-US', { minimumFractionDigits: 2 })} total. ${formatRefund(service)}`
       },
     },
   ]

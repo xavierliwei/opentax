@@ -77,6 +77,9 @@ export async function fillForm1040(
   // ── Page 2: Payments & Refundable Credits ───────────────────
   setDollarField(form, F1040_PAGE2.line25a, result.line25.amount)
   setDollarField(form, F1040_PAGE2.line25d, result.line25.amount)
+  if (result.line26.amount > 0) {
+    setDollarField(form, F1040_PAGE2.line26, result.line26.amount)
+  }
   setDollarField(form, F1040_PAGE2.line27, result.line27.amount)
   setDollarField(form, F1040_PAGE2.line28, result.line28.amount)
   setDollarField(form, F1040_PAGE2.line29, result.line29.amount)

@@ -6,6 +6,7 @@ import { CurrencyInput } from '../components/CurrencyInput.tsx'
 import { InfoTooltip } from '../components/InfoTooltip.tsx'
 import { InterviewNav } from './InterviewNav.tsx'
 import type { ScheduleEProperty, ScheduleEPropertyType } from '../../model/types.ts'
+import { getEffectiveDepreciation } from '../../rules/2025/scheduleE.ts'
 
 const PROPERTY_TYPES: { value: ScheduleEPropertyType; label: string }[] = [
   { value: 'single-family', label: 'Single Family Residence' },
@@ -41,6 +42,9 @@ function emptyProperty(): ScheduleEProperty {
     utilities: 0,
     depreciation: 0,
     other: 0,
+    depreciableBasis: 0,
+    placedInServiceMonth: 0,
+    placedInServiceYear: 0,
   }
 }
 
@@ -50,11 +54,19 @@ function PropertyCard({ prop }: { prop: ScheduleEProperty }) {
 
   const update = (fields: Partial<ScheduleEProperty>) => updateScheduleEProperty(prop.id, fields)
 
+  const depBasis = prop.depreciableBasis ?? 0
+  const pisMonth = prop.placedInServiceMonth ?? 0
+  const pisYear = prop.placedInServiceYear ?? 0
+
+  const effectiveDep = getEffectiveDepreciation(prop)
+  const hasAutoDepreciation = depBasis > 0 && pisYear > 0 && pisMonth > 0
+  const isDepreciableType = !['land', 'royalties'].includes(prop.propertyType)
+
   const totalExpenses =
     prop.advertising + prop.auto + prop.cleaning + prop.commissions +
     prop.insurance + prop.legal + prop.management + prop.mortgageInterest +
     prop.otherInterest + prop.repairs + prop.supplies + prop.taxes +
-    prop.utilities + prop.depreciation + prop.other
+    prop.utilities + effectiveDep + prop.other
   const totalIncome = prop.rentsReceived + prop.royaltiesReceived
   const netIncome = totalIncome - totalExpenses
 
@@ -73,7 +85,7 @@ function PropertyCard({ prop }: { prop: ScheduleEProperty }) {
           />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-3 items-end">
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-gray-700">Property type</label>
             <select
@@ -86,35 +98,33 @@ function PropertyCard({ prop }: { prop: ScheduleEProperty }) {
               ))}
             </select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">
-                Fair rental days
-                <InfoTooltip explanation="Number of days during the year the property was rented at fair rental price." pubName="IRS Schedule E Instructions" pubUrl="https://www.irs.gov/instructions/i1040se" />
-              </label>
-              <input
-                type="number"
-                min={0}
-                max={365}
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-tax-blue focus:border-transparent"
-                value={prop.fairRentalDays || ''}
-                onChange={(e) => update({ fairRentalDays: parseInt(e.target.value) || 0 })}
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">
-                Personal use days
-                <InfoTooltip explanation="Number of days during the year you used the property for personal purposes." pubName="IRS Schedule E Instructions" pubUrl="https://www.irs.gov/instructions/i1040se" />
-              </label>
-              <input
-                type="number"
-                min={0}
-                max={365}
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-tax-blue focus:border-transparent"
-                value={prop.personalUseDays || ''}
-                onChange={(e) => update({ personalUseDays: parseInt(e.target.value) || 0 })}
-              />
-            </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700">
+              Fair rental days
+              <InfoTooltip explanation="Number of days during the year the property was rented at fair rental price." pubName="IRS Schedule E Instructions" pubUrl="https://www.irs.gov/instructions/i1040se" />
+            </label>
+            <input
+              type="number"
+              min={0}
+              max={365}
+              className="w-24 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-tax-blue focus:border-transparent"
+              value={prop.fairRentalDays || ''}
+              onChange={(e) => update({ fairRentalDays: parseInt(e.target.value) || 0 })}
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700">
+              Personal use days
+              <InfoTooltip explanation="Number of days during the year you used the property for personal purposes." pubName="IRS Schedule E Instructions" pubUrl="https://www.irs.gov/instructions/i1040se" />
+            </label>
+            <input
+              type="number"
+              min={0}
+              max={365}
+              className="w-24 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-tax-blue focus:border-transparent"
+              value={prop.personalUseDays || ''}
+              onChange={(e) => update({ personalUseDays: parseInt(e.target.value) || 0 })}
+            />
           </div>
         </div>
       </div>
@@ -169,15 +179,79 @@ function PropertyCard({ prop }: { prop: ScheduleEProperty }) {
             <CurrencyInput label="Supplies" value={prop.supplies} onChange={(v) => update({ supplies: v })} />
             <CurrencyInput label="Taxes" value={prop.taxes} onChange={(v) => update({ taxes: v })} />
             <CurrencyInput label="Utilities" value={prop.utilities} onChange={(v) => update({ utilities: v })} />
-            <CurrencyInput
-              label={<>Depreciation (Line 18)<InfoTooltip
-                explanation="Enter the depreciation amount for this property. This is a manual entry — OpenTax does not compute Form 4562 depreciation schedules."
-                pubName="IRS Schedule E Instructions"
-                pubUrl="https://www.irs.gov/instructions/i1040se"
-              /></>}
-              value={prop.depreciation}
-              onChange={(v) => update({ depreciation: v })}
-            />
+            {/* Depreciation — calculator or manual */}
+            {isDepreciableType ? (
+              <div className="sm:col-span-2 border border-gray-200 rounded-md p-3 flex flex-col gap-3">
+                <div className="text-sm font-medium text-gray-700">
+                  Depreciation (Line 18)
+                  <InfoTooltip
+                    explanation="Enter the building cost (excluding land) and placed-in-service date for automatic straight-line depreciation, or enter the amount manually below."
+                    pubName="IRS Schedule E Instructions"
+                    pubUrl="https://www.irs.gov/instructions/i1040se"
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <CurrencyInput
+                    label="Depreciable basis (building cost)"
+                    value={depBasis}
+                    onChange={(v) => update({ depreciableBasis: v })}
+                  />
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-medium text-gray-700">Month placed in service</label>
+                    <select
+                      className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-tax-blue focus:border-transparent"
+                      value={pisMonth || ''}
+                      onChange={(e) => update({ placedInServiceMonth: parseInt(e.target.value) || 0 })}
+                    >
+                      <option value="">--</option>
+                      {Array.from({ length: 12 }, (_, i) => (
+                        <option key={i + 1} value={i + 1}>
+                          {new Date(2025, i).toLocaleString('en-US', { month: 'long' })}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-medium text-gray-700">Year placed in service</label>
+                    <input
+                      type="number"
+                      min={1900}
+                      max={2025}
+                      className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-tax-blue focus:border-transparent"
+                      value={pisYear || ''}
+                      onChange={(e) => update({ placedInServiceYear: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+                </div>
+
+                {hasAutoDepreciation ? (
+                  <div className="text-sm text-gray-600 bg-blue-50 rounded px-3 py-2">
+                    Computed depreciation: <strong>${(effectiveDep / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong>
+                    {' '}(straight-line, {prop.propertyType === 'commercial' ? '39' : '27.5'}-year, mid-month convention)
+                    <p className="mt-1 text-xs text-gray-500">
+                      This uses simplified straight-line depreciation. For MACRS percentage tables, Section 179 expensing,
+                      or bonus depreciation, clear the fields above and enter the amount manually instead.
+                    </p>
+                  </div>
+                ) : (
+                  <CurrencyInput
+                    label="Depreciation amount (manual)"
+                    value={prop.depreciation}
+                    onChange={(v) => update({ depreciation: v })}
+                  />
+                )}
+              </div>
+            ) : (
+              <CurrencyInput
+                label={<>Depreciation (Line 18)<InfoTooltip
+                  explanation="Enter the depreciation amount for this property."
+                  pubName="IRS Schedule E Instructions"
+                  pubUrl="https://www.irs.gov/instructions/i1040se"
+                /></>}
+                value={prop.depreciation}
+                onChange={(v) => update({ depreciation: v })}
+              />
+            )}
             <CurrencyInput label="Other expenses" value={prop.other} onChange={(v) => update({ other: v })} />
           </div>
         )}

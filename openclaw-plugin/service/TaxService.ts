@@ -553,6 +553,24 @@ export class TaxService extends EventEmitter {
     this.apply(tr)
   }
 
+  // ── Dependent filer ──────────────────────────────────────────
+
+  setCanBeClaimedAsDependent(value: boolean): void {
+    const tr = { ...this.taxReturn, canBeClaimedAsDependent: value }
+    this.apply(tr)
+  }
+
+  // ── Estimated tax payments ──────────────────────────────────
+
+  setEstimatedTaxPayment(quarter: 'q1' | 'q2' | 'q3' | 'q4', cents: number): void {
+    const prev = this.taxReturn
+    const existing = prev.estimatedTaxPayments ?? { q1: 0, q2: 0, q3: 0, q4: 0 }
+    const updated = { ...existing, [quarter]: cents }
+    const allZero = updated.q1 === 0 && updated.q2 === 0 && updated.q3 === 0 && updated.q4 === 0
+    const tr = { ...prev, estimatedTaxPayments: allZero ? undefined : updated }
+    this.apply(tr)
+  }
+
   // ── Import / Reset ─────────────────────────────────────────────
 
   importReturn(taxReturn: TaxReturn): void {

@@ -78,6 +78,7 @@ export const F1040_PAGE2 = {
   line25a: `${P2}f2_17[0]`,  // W-2 withholding
   line25b: `${P2}f2_18[0]`,  // 1099 withholding
   line25d: `${P2}f2_20[0]`,  // Total withholding
+  line26:  `${P2}f2_21[0]`,  // Estimated tax payments
   line27:  `${P2}f2_22[0]`,  // Earned income credit
   line28:  `${P2}f2_23[0]`,  // Additional child tax credit (Form 8812)
   line29:  `${P2}f2_24[0]`,  // American opportunity credit

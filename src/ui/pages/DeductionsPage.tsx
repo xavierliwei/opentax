@@ -616,6 +616,14 @@ export function DeductionsPage() {
       <StudentLoanSection />
       <HSASection />
 
+      {/* ── Estimated Tax Payments ────────────────────────────── */}
+      <h2 className="mt-8 text-lg font-bold text-gray-900">Estimated Tax Payments</h2>
+      <p className="mt-1 text-sm text-gray-600">
+        If you made quarterly estimated tax payments (Form 1040-ES), enter them below.
+        These are applied to Line 26 as part of your total payments.
+      </p>
+      <EstimatedTaxSection />
+
       <InterviewNav interview={interview} />
     </div>
   )
@@ -891,6 +899,45 @@ function OtherDeductionsSection({
             helperText="See Schedule A instructions for qualifying deductions"
           />
         </div>
+      )}
+    </div>
+  )
+}
+
+// ── Estimated Tax Payments ──────────────────────────────────
+
+function EstimatedTaxSection() {
+  const payments = useTaxStore((s) => s.taxReturn.estimatedTaxPayments)
+  const setPayment = useTaxStore((s) => s.setEstimatedTaxPayment)
+
+  return (
+    <div className="mt-4 border border-gray-200 rounded-lg p-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <CurrencyInput
+          label="Q1 (Apr 15)"
+          value={payments?.q1 ?? 0}
+          onChange={(v) => setPayment('q1', v)}
+        />
+        <CurrencyInput
+          label="Q2 (Jun 15)"
+          value={payments?.q2 ?? 0}
+          onChange={(v) => setPayment('q2', v)}
+        />
+        <CurrencyInput
+          label="Q3 (Sep 15)"
+          value={payments?.q3 ?? 0}
+          onChange={(v) => setPayment('q3', v)}
+        />
+        <CurrencyInput
+          label="Q4 (Jan 15)"
+          value={payments?.q4 ?? 0}
+          onChange={(v) => setPayment('q4', v)}
+        />
+      </div>
+      {payments && (payments.q1 + payments.q2 + payments.q3 + payments.q4) > 0 && (
+        <p className="mt-2 text-sm text-gray-600">
+          Total estimated payments: <strong>{formatCurrency(payments.q1 + payments.q2 + payments.q3 + payments.q4)}</strong>
+        </p>
       )}
     </div>
   )

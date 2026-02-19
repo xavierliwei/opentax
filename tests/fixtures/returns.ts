@@ -1105,6 +1105,9 @@ export function makeScheduleEProperty(
     utilities: 0,
     depreciation: 0,
     other: 0,
+    depreciableBasis: 0,
+    placedInServiceMonth: 0,
+    placedInServiceYear: 0,
     ...overrides,
   }
 }

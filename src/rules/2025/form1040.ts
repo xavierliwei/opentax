@@ -15,7 +15,12 @@
 import type { TaxReturn, FilingStatus } from '../../model/types'
 import type { TracedValue } from '../../model/traced'
 import { tracedFromComputation, tracedZero } from '../../model/traced'
-import { STANDARD_DEDUCTION, ADDITIONAL_STANDARD_DEDUCTION } from './constants'
+import {
+  STANDARD_DEDUCTION,
+  ADDITIONAL_STANDARD_DEDUCTION,
+  DEPENDENT_FILER_MIN_DEDUCTION,
+  DEPENDENT_FILER_EARNED_INCOME_ADDON,
+} from './constants'
 import { computeScheduleA } from './scheduleA'
 import type { ScheduleAResult } from './scheduleA'
 import { computeScheduleD } from './scheduleD'
@@ -253,6 +258,7 @@ export function computeLine12(
   model: TaxReturn,
   agi: number,
   netInvestmentIncome: number,
+  earnedIncome: number,
 ): { deduction: TracedValue; scheduleA: ScheduleAResult | null } {
   const additionalPer = ADDITIONAL_STANDARD_DEDUCTION[model.filingStatus]
   let additionalCount = 0
@@ -262,7 +268,20 @@ export function computeLine12(
     if (model.deductions.spouseAge65) additionalCount++
     if (model.deductions.spouseBlind) additionalCount++
   }
-  const standardAmount = STANDARD_DEDUCTION[model.filingStatus] + additionalPer * additionalCount
+  let standardAmount = STANDARD_DEDUCTION[model.filingStatus] + additionalPer * additionalCount
+
+  // Dependent filer limitation — IRC §63(c)(5)
+  // Standard deduction limited to greater of $1,350 or earned income + $450,
+  // but not more than the normal standard deduction. Additional deductions
+  // for age 65+ / blind are added on top of the limited amount.
+  if (model.canBeClaimedAsDependent) {
+    const baseStandard = STANDARD_DEDUCTION[model.filingStatus]
+    const limitedBase = Math.min(
+      baseStandard,
+      Math.max(DEPENDENT_FILER_MIN_DEDUCTION, earnedIncome + DEPENDENT_FILER_EARNED_INCOME_ADDON),
+    )
+    standardAmount = limitedBase + additionalPer * additionalCount
+  }
 
   if (model.deductions.method === 'itemized' && model.deductions.itemized) {
     const scheduleA = computeScheduleA(model, agi, netInvestmentIncome)
@@ -507,6 +526,24 @@ export function computeLine25(model: TaxReturn): TracedValue {
   )
 }
 
+// ── Line 26 — Estimated tax payments ────────────────────────────
+// Sum of quarterly Form 1040-ES payments.
+
+export function computeLine26(model: TaxReturn): TracedValue {
+  const payments = model.estimatedTaxPayments
+  if (!payments) return tracedZero('form1040.line26', 'Form 1040, Line 26')
+
+  const total = (payments.q1 ?? 0) + (payments.q2 ?? 0) + (payments.q3 ?? 0) + (payments.q4 ?? 0)
+  if (total <= 0) return tracedZero('form1040.line26', 'Form 1040, Line 26')
+
+  return tracedFromComputation(
+    total,
+    'form1040.line26',
+    ['estimatedTax.q1', 'estimatedTax.q2', 'estimatedTax.q3', 'estimatedTax.q4'],
+    'Form 1040, Line 26',
+  )
+}
+
 // ── Line 27 — Earned income credit ─────────────────────────────
 // Computed by earnedIncomeCredit module; set externally in orchestrator.
 
@@ -548,13 +585,16 @@ export function computeLine32(
 }
 
 // ── Line 33 — Total payments ───────────────────────────────────
-// Line 25 + Line 32
+// Line 25 + Line 26 + Line 32
 
-export function computeLine33(line25: TracedValue, line32: TracedValue): TracedValue {
+export function computeLine33(line25: TracedValue, line26: TracedValue, line32: TracedValue): TracedValue {
+  const inputs = ['form1040.line25']
+  if (line26.amount > 0) inputs.push('form1040.line26')
+  inputs.push('form1040.line32')
   return tracedFromComputation(
-    line25.amount + line32.amount,
+    line25.amount + line26.amount + line32.amount,
     'form1040.line33',
-    ['form1040.line25', 'form1040.line32'],
+    inputs,
     'Form 1040, Line 33',
   )
 }
@@ -628,6 +668,7 @@ export interface Form1040Result {
 
   // Payments & Refundable Credits (Lines 25–33)
   line25: TracedValue
+  line26: TracedValue
   line27: TracedValue
   line28: TracedValue
   line29: TracedValue
@@ -743,13 +784,16 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   const line11 = computeLine11(line9, line10)
 
   // ── Deductions ──────────────────────────────────────────
+  // Earned income = sum of W-2 Box 1 (used for dependent filer deduction limit and credits)
+  const earnedIncome = model.w2s.reduce((sum, w) => sum + w.box1, 0)
+
   // Net investment income for Form 4952 investment interest limit.
   // Includes: taxable interest + non-qualified dividends + net ST capital gains.
   const nonQualifiedDivs = Math.max(0, line3b.amount - line3a.amount)
   const netSTGain = Math.max(0, scheduleD?.line7.amount ?? 0)
   const netInvestmentIncome = line2b.amount + nonQualifiedDivs + netSTGain
 
-  const { deduction: line12, scheduleA } = computeLine12(model, line11.amount, netInvestmentIncome)
+  const { deduction: line12, scheduleA } = computeLine12(model, line11.amount, netInvestmentIncome, earnedIncome)
   const line13 = computeLine13()
   const line14 = computeLine14(line12, line13)
   const line15 = computeLine15(line11, line14)
@@ -768,9 +812,6 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   const line18 = computeLine18(line16, line17)
 
   // ── Credits ────────────────────────────────────────────
-  // Earned income for refundable CTC = sum of W-2 Box 1
-  const earnedIncome = model.w2s.reduce((sum, w) => sum + w.box1, 0)
-
   const childTaxCredit = model.dependents.length > 0
     ? computeChildTaxCredit(model.dependents, model.filingStatus, line11.amount, line18.amount, earnedIncome)
     : null
@@ -824,6 +865,7 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
 
   // ── Payments & refundable credits ──────────────────────
   const line25 = computeLine25(model)
+  const line26 = computeLine26(model)
 
   // Earned Income Credit
   const eicInvestmentIncome = line2a.amount + line2b.amount + line3b.amount + Math.max(0, line7.amount)
@@ -866,7 +908,7 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   const line29 = computeLine29(educationCredit)
   const line31 = computeLine31()
   const line32 = computeLine32(line27, line28, line29, line31)
-  const line33 = computeLine33(line25, line32)
+  const line33 = computeLine33(line25, line26, line32)
 
   // ── Result ──────────────────────────────────────────────
   const line34 = computeLine34(line33, line24)
@@ -877,7 +919,7 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     line10, line11,
     line12, line13, line14, line15,
     line16, line17, line18, line19, line20, line21, line22, line23, line24,
-    line25, line27, line28, line29, line31, line32, line33,
+    line25, line26, line27, line28, line29, line31, line32, line33,
     line34, line37,
     childTaxCredit,
     earnedIncomeCredit,

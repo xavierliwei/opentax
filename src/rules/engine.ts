@@ -63,6 +63,7 @@ export const NODE_LABELS: Record<string, string> = {
   'form1040.line23': 'Other taxes',
   'form1040.line24': 'Total tax',
   'form1040.line25': 'Federal income tax withheld',
+  'form1040.line26': 'Estimated tax payments',
   'form1040.line27': 'Earned income credit',
   'form1040.line28': 'Additional child tax credit',
   'form1040.line29': 'American opportunity credit',
@@ -246,6 +247,7 @@ export function collectAllValues(
   add(form1040.line23)
   add(form1040.line24)
   add(form1040.line25)
+  add(form1040.line26)
   add(form1040.line27)
   add(form1040.line28)
   add(form1040.line29)
@@ -1006,6 +1008,20 @@ export function resolveDocumentRef(
       label: labels[key] ?? refId,
       amount: typeof val === 'number' ? val : 0,
     }
+  }
+
+  // Estimated tax payments: estimatedTax.{q1|q2|q3|q4}
+  m = refId.match(/^estimatedTax\.(q[1-4])$/)
+  if (m) {
+    const quarter = m[1] as 'q1' | 'q2' | 'q3' | 'q4'
+    const labels: Record<string, string> = {
+      q1: 'Q1 estimated payment (Apr 15)',
+      q2: 'Q2 estimated payment (Jun 15)',
+      q3: 'Q3 estimated payment (Sep 15)',
+      q4: 'Q4 estimated payment (Jan 15)',
+    }
+    const amount = model.estimatedTaxPayments?.[quarter] ?? 0
+    return { label: labels[quarter], amount }
   }
 
   return { label: `Unknown (${refId})`, amount: 0 }

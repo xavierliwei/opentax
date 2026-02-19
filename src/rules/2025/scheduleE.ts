@@ -16,10 +16,12 @@
 import type { ScheduleEProperty, FilingStatus } from '../../model/types'
 import type { TracedValue } from '../../model/traced'
 import { tracedFromComputation } from '../../model/traced'
+import type { ScheduleEPropertyType } from '../../model/types'
 import {
   PAL_SPECIAL_ALLOWANCE,
   PAL_PHASEOUT_START,
   PAL_PHASEOUT_RANGE,
+  TAX_YEAR,
 } from './constants'
 
 // ── Result types ──────────────────────────────────────────────────
@@ -39,6 +41,79 @@ export interface ScheduleEResult {
   disallowedLoss: number // PAL carryforward (cents, informational)
 }
 
+// ── Depreciation ──────────────────────────────────────────────────
+//
+// Straight-line depreciation with mid-month convention.
+//
+// Residential rental property (single-family, multi-family, vacation): 27.5 years
+// Nonresidential real property (commercial): 39 years
+// Land and royalties: not depreciable via this calculator
+//
+// Limitation: this is simplified straight-line only. For MACRS percentage
+// tables (IRS Rev. Proc. 87-57), Section 179 expensing, or bonus depreciation,
+// enter the depreciation amount manually.
+
+const USEFUL_LIFE: Partial<Record<ScheduleEPropertyType, number>> = {
+  'single-family': 27.5,
+  'multi-family': 27.5,
+  'vacation': 27.5,
+  'commercial': 39,
+  'other': 27.5,
+}
+
+/**
+ * Compute straight-line depreciation for the current tax year.
+ *
+ * Uses mid-month convention: the property is treated as placed in service
+ * at the midpoint of the month. First-year depreciation is prorated by
+ * the number of months (including half of the placed-in-service month).
+ *
+ * Returns cents. Returns 0 if the property type is not depreciable (land,
+ * royalties) or if the property is fully depreciated.
+ */
+export function straightLineDepreciation(
+  basis: number,
+  placedMonth: number,
+  placedYear: number,
+  propertyType: ScheduleEPropertyType,
+  taxYear: number = TAX_YEAR,
+): number {
+  const life = USEFUL_LIFE[propertyType]
+  if (!life || basis <= 0 || placedYear <= 0 || placedMonth < 1 || placedMonth > 12) return 0
+  if (taxYear < placedYear) return 0
+
+  const annualDep = basis / life
+  const yearsElapsed = taxYear - placedYear
+
+  // First year: mid-month convention — half month for placed-in-service month
+  const firstYearMonths = 12 - placedMonth + 0.5
+  const firstYearDep = Math.round(annualDep * firstYearMonths / 12)
+
+  if (yearsElapsed === 0) return firstYearDep
+
+  // Subsequent years: full annual depreciation, capped at remaining basis
+  const fullYearDep = Math.round(annualDep)
+  const priorDep = firstYearDep + fullYearDep * (yearsElapsed - 1)
+  const remaining = basis - priorDep
+  if (remaining <= 0) return 0
+
+  return Math.min(fullYearDep, remaining)
+}
+
+/**
+ * Get the effective depreciation for a property: auto-computed from basis/date
+ * when available, otherwise falls back to the manual depreciation field.
+ */
+export function getEffectiveDepreciation(p: ScheduleEProperty, taxYear: number = TAX_YEAR): number {
+  const basis = p.depreciableBasis ?? 0
+  const month = p.placedInServiceMonth ?? 0
+  const year = p.placedInServiceYear ?? 0
+  if (basis > 0 && year > 0 && month > 0) {
+    return straightLineDepreciation(basis, month, year, p.propertyType, taxYear)
+  }
+  return p.depreciation
+}
+
 // ── Helpers ────────────────────────────────────────────────────────
 
 function totalExpenses(p: ScheduleEProperty): number {
@@ -56,7 +131,7 @@ function totalExpenses(p: ScheduleEProperty): number {
     p.supplies +
     p.taxes +
     p.utilities +
-    p.depreciation +
+    getEffectiveDepreciation(p) +
     p.other
   )
 }

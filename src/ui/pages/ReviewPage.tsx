@@ -259,6 +259,18 @@ export function ReviewPage() {
               pubUrl: 'https://www.irs.gov/instructions/i1040gi',
             }}
           />
+          {form1040.line26.amount > 0 && (
+            <LineItem
+              label="Line 26 — Estimated tax payments"
+              nodeId="form1040.line26"
+              amount={form1040.line26.amount}
+              tooltip={{
+                explanation: 'Line 26 is the total of your quarterly estimated tax payments (Form 1040-ES) made during the tax year. These payments reduce the amount you owe or increase your refund.',
+                pubName: 'IRS Form 1040-ES',
+                pubUrl: 'https://www.irs.gov/forms-pubs/about-form-1040-es',
+              }}
+            />
+          )}
           {form1040.line27.amount > 0 && (
             <LineItem
               label="Line 27 — Earned income credit"

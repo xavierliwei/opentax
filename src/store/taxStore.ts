@@ -38,6 +38,7 @@ export interface TaxStoreState {
 
   // Actions
   setFilingStatus: (status: FilingStatus) => void
+  setCanBeClaimedAsDependent: (value: boolean) => void
   setTaxpayer: (taxpayer: Partial<Taxpayer>) => void
   setSpouse: (spouse: Partial<Taxpayer>) => void
   removeSpouse: () => void
@@ -82,6 +83,7 @@ export interface TaxStoreState {
   setEnergyCredits: (updates: Partial<EnergyCredits>) => void
   setEducationExpenses: (expenses: EducationExpenses) => void
   setStudentLoanInterest: (cents: number) => void
+  setEstimatedTaxPayment: (quarter: 'q1' | 'q2' | 'q3' | 'q4', cents: number) => void
   setHSA: (updates: Partial<HSAInfo>) => void
   importReturn: (taxReturn: TaxReturn) => void
   resetReturn: () => void
@@ -166,6 +168,11 @@ export const useTaxStore = create<TaxStoreState>()(
         if (status !== 'mfj' && prev.filingStatus === 'mfj') {
           delete tr.spouse
         }
+        set(recompute(tr))
+      },
+
+      setCanBeClaimedAsDependent: (value) => {
+        const tr = { ...get().taxReturn, canBeClaimedAsDependent: value }
         set(recompute(tr))
       },
 
@@ -584,6 +591,16 @@ export const useTaxStore = create<TaxStoreState>()(
 
       setStudentLoanInterest: (cents) => {
         const tr = { ...get().taxReturn, studentLoanInterest: cents || undefined }
+        set(recompute(tr))
+      },
+
+      setEstimatedTaxPayment: (quarter, cents) => {
+        const prev = get().taxReturn
+        const existing = prev.estimatedTaxPayments ?? { q1: 0, q2: 0, q3: 0, q4: 0 }
+        const updated = { ...existing, [quarter]: cents }
+        // Clear if all zero
+        const allZero = updated.q1 === 0 && updated.q2 === 0 && updated.q3 === 0 && updated.q4 === 0
+        const tr = { ...prev, estimatedTaxPayments: allZero ? undefined : updated }
         set(recompute(tr))
       },
 

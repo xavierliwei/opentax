@@ -50,13 +50,13 @@ describe('Line 11 — AGI', () => {
 describe('Line 12 — Deductions', () => {
   it('uses standard deduction for single filer', () => {
     const model = simpleW2Return()
-    const { deduction } = computeLine12(model, cents(75000), 0)
+    const { deduction } = computeLine12(model, cents(75000), 0, cents(75000))
     expect(deduction.amount).toBe(STANDARD_DEDUCTION.single)
   })
 
   it('uses MFJ standard deduction', () => {
     const model = { ...emptyTaxReturn(2025), filingStatus: 'mfj' as const }
-    const { deduction } = computeLine12(model, cents(120000), 0)
+    const { deduction } = computeLine12(model, cents(120000), 0, cents(120000))
     expect(deduction.amount).toBe(STANDARD_DEDUCTION.mfj)
   })
 
@@ -86,7 +86,7 @@ describe('Line 12 — Deductions', () => {
       },
     }
     // Schedule A: SALT $10K (under $40K cap), mortgage $8K, charitable $2K → $20,000 > standard $15,000
-    const { deduction, scheduleA } = computeLine12(model, cents(100000), 0)
+    const { deduction, scheduleA } = computeLine12(model, cents(100000), 0, cents(100000))
     expect(deduction.amount).toBe(cents(20000))
     expect(scheduleA).not.toBeNull()
     expect(scheduleA!.line17.amount).toBe(cents(20000))
@@ -118,7 +118,7 @@ describe('Line 12 — Deductions', () => {
       },
     }
     // Schedule A total: $9,000 < standard $15,000
-    const { deduction, scheduleA } = computeLine12(model, cents(100000), 0)
+    const { deduction, scheduleA } = computeLine12(model, cents(100000), 0, cents(100000))
     expect(deduction.amount).toBe(STANDARD_DEDUCTION.single)
     // Schedule A still computed (for comparison display)
     expect(scheduleA).not.toBeNull()
@@ -126,8 +126,65 @@ describe('Line 12 — Deductions', () => {
 
   it('returns null scheduleA when using standard deduction method', () => {
     const model = simpleW2Return()
-    const { scheduleA } = computeLine12(model, cents(75000), 0)
+    const { scheduleA } = computeLine12(model, cents(75000), 0, cents(75000))
     expect(scheduleA).toBeNull()
+  })
+})
+
+describe('Line 12 — Dependent filer standard deduction limitation', () => {
+  it('limits standard deduction to earned income + $450 when higher than $1,350', () => {
+    const model: TaxReturn = {
+      ...emptyTaxReturn(2025),
+      canBeClaimedAsDependent: true,
+      w2s: [{ id: 'w1', employerEin: '', employerName: '', box1: cents(5000), box2: 0, box3: 0, box4: 0, box5: 0, box6: 0, box7: 0, box8: 0, box10: 0, box11: 0, box12: [], box13StatutoryEmployee: false, box13RetirementPlan: false, box13ThirdPartySickPay: false, box14: '' }],
+    }
+    // Earned income = $5,000 → $5,000 + $450 = $5,450 > $1,350 → deduction = $5,450
+    const { deduction } = computeLine12(model, cents(5000), 0, cents(5000))
+    expect(deduction.amount).toBe(cents(5450))
+  })
+
+  it('uses $1,350 minimum when earned income is very low', () => {
+    const model: TaxReturn = {
+      ...emptyTaxReturn(2025),
+      canBeClaimedAsDependent: true,
+    }
+    // Earned income = $0 → max($1,350, $0 + $450) = $1,350
+    const { deduction } = computeLine12(model, 0, 0, 0)
+    expect(deduction.amount).toBe(cents(1350))
+  })
+
+  it('caps at normal standard deduction', () => {
+    const model: TaxReturn = {
+      ...emptyTaxReturn(2025),
+      canBeClaimedAsDependent: true,
+    }
+    // Earned income = $80,000 → $80,000 + $450 = $80,450 > $15,000 standard → capped at $15,000
+    const { deduction } = computeLine12(model, cents(80000), 0, cents(80000))
+    expect(deduction.amount).toBe(cents(15000)) // STANDARD_DEDUCTION.single
+  })
+
+  it('adds age 65+ additional deduction on top of limited base', () => {
+    const model: TaxReturn = {
+      ...emptyTaxReturn(2025),
+      canBeClaimedAsDependent: true,
+      deductions: {
+        method: 'standard',
+        taxpayerAge65: true,
+        taxpayerBlind: false,
+        spouseAge65: false,
+        spouseBlind: false,
+      },
+    }
+    // Earned income = $3,000 → max($1,350, $3,000 + $450) = $3,450
+    // + $2,000 additional (single, age 65) = $5,450
+    const { deduction } = computeLine12(model, cents(3000), 0, cents(3000))
+    expect(deduction.amount).toBe(cents(5450))
+  })
+
+  it('does not apply limitation when canBeClaimedAsDependent is false', () => {
+    const model = simpleW2Return()
+    const { deduction } = computeLine12(model, cents(5000), 0, cents(5000))
+    expect(deduction.amount).toBe(cents(15000)) // normal standard deduction
   })
 })
 
@@ -732,5 +789,39 @@ describe('computeForm1040 — Rental property loss with PAL', () => {
   it('rental loss reduces AGI', () => {
     // AGI = $80,000 wages - $25,000 rental loss = $55,000
     expect(result.line11.amount).toBe(cents(55000))
+  })
+})
+
+// ── Estimated tax payments ──────────────────────────────────────
+
+describe('computeForm1040 — Estimated tax payments', () => {
+  it('includes estimated payments in total payments (Line 33)', () => {
+    const model: TaxReturn = {
+      ...simpleW2Return(),
+      estimatedTaxPayments: { q1: cents(2000), q2: cents(2000), q3: cents(2000), q4: cents(2000) },
+    }
+    const result = computeForm1040(model)
+    // Line 26 = $8,000 total estimated payments
+    expect(result.line26.amount).toBe(cents(8000))
+    // Line 33 = withholding + estimated + refundable credits
+    expect(result.line33.amount).toBe(result.line25.amount + cents(8000) + result.line32.amount)
+  })
+
+  it('line26 is $0 when no estimated payments', () => {
+    const result = computeForm1040(simpleW2Return())
+    expect(result.line26.amount).toBe(0)
+  })
+
+  it('estimated payments shift net position by payment amount', () => {
+    const baseResult = computeForm1040(simpleW2Return())
+    const model: TaxReturn = {
+      ...simpleW2Return(),
+      estimatedTaxPayments: { q1: cents(1000), q2: cents(1000), q3: cents(1000), q4: cents(1000) },
+    }
+    const withEstResult = computeForm1040(model)
+    // Net position = refund - owed. Should improve by exactly $4,000.
+    const baseNet = baseResult.line34.amount - baseResult.line37.amount
+    const estNet = withEstResult.line34.amount - withEstResult.line37.amount
+    expect(estNet - baseNet).toBe(cents(4000))
   })
 })

@@ -75,7 +75,8 @@ These lines are hardcoded to zero. Each needs: data model fields, intake/UI, rul
 - [ ] Self-employment tax (Schedule SE)
 
 ### Other
-- [ ] Dependent filer standard deduction limitation (greater of $1,350 or earned income + $450)
+- [x] Dependent filer standard deduction limitation (greater of $1,350 or earned income + $450)
+- [x] Estimated tax payments input — Form 1040-ES quarterly payments, sum on Line 26
 - [ ] IRA spouse coverage — `spouseCoveredByEmployerPlan` hardcoded `false`
 - [ ] AMT credit carryforward (Form 8801)
 

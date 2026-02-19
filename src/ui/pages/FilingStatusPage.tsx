@@ -67,6 +67,8 @@ const FILING_OPTIONS: {
 export function FilingStatusPage() {
   const filingStatus = useTaxStore((s) => s.taxReturn.filingStatus)
   const setFilingStatus = useTaxStore((s) => s.setFilingStatus)
+  const canBeClaimedAsDependent = useTaxStore((s) => s.taxReturn.canBeClaimedAsDependent ?? false)
+  const setCanBeClaimedAsDependent = useTaxStore((s) => s.setCanBeClaimedAsDependent)
   const interview = useInterview()
 
   return (
@@ -77,6 +79,7 @@ export function FilingStatusPage() {
       </p>
 
       <fieldset className="mt-6 flex flex-col gap-3">
+        <legend className="sr-only">Filing status</legend>
         {FILING_OPTIONS.map((opt) => (
           <label
             key={opt.value}
@@ -108,6 +111,30 @@ export function FilingStatusPage() {
           </label>
         ))}
       </fieldset>
+
+      <div className="mt-6 border border-gray-200 rounded-lg p-4">
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={canBeClaimedAsDependent}
+            onChange={(e) => setCanBeClaimedAsDependent(e.target.checked)}
+            className="mt-1"
+          />
+          <div>
+            <span className="font-medium text-gray-900 inline-flex items-center">
+              Someone can claim me as a dependent
+              <InfoTooltip
+                explanation="Check this box if someone else (such as a parent) can claim you as a dependent on their tax return. This limits your standard deduction to the greater of $1,350 or your earned income plus $450."
+                pubName="IRS Publication 501 — Dependents"
+                pubUrl="https://www.irs.gov/publications/p501"
+              />
+            </span>
+            <p className="text-sm text-gray-500 mt-0.5">
+              This limits your standard deduction. Most adult filers leave this unchecked.
+            </p>
+          </div>
+        </label>
+      </div>
 
       <InterviewNav interview={interview} />
     </div>

@@ -233,6 +233,10 @@ export interface ScheduleEProperty {
   utilities: number
   depreciation: number         // manual entry — line 18
   other: number                // line 19
+  // Depreciation calculator fields (optional — when provided, overrides manual depreciation)
+  depreciableBasis: number     // cents — building cost excluding land
+  placedInServiceMonth: number // 1–12, 0 = not set
+  placedInServiceYear: number  // e.g. 2020, 0 = not set
 }
 
 // ── Capital transactions (derived) ─────────────────────────────
@@ -388,6 +392,7 @@ export interface Credit {
 export interface TaxReturn {
   taxYear: number
   filingStatus: FilingStatus
+  canBeClaimedAsDependent: boolean  // checked on Form 1040 — limits standard deduction
   taxpayer: Taxpayer
   spouse?: Taxpayer
   dependents: Dependent[]
@@ -427,6 +432,14 @@ export interface TaxReturn {
   }
   credits: Credit[]
 
+  // Estimated tax payments (Form 1040-ES quarterly)
+  estimatedTaxPayments?: {
+    q1: number  // cents — due April 15
+    q2: number  // cents — due June 15
+    q3: number  // cents — due September 15
+    q4: number  // cents — due January 15 (next year)
+  }
+
   // Student loan interest (Form 1098-E Box 1)
   studentLoanInterest?: number  // cents
 
@@ -448,6 +461,7 @@ export function emptyTaxReturn(taxYear: number): TaxReturn {
   return {
     taxYear,
     filingStatus: 'single',
+    canBeClaimedAsDependent: false,
     taxpayer: {
       firstName: '',
       lastName: '',

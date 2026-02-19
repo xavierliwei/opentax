@@ -430,6 +430,15 @@ export const PAL_PHASEOUT_START: Record<FilingStatus, number> = {
 }
 export const PAL_PHASEOUT_RANGE = c(50000)             // $50,000
 
+// ── Dependent Filer Standard Deduction Limitation ──────────────
+// Source: IRS Publication 501, IRC §63(c)(5)
+// If someone can claim you as a dependent, your standard deduction
+// is the greater of $1,350 or earned income + $450, but not more
+// than the normal standard deduction.
+
+export const DEPENDENT_FILER_MIN_DEDUCTION = c(1350)
+export const DEPENDENT_FILER_EARNED_INCOME_ADDON = c(450)
+
 // ── Tax Year ───────────────────────────────────────────────────
 
 export const TAX_YEAR = 2025
