@@ -8,6 +8,7 @@
 
 import { useTaxStore } from './taxStore.ts'
 import type { TaxReturn } from '../model/types.ts'
+import { configureDeductionsApi, clearDeductionsApi } from './deductionsApi.ts'
 
 export interface SyncConfig {
   serverUrl: string
@@ -18,6 +19,8 @@ export function connectToServer(config: SyncConfig): () => void {
   let isRemoteUpdate = false
   let localVersion = 0
   let lastTaxReturnRef = useTaxStore.getState().taxReturn
+
+  configureDeductionsApi(serverUrl, (v) => { localVersion = v })
 
   function importRemote(taxReturn: TaxReturn, stateVersion: number) {
     isRemoteUpdate = true
@@ -74,6 +77,7 @@ export function connectToServer(config: SyncConfig): () => void {
     if (state.taxReturn === lastTaxReturnRef) return
     lastTaxReturnRef = state.taxReturn
     if (isRemoteUpdate) return
+    if (state._lastChangeSource === 'deductions') return
 
     fetch(`${serverUrl}/api/sync`, {
       method: 'POST',
@@ -123,6 +127,7 @@ export function connectToServer(config: SyncConfig): () => void {
   return () => {
     unsubStore()
     eventSource.close()
+    clearDeductionsApi()
   }
 }
 

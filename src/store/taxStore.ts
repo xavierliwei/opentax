@@ -22,12 +22,14 @@ import { emptyTaxReturn } from '../model/types.ts'
 import { computeAll } from '../rules/engine.ts'
 import type { ComputeResult } from '../rules/engine.ts'
 import { processRSUAdjustments } from '../rules/2025/rsuAdjustment.ts'
+import { putDeductions } from './deductionsApi.ts'
 
 // ── Types ──────────────────────────────────────────────────────
 
 export interface TaxStoreState {
   taxReturn: TaxReturn
   computeResult: ComputeResult
+  _lastChangeSource: 'full' | 'deductions'
 
   // Actions
   setFilingStatus: (status: FilingStatus) => void
@@ -121,8 +123,11 @@ function withDerivedCapital(taxReturn: TaxReturn): TaxReturn {
   return { ...taxReturn, capitalTransactions: transactions }
 }
 
-function recompute(taxReturn: TaxReturn): Pick<TaxStoreState, 'taxReturn' | 'computeResult'> {
-  return { taxReturn, computeResult: computeAll(taxReturn) }
+function recompute(
+  taxReturn: TaxReturn,
+  source: 'full' | 'deductions' = 'full',
+): Pick<TaxStoreState, 'taxReturn' | 'computeResult' | '_lastChangeSource'> {
+  return { taxReturn, computeResult: computeAll(taxReturn), _lastChangeSource: source }
 }
 
 // ── Store ──────────────────────────────────────────────────────
@@ -134,6 +139,7 @@ export const useTaxStore = create<TaxStoreState>()(
     (set, get) => ({
       taxReturn: initialReturn,
       computeResult: computeAll(initialReturn),
+      _lastChangeSource: 'full' as const,
 
       setFilingStatus: (status) => {
         const prev = get().taxReturn
@@ -389,7 +395,8 @@ export const useTaxStore = create<TaxStoreState>()(
           ...get().taxReturn,
           deductions: { ...get().taxReturn.deductions, method },
         }
-        set(recompute(tr))
+        set(recompute(tr, 'deductions'))
+        putDeductions({ method })
       },
 
       setItemizedDeductions: (itemized) => {
@@ -416,7 +423,8 @@ export const useTaxStore = create<TaxStoreState>()(
             itemized: { ...existing, ...itemized },
           },
         }
-        set(recompute(tr))
+        set(recompute(tr, 'deductions'))
+        putDeductions({ itemized: { ...existing, ...itemized } })
       },
 
       setDependentCare: (updates) => {
