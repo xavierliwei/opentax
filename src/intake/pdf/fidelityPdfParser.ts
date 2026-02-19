@@ -118,6 +118,59 @@ function parseIntSection(lines: Line[]): Form1099INT | null {
   }
 }
 
+// ── Column position detection ────────────────────────────────
+
+/**
+ * Column x-position boundaries for Fidelity 1099-B tables.
+ * Detected from the header row containing "Action", "Proceeds", etc.
+ * Dollar values in transaction rows are assigned to columns by x-position.
+ */
+interface ColumnPositions {
+  proceeds: number      // x of "Proceeds" / "1d" label
+  costBasis: number     // x of "Cost or" / "1e" label
+  washSale: number      // x of "Wash Sale" / "1g" label
+  gainLoss: number      // x of "Gain/Loss" label
+  fedTax: number        // x of "4 Federal" label
+}
+
+function detectColumnPositions(line: Line): ColumnPositions | null {
+  // The header line contains items like "1d", "Proceeds", "1e", "Cost or", "1g", "Wash Sale", "Gain/Loss"
+  let proceeds = 0, costBasis = 0, washSale = 0, gainLoss = 0, fedTax = 0
+
+  for (const item of line.items) {
+    const s = item.str.trim()
+    if (s === '1d' || s === 'Proceeds') proceeds = item.x
+    if (s === '1e' || s === 'Cost or') costBasis = item.x
+    if (s === '1g' || s === 'Wash Sale') washSale = item.x
+    if (/^Gain\/Loss/i.test(s)) gainLoss = item.x
+    if (/^4 Federal/i.test(s) || (s === '4' && fedTax === 0)) fedTax = item.x
+  }
+
+  if (proceeds && costBasis && gainLoss) {
+    // If wash sale column not found, place it between cost basis and gain/loss
+    if (!washSale) washSale = (costBasis + gainLoss) / 2
+    // If fed tax column not found, place it well after gain/loss
+    if (!fedTax) fedTax = gainLoss + 200
+    return { proceeds, costBasis, washSale, gainLoss, fedTax }
+  }
+  return null
+}
+
+/** Assign a dollar value to a column based on its x-position */
+function assignColumn(x: number, cols: ColumnPositions): 'proceeds' | 'costBasis' | 'washSale' | 'gainLoss' | 'fedTax' | 'skip' {
+  // Compute midpoints between columns for boundary detection
+  const mid_proc_cost = (cols.proceeds + cols.costBasis) / 2
+  const mid_cost_wash = (cols.costBasis + cols.washSale) / 2
+  const mid_wash_gl = (cols.washSale + cols.gainLoss) / 2
+  const mid_gl_fed = (cols.gainLoss + cols.fedTax) / 2
+
+  if (x < mid_proc_cost) return 'proceeds'
+  if (x < mid_cost_wash) return 'costBasis'
+  if (x < mid_wash_gl) return 'washSale'
+  if (x < mid_gl_fed) return 'gainLoss'
+  return 'fedTax'
+}
+
 // ── 1099-B transaction row parsing ───────────────────────────
 
 interface TxnFields {
@@ -125,118 +178,60 @@ interface TxnFields {
   dateSold: string
   proceeds: number
   costBasis: number
-  accruedMarketDiscount: number
   washSale: number
   gainLoss: number
   federalTaxWithheld: number
 }
 
-function parseTxnRow(line: Line): TxnFields | null {
-  // Collect raw tokens
-  const raw = line.items.map((it) => it.str.trim()).filter(Boolean)
+function parseTxnRow(line: Line, cols: ColumnPositions): TxnFields | null {
+  const items = line.items
 
-  // Merge numeric fragments split at the decimal point (e.g., "28,287" + ".87")
-  const merged: string[] = []
-  for (let i = 0; i < raw.length; ) {
-    const cur = raw[i]
-    const next = raw[i + 1] ?? ''
-    if (/^-?[\d,]+$/.test(cur) && /^\.\d+/.test(next)) {
-      // Also handle "(e)" suffix on cost basis: ".65(e)"
-      merged.push(cur + next)
-      i += 2
-    } else {
-      merged.push(cur)
-      i++
-    }
-  }
-
-  // Now split tokens that have "(e)" fused — keep the number, drop the flag
-  const tokens: string[] = []
-  for (const tok of merged) {
-    // "1,882.65(e)" → "1,882.65"
-    const eMatch = tok.match(/^(-?[\d,]+\.\d{2})\(e\)$/)
-    if (eMatch) {
-      tokens.push(eMatch[1])
-    } else {
-      tokens.push(tok)
-    }
-  }
-
-  let i = 0
-
-  // ── 1. "Sale" action ──
-  if (!/^sale$/i.test(tokens[i] ?? '')) return null
-  i++
-
-  // ── 2. Quantity (skip) ──
-  if (i >= tokens.length) return null
-  // Quantity has 3 decimal places or is an integer
-  if (/^-?[\d,]+\.\d{3}$/.test(tokens[i]) || /^[\d,]+$/.test(tokens[i])) {
-    i++
-  }
-
-  // ── 3. Date acquired ──
-  if (i >= tokens.length) return null
+  // Extract dates and dollar values with their x-positions
   let dateAcquired: string | null = null
-  if (DATE_RE.test(tokens[i])) {
-    dateAcquired = parseDate(tokens[i++])
-  } else if (/^various$/i.test(tokens[i])) {
-    dateAcquired = null
-    i++
-  } else {
-    return null
-  }
+  let dateSold: string | null = null
+  let foundSale = false
+  let foundQty = false
+  let proceeds = 0, costBasis = 0, washSale = 0, gainLoss = 0, federalTaxWithheld = 0
 
-  // ── 4. Date sold ──
-  if (i >= tokens.length || !DATE_RE.test(tokens[i])) return null
-  const dateSold = parseDate(tokens[i++])
-  if (!dateSold) return null
+  for (const item of items) {
+    const s = item.str.trim()
+    if (!s || s === '(e)') continue
 
-  // ── 5. Proceeds ──
-  if (i >= tokens.length || !DOLLARS_RE.test(tokens[i])) return null
-  const proceeds = parseCents(tokens[i++])
+    // "Sale" action
+    if (/^sale$/i.test(s)) { foundSale = true; continue }
 
-  // ── 6. Cost basis ──
-  if (i >= tokens.length || !DOLLARS_RE.test(tokens[i])) return null
-  const costBasis = parseCents(tokens[i++])
+    // Quantity (3 decimal places)
+    if (!foundQty && /^-?[\d,]+\.\d{3}$/.test(s)) { foundQty = true; continue }
 
-  // ── 7. Accrued market discount (optional — may be empty/missing) ──
-  let accruedMarketDiscount = 0
-  if (i < tokens.length && DOLLARS_RE.test(tokens[i])) {
-    // Could be accrued market discount OR wash sale OR gain/loss
-    // We need to look ahead: if there are enough dollar tokens remaining,
-    // this one is accrued market discount
-    const remainingDollars = tokens.slice(i).filter(t => DOLLARS_RE.test(t)).length
-    if (remainingDollars >= 3) {
-      // At least: accrued_market_discount, wash_sale_or_gain, gain_loss
-      // Actually let's be more careful. The minimum remaining pattern is:
-      // gain/loss (1 dollar). Wash sale and accrued are optional.
-      // With 3+ remaining dollars, first is accrued market discount
-      accruedMarketDiscount = parseCents(tokens[i++])
+    // Date fields: first date = acquired, second = sold
+    if (DATE_RE.test(s)) {
+      if (!dateAcquired && !dateSold) {
+        dateAcquired = parseDate(s)
+      } else if (!dateSold) {
+        dateSold = parseDate(s)
+      }
+      continue
+    }
+    if (/^various$/i.test(s)) {
+      dateAcquired = null
+      continue
+    }
+
+    // Dollar values — assign by x-position
+    if (DOLLARS_RE.test(s)) {
+      const col = assignColumn(item.x, cols)
+      const val = parseCents(s)
+      if (col === 'proceeds') proceeds = val
+      else if (col === 'costBasis') costBasis = val
+      else if (col === 'washSale') washSale = val
+      else if (col === 'gainLoss') gainLoss = val
+      else if (col === 'fedTax') federalTaxWithheld = val
     }
   }
 
-  // ── 8. Wash sale loss disallowed (optional) ──
-  let washSale = 0
-  if (i < tokens.length && DOLLARS_RE.test(tokens[i])) {
-    const remainingDollars = tokens.slice(i).filter(t => DOLLARS_RE.test(t)).length
-    if (remainingDollars >= 2) {
-      // wash_sale + gain_loss
-      washSale = parseCents(tokens[i++])
-    }
-  }
+  if (!foundSale || !dateSold) return null
 
-  // ── 9. Gain/loss ──
-  if (i >= tokens.length || !DOLLARS_RE.test(tokens[i])) return null
-  const gainLoss = parseCents(tokens[i++])
-
-  // ── 10. Federal tax withheld (optional) ──
-  let federalTaxWithheld = 0
-  if (i < tokens.length && DOLLARS_RE.test(tokens[i])) {
-    federalTaxWithheld = parseCents(tokens[i++])
-  }
-
-  return { dateAcquired, dateSold, proceeds, costBasis, accruedMarketDiscount, washSale, gainLoss, federalTaxWithheld }
+  return { dateAcquired, dateSold, proceeds, costBasis, washSale, gainLoss, federalTaxWithheld }
 }
 
 // ── Main export ──────────────────────────────────────────────
@@ -269,6 +264,7 @@ export async function parseFidelityPdf(data: ArrayBuffer): Promise<ConsolidatedP
     let currentDesc = ''
     let currentSymbol = ''
     let currentCusip = ''
+    let colPositions: ColumnPositions | null = null
 
     for (const line of lines) {
       const text = line.text
@@ -319,12 +315,19 @@ export async function parseFidelityPdf(data: ArrayBuffer): Promise<ConsolidatedP
       if (currentSection !== '1099b') continue
 
       // Section header: SHORT/LONG TERM TRANSACTIONS
+      // In Fidelity PDFs, the section header and "Box X checked" are often on the same line
       if (/\b(Short|Long).term\s+transactions\s+for\s+which\s+basis\b/i.test(text)) {
-        awaitingBox = true
+        const cat = detectBoxCategory(text)
+        if (cat) {
+          currentCategory = cat
+          awaitingBox = false
+        } else {
+          awaitingBox = true
+        }
         continue
       }
 
-      // Box category: "Box A checked"
+      // Box category on a separate line: "Box A checked"
       if (awaitingBox) {
         const cat = detectBoxCategory(text)
         if (cat) {
@@ -336,18 +339,26 @@ export async function parseFidelityPdf(data: ArrayBuffer): Promise<ConsolidatedP
 
       if (!currentCategory) continue
 
-      // Skip column header lines and boilerplate
-      if (/^\s*Action\b/i.test(text) && /Quantity/i.test(text)) continue
+      // Column header line — detect x-positions for value columns
+      if (/^\s*Action\b/i.test(text) && /Quantity/i.test(text)) {
+        const detected = detectColumnPositions(line)
+        if (detected) colPositions = detected
+        continue
+      }
       if (/^\s*\(IRS\s+Form/i.test(text)) continue
       if (/^\s*1a\s+Description/i.test(text)) continue
       if (/^\s*Proceeds\s+are\s+reported/i.test(text)) continue
 
-      // Skip Subtotals / TOTALS / Box summary lines
+      // Skip Subtotals / TOTALS / Box summary lines / dashed separators
       if (/^Subtotals\b/i.test(text) || /^TOTALS\b/i.test(text)) {
         skipped++
         continue
       }
       if (/^Box\s+[ABDE]\s+(Short|Long)/i.test(text)) continue
+      if (/^[\s\-]+$/.test(text.replace(/\s/g, ''))) continue  // dash separators
+      if (/^\*\s*This\s+is\s+important/i.test(text)) continue  // footer disclaimer
+      if (/^Acquired\b/i.test(text)) continue  // continuation of column header
+      if (/^Discount\b/i.test(text)) continue  // continuation of column header
 
       // Security header: "DESCRIPTION, SYMBOL, CUSIP"
       const sec = parseSecurityHeader(text)
@@ -359,10 +370,10 @@ export async function parseFidelityPdf(data: ArrayBuffer): Promise<ConsolidatedP
       }
 
       // Transaction row: starts with "Sale"
-      if (/^Sale\b/i.test(text)) {
+      if (/^Sale\b/i.test(text) && colPositions) {
         total++
 
-        const fields = parseTxnRow(line)
+        const fields = parseTxnRow(line, colPositions)
         if (!fields) {
           warnings.push(`Page ${line.page}: could not parse row "${text.slice(0, 60)}…" (skipped)`)
           skipped++
