@@ -10,6 +10,7 @@ import { InterestIncomePage } from '../ui/pages/InterestIncomePage.tsx'
 import { DividendIncomePage } from '../ui/pages/DividendIncomePage.tsx'
 import { StockSalesPage } from '../ui/pages/StockSalesPage.tsx'
 import { RSUIncomePage } from '../ui/pages/RSUIncomePage.tsx'
+import { PriorYearPage } from '../ui/pages/PriorYearPage.tsx'
 import { DeductionsPage } from '../ui/pages/DeductionsPage.tsx'
 import { ReviewPage } from '../ui/pages/ReviewPage.tsx'
 import { DownloadPage } from '../ui/pages/DownloadPage.tsx'
@@ -74,6 +75,14 @@ export const STEPS: InterviewStep[] = [
     isVisible: () => true,
     isComplete: () => true,
     component: DependentsPage,
+  },
+  {
+    id: 'prior-year',
+    label: 'Prior Year',
+    path: '/interview/prior-year',
+    isVisible: () => true,
+    isComplete: () => true,
+    component: PriorYearPage,
   },
   {
     id: 'w2-income',

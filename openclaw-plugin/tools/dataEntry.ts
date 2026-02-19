@@ -353,5 +353,29 @@ export function createDataEntryTools(service: TaxService): ToolDef[] {
         return `Deductions set to ${method} ($${deductionAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })}). ${formatRefund(service)}`
       },
     },
+    {
+      name: 'tax_set_prior_year',
+      description: 'Set prior-year carry-forward amounts. All dollar amounts in dollars.',
+      parameters: {
+        type: 'object',
+        properties: {
+          agi: { type: 'number', description: 'Prior-year AGI in dollars (for e-file identity verification)' },
+          capitalLossCarryforwardST: { type: 'number', description: 'Short-term capital loss carryover in dollars (positive amount)' },
+          capitalLossCarryforwardLT: { type: 'number', description: 'Long-term capital loss carryover in dollars (positive amount)' },
+        },
+      },
+      execute(args) {
+        const updates: Record<string, number> = {}
+        if (args.agi != null) updates.agi = cents(args.agi as number)
+        if (args.capitalLossCarryforwardST != null) updates.capitalLossCarryforwardST = cents(args.capitalLossCarryforwardST as number)
+        if (args.capitalLossCarryforwardLT != null) updates.capitalLossCarryforwardLT = cents(args.capitalLossCarryforwardLT as number)
+        service.setPriorYear(updates)
+        const parts: string[] = []
+        if (args.agi != null) parts.push(`AGI=$${(args.agi as number).toLocaleString('en-US')}`)
+        if (args.capitalLossCarryforwardST != null) parts.push(`ST carryover=$${(args.capitalLossCarryforwardST as number).toLocaleString('en-US')}`)
+        if (args.capitalLossCarryforwardLT != null) parts.push(`LT carryover=$${(args.capitalLossCarryforwardLT as number).toLocaleString('en-US')}`)
+        return `Prior-year info set: ${parts.join(', ')}. ${formatRefund(service)}`
+      },
+    },
   ]
 }

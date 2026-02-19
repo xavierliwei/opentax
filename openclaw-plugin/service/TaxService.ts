@@ -23,6 +23,7 @@ import type {
   Dependent,
   RSUVestEvent,
   ItemizedDeductions,
+  PriorYearInfo,
 } from '../../src/model/types.ts'
 import { computeAll } from '../../src/rules/engine.ts'
 import type { ComputeResult } from '../../src/rules/engine.ts'
@@ -311,6 +312,22 @@ export class TaxService extends EventEmitter {
 
   setCapitalTransactions(txns: CapitalTransaction[]): void {
     const tr = { ...this.taxReturn, capitalTransactions: txns }
+    this.apply(tr)
+  }
+
+  // ── Prior Year ───────────────────────────────────────────────────
+
+  setPriorYear(updates: Partial<PriorYearInfo>): void {
+    const prev = this.taxReturn
+    const existing = prev.priorYear ?? {
+      agi: 0,
+      capitalLossCarryforwardST: 0,
+      capitalLossCarryforwardLT: 0,
+    }
+    const tr = {
+      ...prev,
+      priorYear: { ...existing, ...updates },
+    }
     this.apply(tr)
   }
 
