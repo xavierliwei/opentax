@@ -663,5 +663,67 @@ export function createDataEntryTools(service: TaxService): ToolDef[] {
         return `Added ISO exercise: ${shares} ${args.symbol} shares at $${exPrice.toFixed(2)}/share (FMV $${fmv.toFixed(2)}, AMT bargain element $${bargainElement.toLocaleString('en-US', { minimumFractionDigits: 2 })}). ${formatRefund(service)}`
       },
     },
+
+    {
+      name: 'tax_add_rental_property',
+      description: 'Add a rental property (Schedule E Part I). All dollar amounts in dollars. Reports rental income and expenses for passive activity loss calculation.',
+      parameters: {
+        type: 'object',
+        properties: {
+          address: { type: 'string', description: 'Property address' },
+          propertyType: { type: 'string', enum: ['single-family', 'multi-family', 'vacation', 'commercial', 'land', 'royalties', 'other'], description: 'Type of rental property' },
+          fairRentalDays: { type: 'number', description: 'Number of days rented at fair price (default 365)' },
+          personalUseDays: { type: 'number', description: 'Number of days of personal use (default 0)' },
+          rentsReceived: { type: 'number', description: 'Total rents received (dollars)' },
+          royaltiesReceived: { type: 'number', description: 'Total royalties received (dollars, for royalty properties)' },
+          advertising: { type: 'number', description: 'Advertising expense (dollars)' },
+          auto: { type: 'number', description: 'Auto and travel expense (dollars)' },
+          cleaning: { type: 'number', description: 'Cleaning and maintenance (dollars)' },
+          commissions: { type: 'number', description: 'Commissions (dollars)' },
+          insurance: { type: 'number', description: 'Insurance (dollars)' },
+          legal: { type: 'number', description: 'Legal and professional fees (dollars)' },
+          management: { type: 'number', description: 'Management fees (dollars)' },
+          mortgageInterest: { type: 'number', description: 'Mortgage interest paid to banks (dollars)' },
+          otherInterest: { type: 'number', description: 'Other interest (dollars)' },
+          repairs: { type: 'number', description: 'Repairs (dollars)' },
+          supplies: { type: 'number', description: 'Supplies (dollars)' },
+          taxes: { type: 'number', description: 'Taxes (dollars)' },
+          utilities: { type: 'number', description: 'Utilities (dollars)' },
+          depreciation: { type: 'number', description: 'Depreciation — manual entry (dollars)' },
+          other: { type: 'number', description: 'Other expenses (dollars)' },
+        },
+        required: ['address', 'rentsReceived'],
+      },
+      execute(args) {
+        const id = randomUUID()
+        const c = (v: unknown) => v != null ? cents(v as number) : 0
+        service.addScheduleEProperty({
+          id,
+          address: args.address as string,
+          propertyType: (args.propertyType as string ?? 'single-family') as 'single-family',
+          fairRentalDays: (args.fairRentalDays as number) ?? 365,
+          personalUseDays: (args.personalUseDays as number) ?? 0,
+          rentsReceived: c(args.rentsReceived),
+          royaltiesReceived: c(args.royaltiesReceived),
+          advertising: c(args.advertising),
+          auto: c(args.auto),
+          cleaning: c(args.cleaning),
+          commissions: c(args.commissions),
+          insurance: c(args.insurance),
+          legal: c(args.legal),
+          management: c(args.management),
+          mortgageInterest: c(args.mortgageInterest),
+          otherInterest: c(args.otherInterest),
+          repairs: c(args.repairs),
+          supplies: c(args.supplies),
+          taxes: c(args.taxes),
+          utilities: c(args.utilities),
+          depreciation: c(args.depreciation),
+          other: c(args.other),
+        })
+        const rent = args.rentsReceived as number
+        return `Added rental property at ${args.address} ($${rent.toLocaleString('en-US')} rent). ${formatRefund(service)}`
+      },
+    },
   ]
 }

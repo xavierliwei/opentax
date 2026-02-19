@@ -44,6 +44,8 @@ import { computeStudentLoanDeduction } from './studentLoanDeduction'
 import type { StudentLoanDeductionResult } from './studentLoanDeduction'
 import { computeSchedule1 } from './schedule1'
 import type { Schedule1Result } from './schedule1'
+import { computeScheduleE } from './scheduleE'
+import type { ScheduleEResult } from './scheduleE'
 
 // ── Line 1a — Wages, salaries, tips ────────────────────────────
 // Sum of all W-2 Box 1 values.
@@ -163,9 +165,9 @@ export function computeLine8(schedule1?: Schedule1Result, hsaDeduction?: HSAResu
   const hsaTaxable = hsaDeduction?.taxableDistributions ?? 0
   const total = schedule1Amount + hsaTaxable
 
-  if (total > 0) {
+  if (total !== 0) {
     const inputs: string[] = []
-    if (schedule1Amount > 0) inputs.push('schedule1.line10')
+    if (schedule1Amount !== 0) inputs.push('schedule1.line10')
     if (hsaTaxable > 0) inputs.push('hsa.taxableDistributions')
     return tracedFromComputation(total, 'form1040.line8', inputs, 'Form 1040, Line 8')
   }
@@ -665,6 +667,7 @@ export interface Form1040Result {
   schedule1: Schedule1Result | null
   scheduleA: ScheduleAResult | null
   scheduleD: ScheduleDResult | null
+  scheduleE: ScheduleEResult | null
 }
 
 // ── Full orchestrator ──────────────────────────────────────────
@@ -682,11 +685,28 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     model.form1099DIVs.some(f => f.box2a > 0)
   const scheduleD = hasCapitalActivity ? computeScheduleD(model) : null
 
-  // Schedule 1 (compute if there is 1099-MISC income)
+  // Schedule E (compute if there are rental properties)
+  const hasScheduleEProperties = (model.scheduleEProperties ?? []).length > 0
+  // Compute a preliminary AGI for PAL phase-out: total income minus adjustments,
+  // but without Schedule E itself (to avoid circular dependency).
+  // We'll use line9 without Schedule E contribution as a proxy.
+  let scheduleE: ScheduleEResult | null = null
+  if (hasScheduleEProperties) {
+    // Preliminary AGI: wages + interest + dividends + cap gains (no Schedule E yet)
+    const prelimLine1a = computeLine1a(model)
+    const prelimLine2b = computeLine2b(model)
+    const prelimLine3b = computeLine3b(model)
+    const prelimLine7 = computeLine7(scheduleD?.line21)
+    const prelimAGI = prelimLine1a.amount + prelimLine2b.amount + prelimLine3b.amount + prelimLine7.amount
+    scheduleE = computeScheduleE(model.scheduleEProperties, model.filingStatus, prelimAGI)
+  }
+
+  // Schedule 1 (compute if there is 1099-MISC income or Schedule E)
   const has1099MISCIncome = (model.form1099MISCs ?? []).some(
     f => f.box1 > 0 || f.box2 > 0 || f.box3 > 0,
   )
-  const schedule1 = has1099MISCIncome ? computeSchedule1(model) : null
+  const needSchedule1 = has1099MISCIncome || hasScheduleEProperties
+  const schedule1 = needSchedule1 ? computeSchedule1(model, scheduleE ?? undefined) : null
 
   // ── HSA (computed early — no dependency on Line 9) ──────
   const hsaResult = computeHSADeduction(model)
@@ -869,6 +889,6 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     studentLoanDeduction,
     hsaResult,
     amtResult,
-    schedule1, scheduleA, scheduleD,
+    schedule1, scheduleA, scheduleD, scheduleE,
   }
 }

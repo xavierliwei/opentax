@@ -14,6 +14,7 @@ import type {
   Dependent,
   RSUVestEvent,
   ISOExercise,
+  ScheduleEProperty,
   ItemizedDeductions,
   PriorYearInfo,
   DependentCareExpenses,
@@ -68,6 +69,9 @@ export interface TaxStoreState {
   removeRSUVestEvent: (id: string) => void
   addISOExercise: (exercise: ISOExercise) => void
   removeISOExercise: (id: string) => void
+  addScheduleEProperty: (prop: ScheduleEProperty) => void
+  updateScheduleEProperty: (id: string, updates: Partial<ScheduleEProperty>) => void
+  removeScheduleEProperty: (id: string) => void
   setCapitalTransactions: (txns: CapitalTransaction[]) => void
   setPriorYear: (updates: Partial<PriorYearInfo>) => void
   setDeductionMethod: (method: 'standard' | 'itemized') => void
@@ -428,6 +432,32 @@ export const useTaxStore = create<TaxStoreState>()(
       removeISOExercise: (id) => {
         const prev = get().taxReturn
         const tr = { ...prev, isoExercises: prev.isoExercises.filter((e) => e.id !== id) }
+        set(recompute(tr))
+      },
+
+      addScheduleEProperty: (prop) => {
+        const prev = get().taxReturn
+        const tr = { ...prev, scheduleEProperties: [...prev.scheduleEProperties, prop] }
+        set(recompute(tr))
+      },
+
+      updateScheduleEProperty: (id, updates) => {
+        const prev = get().taxReturn
+        const tr = {
+          ...prev,
+          scheduleEProperties: prev.scheduleEProperties.map((p) =>
+            p.id === id ? { ...p, ...updates } : p,
+          ),
+        }
+        set(recompute(tr))
+      },
+
+      removeScheduleEProperty: (id) => {
+        const prev = get().taxReturn
+        const tr = {
+          ...prev,
+          scheduleEProperties: prev.scheduleEProperties.filter((p) => p.id !== id),
+        }
         set(recompute(tr))
       },
 

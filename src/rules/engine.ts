@@ -97,6 +97,11 @@ export const NODE_LABELS: Record<string, string> = {
   'schedule1.line8z': 'Other income (prizes, awards, etc.)',
   'schedule1.line10': 'Total additional income',
 
+  // Schedule E
+  'scheduleE.line23a': 'Total rental/royalty income or loss',
+  'scheduleE.line25': 'Total rental/royalty losses allowed',
+  'scheduleE.line26': 'Total Schedule E income',
+
   // Schedule B
   'scheduleB.line4': 'Total interest',
   'scheduleB.line6': 'Total ordinary dividends',
@@ -195,6 +200,7 @@ export function computeAll(model: TaxReturn): ComputeResult {
   if (form1040.schedule1) executedSchedules.push('1')
   if (form1040.scheduleA) executedSchedules.push('A')
   if (form1040.scheduleD) executedSchedules.push('D')
+  if (form1040.scheduleE) executedSchedules.push('E')
 
   return { form1040, scheduleB, values, executedSchedules }
 }
@@ -426,6 +432,66 @@ export function collectAllValues(
     add(s1.line5)
     add(s1.line8z)
     add(s1.line10)
+  }
+
+  // Schedule E
+  if (form1040.scheduleE) {
+    const se = form1040.scheduleE
+    add(se.line23a)
+    add(se.line25)
+    add(se.line26)
+    for (const prop of se.properties) {
+      add(prop.income)
+      add(prop.expenses)
+      add(prop.netIncome)
+    }
+  }
+
+  // Schedule E property source leaf nodes
+  for (const p of (model.scheduleEProperties ?? [])) {
+    if (p.rentsReceived > 0) {
+      values.set(`scheduleE:${p.id}:rentsReceived`, {
+        amount: p.rentsReceived,
+        source: {
+          kind: 'document',
+          documentType: 'Schedule E',
+          documentId: p.id,
+          field: 'Rents received',
+          description: `${p.address || 'Property'} — Rents received`,
+        },
+        confidence: 1.0,
+      })
+    }
+    if (p.royaltiesReceived > 0) {
+      values.set(`scheduleE:${p.id}:royaltiesReceived`, {
+        amount: p.royaltiesReceived,
+        source: {
+          kind: 'document',
+          documentType: 'Schedule E',
+          documentId: p.id,
+          field: 'Royalties received',
+          description: `${p.address || 'Property'} — Royalties received`,
+        },
+        confidence: 1.0,
+      })
+    }
+    const expenseTotal =
+      p.advertising + p.auto + p.cleaning + p.commissions + p.insurance +
+      p.legal + p.management + p.mortgageInterest + p.otherInterest +
+      p.repairs + p.supplies + p.taxes + p.utilities + p.depreciation + p.other
+    if (expenseTotal > 0) {
+      values.set(`scheduleE:${p.id}:expenses`, {
+        amount: expenseTotal,
+        source: {
+          kind: 'document',
+          documentType: 'Schedule E',
+          documentId: p.id,
+          field: 'Total expenses',
+          description: `${p.address || 'Property'} — Total expenses`,
+        },
+        confidence: 1.0,
+      })
+    }
   }
 
   // Schedule A
@@ -890,6 +956,23 @@ export function resolveDocumentRef(
       label: `Sale of ${tx.description}`,
       amount: tx.gainLoss,
     }
+  }
+
+  // Schedule E property: scheduleE:{id}:{field}
+  m = refId.match(/^scheduleE:(.+?):(.+)$/)
+  if (m) {
+    const p = (model.scheduleEProperties ?? []).find(p => p.id === m![1])
+    if (!p) return { label: `Unknown property (${m[1]})`, amount: 0 }
+    const field = m[2]
+    if (field === 'rentsReceived') return { label: `${p.address || 'Property'} — Rents received`, amount: p.rentsReceived }
+    if (field === 'royaltiesReceived') return { label: `${p.address || 'Property'} — Royalties received`, amount: p.royaltiesReceived }
+    if (field === 'expenses') {
+      const total = p.advertising + p.auto + p.cleaning + p.commissions + p.insurance +
+        p.legal + p.management + p.mortgageInterest + p.otherInterest +
+        p.repairs + p.supplies + p.taxes + p.utilities + p.depreciation + p.other
+      return { label: `${p.address || 'Property'} — Total expenses`, amount: total }
+    }
+    return { label: `${p.address || 'Property'} — ${field}`, amount: 0 }
   }
 
   // Standard deduction

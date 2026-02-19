@@ -91,7 +91,8 @@ export function analyzeGaps(taxReturn: TaxReturn, computeResult: ComputeResult):
     taxReturn.form1099INTs.length > 0 ||
     taxReturn.form1099DIVs.length > 0 ||
     taxReturn.form1099Bs.length > 0 ||
-    taxReturn.capitalTransactions.length > 0
+    taxReturn.capitalTransactions.length > 0 ||
+    (taxReturn.scheduleEProperties ?? []).length > 0
 
   if (!hasAnyIncome) {
     items.push({
@@ -117,6 +118,22 @@ export function analyzeGaps(taxReturn: TaxReturn, computeResult: ComputeResult):
       label: 'Federal tax withholding',
       priority: 'recommended',
     })
+  }
+
+  // ── Schedule E properties ───────────────────────────────────
+  const scheduleEProps = taxReturn.scheduleEProperties ?? []
+  for (const p of scheduleEProps) {
+    if (p.rentsReceived === 0 && p.royaltiesReceived === 0) {
+      const totalExp = p.advertising + p.auto + p.cleaning + p.commissions +
+        p.insurance + p.legal + p.management + p.mortgageInterest +
+        p.otherInterest + p.repairs + p.supplies + p.taxes +
+        p.utilities + p.depreciation + p.other
+      if (totalExp === 0) {
+        warnings.push(
+          `Rental property "${p.address || 'unnamed'}" has $0 income and $0 expenses. Enter amounts or remove the property.`
+        )
+      }
+    }
   }
 
   // ── Deductions ───────────────────────────────────────────────

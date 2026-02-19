@@ -420,6 +420,16 @@ export const STUDENT_LOAN_PHASEOUT: Record<FilingStatus, { start: number; end: n
   mfs:    null,  // not eligible
 }
 
+// ── Schedule E — Passive Activity Loss (PAL) ──────────────────
+// Source: IRC §469(i) — $25,000 special allowance for rental real estate
+// Phase-out: $100K–$150K MAGI; MFS gets $0
+
+export const PAL_SPECIAL_ALLOWANCE = c(25000)          // $25,000
+export const PAL_PHASEOUT_START: Record<FilingStatus, number> = {
+  single: c(100000), mfj: c(100000), mfs: c(0), hoh: c(100000), qw: c(100000),
+}
+export const PAL_PHASEOUT_RANGE = c(50000)             // $50,000
+
 // ── Tax Year ───────────────────────────────────────────────────
 
 export const TAX_YEAR = 2025

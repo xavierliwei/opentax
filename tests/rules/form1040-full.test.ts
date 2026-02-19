@@ -26,7 +26,7 @@ import {
   computeLine37,
   computeForm1040,
 } from '../../src/rules/2025/form1040'
-import { makeW2, make1099INT, make1099DIV, makeTransaction, simpleW2Return } from '../fixtures/returns'
+import { makeW2, make1099INT, make1099DIV, makeTransaction, simpleW2Return, rentalPropertyReturn, rentalLossReturn } from '../fixtures/returns'
 import { STANDARD_DEDUCTION } from '../../src/rules/2025/constants'
 import { tracedFromComputation } from '../../src/model/traced'
 
@@ -676,5 +676,61 @@ describe('Cross-line consistency', () => {
   it('Line 34 - Line 37 = Line 33 - Line 24', () => {
     expect(result.line34.amount - result.line37.amount)
       .toBe(result.line33.amount - result.line24.amount)
+  })
+})
+
+// ── Rental property integration tests ────────────────────────────
+
+describe('computeForm1040 — Rental property profit', () => {
+  const result = computeForm1040(rentalPropertyReturn())
+
+  it('triggers Schedule E', () => {
+    expect(result.scheduleE).not.toBeNull()
+  })
+
+  it('triggers Schedule 1', () => {
+    expect(result.schedule1).not.toBeNull()
+  })
+
+  it('Schedule E line26 = $10,800 profit', () => {
+    // $24K rent - ($1.2K insurance + $3K repairs + $4K taxes + $5K depreciation) = $10,800
+    expect(result.scheduleE!.line26.amount).toBe(cents(10800))
+  })
+
+  it('Schedule 1 line5 = Schedule E line26', () => {
+    expect(result.schedule1!.line5.amount).toBe(result.scheduleE!.line26.amount)
+  })
+
+  it('rental income flows to AGI via line8', () => {
+    // AGI = $80,000 wages + $10,800 rental = $90,800
+    expect(result.line11.amount).toBe(cents(90800))
+  })
+
+  it('no disallowed loss (profit)', () => {
+    expect(result.scheduleE!.disallowedLoss).toBe(0)
+  })
+})
+
+describe('computeForm1040 — Rental property loss with PAL', () => {
+  const result = computeForm1040(rentalLossReturn())
+
+  it('triggers Schedule E with loss', () => {
+    expect(result.scheduleE).not.toBeNull()
+    // Net loss: $12K - $42K = -$30K
+    expect(result.scheduleE!.line23a.amount).toBe(cents(-30000))
+  })
+
+  it('PAL limits loss to $25K (AGI $80K < $100K phaseout)', () => {
+    expect(result.scheduleE!.line25.amount).toBe(cents(-25000))
+    expect(result.scheduleE!.line26.amount).toBe(cents(-25000))
+  })
+
+  it('disallowed loss = $5K carryforward', () => {
+    expect(result.scheduleE!.disallowedLoss).toBe(cents(-5000))
+  })
+
+  it('rental loss reduces AGI', () => {
+    // AGI = $80,000 wages - $25,000 rental loss = $55,000
+    expect(result.line11.amount).toBe(cents(55000))
   })
 })

@@ -12,6 +12,7 @@ import { MiscIncomePage } from '../ui/pages/MiscIncomePage.tsx'
 import { StockSalesPage } from '../ui/pages/StockSalesPage.tsx'
 import { RSUIncomePage } from '../ui/pages/RSUIncomePage.tsx'
 import { ISOExercisesPage } from '../ui/pages/ISOExercisesPage.tsx'
+import { ScheduleEPage } from '../ui/pages/ScheduleEPage.tsx'
 import { PriorYearPage } from '../ui/pages/PriorYearPage.tsx'
 import { DeductionsPage } from '../ui/pages/DeductionsPage.tsx'
 import { CreditsPage } from '../ui/pages/CreditsPage.tsx'
@@ -118,6 +119,14 @@ export const STEPS: InterviewStep[] = [
     isVisible: () => true,
     isComplete: () => true,
     component: MiscIncomePage,
+  },
+  {
+    id: 'rental-income',
+    label: 'Rental Income',
+    path: '/interview/rental-income',
+    isVisible: () => true,
+    isComplete: () => true,
+    component: ScheduleEPage,
   },
   {
     id: 'stock-sales',

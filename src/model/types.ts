@@ -202,6 +202,39 @@ export interface ISOExercise {
   fmvAtExercise: number    // cents per share (FMV at exercise date)
 }
 
+// ── Schedule E Property (Rental Real Estate) ─────────────────────
+
+export type ScheduleEPropertyType =
+  | 'single-family' | 'multi-family' | 'vacation' | 'commercial'
+  | 'land' | 'royalties' | 'other'
+
+export interface ScheduleEProperty {
+  id: string
+  address: string
+  propertyType: ScheduleEPropertyType
+  fairRentalDays: number       // Schedule E line A
+  personalUseDays: number      // Schedule E line B
+  // Income
+  rentsReceived: number        // cents — line 3
+  royaltiesReceived: number    // cents — line 4
+  // Expenses (lines 5–19, all cents)
+  advertising: number
+  auto: number
+  cleaning: number
+  commissions: number
+  insurance: number
+  legal: number
+  management: number
+  mortgageInterest: number
+  otherInterest: number
+  repairs: number
+  supplies: number
+  taxes: number
+  utilities: number
+  depreciation: number         // manual entry — line 18
+  other: number                // line 19
+}
+
 // ── Capital transactions (derived) ─────────────────────────────
 
 /**
@@ -372,6 +405,9 @@ export interface TaxReturn {
   // ISO exercise events (AMT preference item)
   isoExercises: ISOExercise[]
 
+  // Schedule E — Rental real estate properties
+  scheduleEProperties: ScheduleEProperty[]
+
   // Derived / processed data
   capitalTransactions: CapitalTransaction[]
 
@@ -431,6 +467,7 @@ export function emptyTaxReturn(taxYear: number): TaxReturn {
     form1099MISCs: [],
     rsuVestEvents: [],
     isoExercises: [],
+    scheduleEProperties: [],
     capitalTransactions: [],
     adjustments: [],
     deductions: {

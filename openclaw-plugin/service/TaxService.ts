@@ -25,6 +25,7 @@ import type {
   Taxpayer,
   Dependent,
   RSUVestEvent,
+  ScheduleEProperty,
   ItemizedDeductions,
   PriorYearInfo,
   DependentCareExpenses,
@@ -520,6 +521,34 @@ export class TaxService extends EventEmitter {
     const tr = {
       ...this.taxReturn,
       isoExercises: this.taxReturn.isoExercises.filter((e) => e.id !== id),
+    }
+    this.apply(tr)
+  }
+
+  // ── Schedule E Properties ──────────────────────────────────────
+
+  addScheduleEProperty(prop: ScheduleEProperty): void {
+    const tr = {
+      ...this.taxReturn,
+      scheduleEProperties: [...(this.taxReturn.scheduleEProperties ?? []), prop],
+    }
+    this.apply(tr)
+  }
+
+  updateScheduleEProperty(id: string, updates: Partial<ScheduleEProperty>): void {
+    const tr = {
+      ...this.taxReturn,
+      scheduleEProperties: (this.taxReturn.scheduleEProperties ?? []).map((p) =>
+        p.id === id ? { ...p, ...updates } : p,
+      ),
+    }
+    this.apply(tr)
+  }
+
+  removeScheduleEProperty(id: string): void {
+    const tr = {
+      ...this.taxReturn,
+      scheduleEProperties: (this.taxReturn.scheduleEProperties ?? []).filter((p) => p.id !== id),
     }
     this.apply(tr)
   }

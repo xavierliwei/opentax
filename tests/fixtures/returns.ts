@@ -7,7 +7,7 @@
 
 import { emptyTaxReturn } from '../../src/model/types'
 import { cents } from '../../src/model/traced'
-import type { TaxReturn, W2, Form1099INT, Form1099DIV, CapitalTransaction, Dependent } from '../../src/model/types'
+import type { TaxReturn, W2, Form1099INT, Form1099DIV, CapitalTransaction, Dependent, ScheduleEProperty } from '../../src/model/types'
 
 // ── Helper: make a W-2 with defaults ───────────────────────────
 
@@ -1075,5 +1075,99 @@ export function lowIncomeNoChildReturn(): TaxReturn {
     // Credit at EI: $649 (max credit)
     // Credit at AGI: same
     // EITC = $649
+  }
+}
+
+// ── Helper: make a ScheduleEProperty with defaults ──────────────
+
+export function makeScheduleEProperty(
+  overrides: Partial<ScheduleEProperty> & { id: string },
+): ScheduleEProperty {
+  return {
+    address: '123 Rental St',
+    propertyType: 'single-family',
+    fairRentalDays: 365,
+    personalUseDays: 0,
+    rentsReceived: 0,
+    royaltiesReceived: 0,
+    advertising: 0,
+    auto: 0,
+    cleaning: 0,
+    commissions: 0,
+    insurance: 0,
+    legal: 0,
+    management: 0,
+    mortgageInterest: 0,
+    otherInterest: 0,
+    repairs: 0,
+    supplies: 0,
+    taxes: 0,
+    utilities: 0,
+    depreciation: 0,
+    other: 0,
+    ...overrides,
+  }
+}
+
+// ── Fixture: rental property with profit ──────────────────────────
+
+export function rentalPropertyReturn(): TaxReturn {
+  return {
+    ...emptyTaxReturn(2025),
+    w2s: [
+      makeW2({
+        id: 'w2-1',
+        employerName: 'Acme Corp',
+        box1: cents(80000),
+        box2: cents(10000),
+      }),
+    ],
+    scheduleEProperties: [
+      makeScheduleEProperty({
+        id: 'prop-1',
+        address: '456 Maple Ave',
+        rentsReceived: cents(24000),   // $24,000 rent
+        insurance: cents(1200),
+        repairs: cents(3000),
+        taxes: cents(4000),
+        depreciation: cents(5000),
+        // Total expenses: $13,200
+        // Net: $24,000 - $13,200 = $10,800 profit
+      }),
+    ],
+    // AGI = $80,000 + $10,800 = $90,800
+  }
+}
+
+// ── Fixture: rental property with loss (PAL applies) ─────────────
+
+export function rentalLossReturn(): TaxReturn {
+  return {
+    ...emptyTaxReturn(2025),
+    w2s: [
+      makeW2({
+        id: 'w2-1',
+        employerName: 'Acme Corp',
+        box1: cents(80000),
+        box2: cents(10000),
+      }),
+    ],
+    scheduleEProperties: [
+      makeScheduleEProperty({
+        id: 'prop-1',
+        address: '789 Oak Dr',
+        rentsReceived: cents(12000),     // $12,000 rent
+        mortgageInterest: cents(15000),
+        insurance: cents(2000),
+        taxes: cents(5000),
+        repairs: cents(8000),
+        depreciation: cents(12000),
+        // Total expenses: $42,000
+        // Net: $12,000 - $42,000 = -$30,000 loss
+        // PAL allowance at AGI $80,000 (below $100K): full $25,000
+        // Allowed loss: -$25,000
+        // Disallowed: -$5,000 carryforward
+      }),
+    ],
   }
 }
