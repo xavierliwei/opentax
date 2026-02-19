@@ -38,6 +38,8 @@ import { computeIRADeduction } from './iraDeduction'
 import type { IRADeductionResult } from './iraDeduction'
 import { computeHSADeduction } from './hsaDeduction'
 import type { HSAResult } from './hsaDeduction'
+import { computeStudentLoanDeduction } from './studentLoanDeduction'
+import type { StudentLoanDeductionResult } from './studentLoanDeduction'
 import { computeSchedule1 } from './schedule1'
 import type { Schedule1Result } from './schedule1'
 
@@ -193,13 +195,16 @@ export function computeLine9(
 export function computeLine10(
   iraDeduction: IRADeductionResult | null,
   hsaDeduction: HSAResult | null,
+  studentLoanDeduction: StudentLoanDeductionResult | null,
 ): TracedValue {
   const ira = iraDeduction?.deductibleAmount ?? 0
   const hsa = hsaDeduction?.deductibleAmount ?? 0
-  const amount = ira + hsa
+  const studentLoan = studentLoanDeduction?.deductibleAmount ?? 0
+  const amount = ira + hsa + studentLoan
   const inputs: string[] = []
   if (ira > 0) inputs.push('adjustments.ira')
   if (hsa > 0) inputs.push('adjustments.hsa')
+  if (studentLoan > 0) inputs.push('adjustments.studentLoan')
   return amount > 0
     ? tracedFromComputation(amount, 'form1040.line10', inputs, 'Form 1040, Line 10')
     : tracedZero('form1040.line10', 'Form 1040, Line 10')
@@ -616,6 +621,9 @@ export interface Form1040Result {
   // IRA deduction detail (Schedule 1, Line 20)
   iraDeduction: IRADeductionResult | null
 
+  // Student loan interest deduction (Schedule 1, Line 21)
+  studentLoanDeduction: StudentLoanDeductionResult | null
+
   // HSA deduction detail (Form 8889)
   hsaResult: HSAResult | null
 
@@ -671,7 +679,15 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   // ── Adjustments & AGI ───────────────────────────────────
   // MAGI for IRA deduction = Line 9 (total income), per IRC §219(g)(3)(A)(ii)
   const iraDeduction = computeIRADeduction(model, line9.amount)
-  const line10 = computeLine10(iraDeduction, hsaResult)
+
+  // MAGI for student loan = Line 9 - IRA deduction - HSA deduction
+  // (all other adjustments subtracted, but not student loan itself)
+  const studentLoanMAGI = line9.amount
+    - (iraDeduction?.deductibleAmount ?? 0)
+    - (hsaResult?.deductibleAmount ?? 0)
+  const studentLoanDeduction = computeStudentLoanDeduction(model, studentLoanMAGI)
+
+  const line10 = computeLine10(iraDeduction, hsaResult, studentLoanDeduction)
   const line11 = computeLine11(line9, line10)
 
   // ── Deductions ──────────────────────────────────────────
@@ -811,6 +827,7 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     saversCredit,
     energyCredit: energyCreditResult,
     iraDeduction,
+    studentLoanDeduction,
     hsaResult,
     amtResult,
     schedule1, scheduleA, scheduleD,

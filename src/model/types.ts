@@ -365,6 +365,9 @@ export interface TaxReturn {
   }
   credits: Credit[]
 
+  // Student loan interest (Form 1098-E Box 1)
+  studentLoanInterest?: number  // cents
+
   // HSA data
   hsa?: HSAInfo
   form1099SAs?: Form1099SA[]

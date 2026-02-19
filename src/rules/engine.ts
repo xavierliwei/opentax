@@ -144,6 +144,7 @@ export const NODE_LABELS: Record<string, string> = {
   // Adjustments (Line 10 components)
   'adjustments.ira': 'IRA deduction (Schedule 1, Line 20)',
   'adjustments.hsa': 'HSA deduction (Form 8889)',
+  'adjustments.studentLoan': 'Student loan interest deduction (Schedule 1, Line 21)',
   'hsa.taxableDistributions': 'Taxable HSA distributions',
   'hsa.penalties': 'HSA penalties',
 
@@ -279,6 +280,16 @@ export function collectAllValues(
         'HSA penalties',
       ))
     }
+  }
+
+  // Student loan interest deduction detail node
+  if (form1040.studentLoanDeduction && form1040.studentLoanDeduction.deductibleAmount > 0) {
+    values.set('adjustments.studentLoan', tracedFromComputation(
+      form1040.studentLoanDeduction.deductibleAmount,
+      'adjustments.studentLoan',
+      [],
+      'Student loan interest deduction (Schedule 1, Line 21)',
+    ))
   }
 
   // Child Tax Credit detail nodes

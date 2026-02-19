@@ -377,6 +377,19 @@ export const HSA_CATCHUP_AGE = 55
 export const HSA_EXCESS_PENALTY_RATE = 0.06
 export const HSA_DISTRIBUTION_PENALTY_RATE = 0.20
 
+// ── Student Loan Interest (Schedule 1, Line 21) ─────────────────
+// Source: Rev. Proc. 2024-40, IRC §221
+
+export const STUDENT_LOAN_DEDUCTION_MAX = c(2500)
+
+export const STUDENT_LOAN_PHASEOUT: Record<FilingStatus, { start: number; end: number } | null> = {
+  single: { start: c(85000),  end: c(100000) },
+  hoh:    { start: c(85000),  end: c(100000) },
+  mfj:    { start: c(170000), end: c(200000) },
+  qw:     { start: c(170000), end: c(200000) },
+  mfs:    null,  // not eligible
+}
+
 // ── Tax Year ───────────────────────────────────────────────────
 
 export const TAX_YEAR = 2025

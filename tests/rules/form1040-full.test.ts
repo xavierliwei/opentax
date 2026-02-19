@@ -34,7 +34,7 @@ import { tracedFromComputation } from '../../src/model/traced'
 
 describe('Line 10 — Adjustments to income', () => {
   it('returns $0 when no adjustments', () => {
-    expect(computeLine10(null, null).amount).toBe(0)
+    expect(computeLine10(null, null, null).amount).toBe(0)
   })
 })
 
