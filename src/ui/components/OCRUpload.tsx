@@ -63,6 +63,11 @@ export function OCRUpload({ formType: expectedFormType }: OCRUploadProps) {
     try {
       const ocr = await recognizeImage(file)
 
+      if (ocr.words.length === 0 || ocr.rawText.trim().length === 0) {
+        setState({ status: 'error', message: 'No text detected in this image. Please try a higher-resolution photo with better lighting.' })
+        return
+      }
+
       setState({ status: 'scanning', progress: 'Detecting form type...' })
 
       let detectedType = detectFormType(ocr)

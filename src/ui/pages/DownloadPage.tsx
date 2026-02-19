@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTaxStore } from '../../store/taxStore.ts'
 import { useInterview } from '../../interview/useInterview.ts'
 import { InterviewNav } from './InterviewNav.tsx'
@@ -35,20 +35,50 @@ export function DownloadPage() {
   const interview = useInterview()
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [templateWarning, setTemplateWarning] = useState<string | null>(null)
+
+  // Proactive check: verify PDF templates exist on mount
+  useEffect(() => {
+    fetch('/forms/f1040.pdf', { method: 'HEAD' }).then((resp) => {
+      if (!resp.ok) {
+        setTemplateWarning(
+          'IRS form templates are missing. PDF download will not work until templates are installed in the /public/forms/ directory.',
+        )
+      }
+    }).catch(() => {
+      setTemplateWarning(
+        'Could not verify IRS form templates. PDF download may not work.',
+      )
+    })
+  }, [])
 
   const handleDownloadPDF = async () => {
     setGenerating(true)
     setError(null)
     try {
-      const templates: FormTemplates = {
-        f1040: await loadTemplate('forms/f1040.pdf'),
-        f1040sa: await loadTemplate('forms/f1040sa.pdf'),
-        f1040sb: await loadTemplate('forms/f1040sb.pdf'),
-        f1040sd: await loadTemplate('forms/f1040sd.pdf'),
-        f8949: await loadTemplate('forms/f8949.pdf'),
+      let templates: FormTemplates
+      try {
+        templates = {
+          f1040: await loadTemplate('forms/f1040.pdf'),
+          f1040sa: await loadTemplate('forms/f1040sa.pdf'),
+          f1040sb: await loadTemplate('forms/f1040sb.pdf'),
+          f1040sd: await loadTemplate('forms/f1040sd.pdf'),
+          f8949: await loadTemplate('forms/f8949.pdf'),
+        }
+      } catch {
+        throw new Error(
+          'Could not load IRS form templates. Make sure the PDF templates are installed in the /public/forms/ directory.',
+        )
       }
 
-      const compiled = await compileFilingPackage(taxReturn, templates)
+      let compiled
+      try {
+        compiled = await compileFilingPackage(taxReturn, templates)
+      } catch {
+        throw new Error(
+          'Failed to fill form fields. This may indicate a data issue — try reviewing your return for missing information.',
+        )
+      }
 
       const blob = new Blob([compiled.pdfBytes as BlobPart], { type: 'application/pdf' })
       const url = URL.createObjectURL(blob)
@@ -128,6 +158,13 @@ export function DownloadPage() {
           </div>
         )}
       </div>
+
+      {/* Template warning */}
+      {templateWarning && (
+        <div className="mt-4 bg-amber-50 border border-amber-200 rounded-md p-3 text-sm text-amber-800">
+          {templateWarning}
+        </div>
+      )}
 
       {/* Download buttons */}
       <div className="mt-6 flex gap-4">

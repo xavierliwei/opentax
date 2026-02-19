@@ -106,16 +106,24 @@ function ImportBanner({
       className={`rounded-lg border px-4 py-3 mt-4 ${hasErrors ? 'border-red-300 bg-red-50' : 'border-green-300 bg-green-50'}`}
     >
       {hasErrors ? (
-        <p className="text-sm font-medium text-red-700">Import failed: {result.errors[0]}</p>
+        <div className="flex flex-col gap-1">
+          {result.errors.map((err, i) => (
+            <p key={i} className="text-sm font-medium text-red-700">Import failed: {err}</p>
+          ))}
+        </div>
       ) : (
         <div className="flex items-start justify-between gap-4">
-          <p className="text-sm font-medium text-green-800">
-            ✓ {result.rowCounts.parsed} transaction{result.rowCounts.parsed !== 1 ? 's' : ''}{' '}
-            imported from {brokerName}
+          <div>
+            <p className="text-sm font-medium text-green-800">
+              ✓ {result.rowCounts.parsed} transaction{result.rowCounts.parsed !== 1 ? 's' : ''}{' '}
+              imported from {brokerName}
+            </p>
             {result.rowCounts.skipped > 0 && (
-              <span className="text-green-600"> ({result.rowCounts.skipped} rows skipped)</span>
+              <p className="text-xs text-amber-700 mt-1">
+                {result.rowCounts.skipped} row{result.rowCounts.skipped !== 1 ? 's' : ''} could not be parsed and {result.rowCounts.skipped !== 1 ? 'were' : 'was'} skipped
+              </p>
             )}
-          </p>
+          </div>
           <button
             className="text-xs text-gray-500 hover:text-gray-700 underline whitespace-nowrap"
             onClick={onReplace}
@@ -441,6 +449,14 @@ export function StockSalesPage() {
           setShowUpload(false)
         }
       }
+    } catch (e) {
+      setImportResult({
+        transactions: [],
+        warnings: [],
+        errors: [e instanceof Error ? e.message : 'Failed to read file. The file may be corrupted or in an unsupported format.'],
+        rowCounts: { total: 0, parsed: 0, skipped: 0 },
+      })
+      setImportBroker(file.name)
     } finally {
       setImporting(false)
     }

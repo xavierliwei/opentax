@@ -49,14 +49,14 @@ function tryParser(
   try {
     const result = parser.parse(csv)
     return { parser, confidence, result }
-  } catch {
+  } catch (e) {
     return {
       parser,
       confidence: 'low',
       result: {
         transactions: [],
         warnings: [],
-        errors: ['Parse failed'],
+        errors: [e instanceof Error ? `Parse failed: ${e.message}` : 'Parse failed: unknown error'],
         rowCounts: { total: 0, parsed: 0, skipped: 0 },
       },
     }
