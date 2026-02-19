@@ -205,13 +205,30 @@ function parseTxnRow(line: Line): TxnFields | null {
   const raw = line.items.map((it) => it.str.trim()).filter(Boolean)
 
   // Normalize: merge consecutive lone "." into "..."
-  const tokens: string[] = []
+  const collapsed: string[] = []
   for (let i = 0; i < raw.length; ) {
     if (raw[i] === '.' && raw[i + 1] === '.' && raw[i + 2] === '.') {
-      tokens.push('...')
+      collapsed.push('...')
       i += 3
     } else {
-      tokens.push(raw[i++])
+      collapsed.push(raw[i++])
+    }
+  }
+
+  // Merge numeric fragments split at the decimal point.
+  // Robinhood PDFs sometimes emit numbers as two separate text items, e.g.:
+  //   "200" + ".000"  →  "200.000"
+  //   "28,287" + ".87"  →  "28,287.87"
+  const tokens: string[] = []
+  for (let i = 0; i < collapsed.length; ) {
+    const cur = collapsed[i]
+    const next = collapsed[i + 1] ?? ''
+    if (/^-?[\d,]+$/.test(cur) && /^\.\d+$/.test(next)) {
+      tokens.push(cur + next)
+      i += 2
+    } else {
+      tokens.push(cur)
+      i++
     }
   }
 
