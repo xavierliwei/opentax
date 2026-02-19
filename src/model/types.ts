@@ -144,6 +144,18 @@ export interface Form1099DIV {
   box11: number   // Exempt-interest dividends (cents)
 }
 
+// ── 1099-MISC ─────────────────────────────────────────────────
+
+export interface Form1099MISC {
+  id: string
+  payerName: string
+  payerTin?: string
+  box1: number   // Rents (cents)
+  box2: number   // Royalties (cents)
+  box3: number   // Other income — prizes, awards, etc. (cents)
+  box4: number   // Federal income tax withheld (cents)
+}
+
 // ── RSU vest events ────────────────────────────────────────────
 
 export interface RSUVestEvent {
@@ -312,6 +324,7 @@ export interface TaxReturn {
   form1099Bs: Form1099B[]
   form1099INTs: Form1099INT[]
   form1099DIVs: Form1099DIV[]
+  form1099MISCs: Form1099MISC[]
 
   // RSU data
   rsuVestEvents: RSUVestEvent[]
@@ -362,6 +375,7 @@ export function emptyTaxReturn(taxYear: number): TaxReturn {
     form1099Bs: [],
     form1099INTs: [],
     form1099DIVs: [],
+    form1099MISCs: [],
     rsuVestEvents: [],
     isoExercises: [],
     capitalTransactions: [],

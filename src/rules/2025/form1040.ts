@@ -36,6 +36,8 @@ import type { EnergyCreditResult } from './energyCredit'
 import { TAX_YEAR } from './constants'
 import { computeIRADeduction } from './iraDeduction'
 import type { IRADeductionResult } from './iraDeduction'
+import { computeSchedule1 } from './schedule1'
+import type { Schedule1Result } from './schedule1'
 
 // ── Line 1a — Wages, salaries, tips ────────────────────────────
 // Sum of all W-2 Box 1 values.
@@ -131,11 +133,18 @@ export function computeLine7(scheduleDResult?: TracedValue): TracedValue {
   return tracedZero('form1040.line7', 'Form 1040, Line 7')
 }
 
-// ── Line 8 — Other income ──────────────────────────────────────
-// Placeholder $0 for MVP. Would include Schedule 1 items in the future.
+// ── Line 8 — Other income from Schedule 1 ──────────────────────
+// Schedule 1 Part I, Line 10 (additional income: rents, royalties, other).
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function computeLine8(_model: TaxReturn): TracedValue {
+export function computeLine8(schedule1?: Schedule1Result): TracedValue {
+  if (schedule1 && schedule1.line10.amount > 0) {
+    return tracedFromComputation(
+      schedule1.line10.amount,
+      'form1040.line8',
+      ['schedule1.line10'],
+      'Form 1040, Line 8',
+    )
+  }
   return tracedZero('form1040.line8', 'Form 1040, Line 8')
 }
 
@@ -149,12 +158,13 @@ export function computeLine8(_model: TaxReturn): TracedValue {
 export function computeLine9(
   model: TaxReturn,
   scheduleDResult?: TracedValue,
+  schedule1Result?: Schedule1Result,
 ): TracedValue {
   const line1a = computeLine1a(model)
   const line2b = computeLine2b(model)
   const line3b = computeLine3b(model)
   const line7 = computeLine7(scheduleDResult)
-  const line8 = computeLine8(model)
+  const line8 = computeLine8(schedule1Result)
 
   const total = line1a.amount + line2b.amount + line3b.amount + line7.amount + line8.amount
 
@@ -399,7 +409,7 @@ export function computeLine24(line22: TracedValue, line23: TracedValue): TracedV
 }
 
 // ── Line 25 — Federal income tax withheld ──────────────────────
-// Sum of W-2 Box 2 + 1099-INT Box 4 + 1099-DIV Box 4 + 1099-B withholding.
+// Sum of W-2 Box 2 + 1099-INT Box 4 + 1099-DIV Box 4 + 1099-MISC Box 4 + 1099-B withholding.
 
 export function computeLine25(model: TaxReturn): TracedValue {
   const inputIds: string[] = []
@@ -421,6 +431,13 @@ export function computeLine25(model: TaxReturn): TracedValue {
     if (f.box4 > 0) {
       total += f.box4
       inputIds.push(`1099div:${f.id}:box4`)
+    }
+  }
+
+  for (const f of (model.form1099MISCs ?? [])) {
+    if (f.box4 > 0) {
+      total += f.box4
+      inputIds.push(`1099misc:${f.id}:box4`)
     }
   }
 
@@ -585,6 +602,7 @@ export interface Form1040Result {
   amtResult: AMTResult | null
 
   // Attached schedules
+  schedule1: Schedule1Result | null
   scheduleA: ScheduleAResult | null
   scheduleD: ScheduleDResult | null
 }
@@ -604,6 +622,12 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     model.form1099DIVs.some(f => f.box2a > 0)
   const scheduleD = hasCapitalActivity ? computeScheduleD(model) : null
 
+  // Schedule 1 (compute if there is 1099-MISC income)
+  const has1099MISCIncome = (model.form1099MISCs ?? []).some(
+    f => f.box1 > 0 || f.box2 > 0 || f.box3 > 0,
+  )
+  const schedule1 = has1099MISCIncome ? computeSchedule1(model) : null
+
   // ── Income ──────────────────────────────────────────────
   const line1a = computeLine1a(model)
   const line2a = computeLine2a(model)
@@ -611,7 +635,7 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   const line3a = computeLine3a(model)
   const line3b = computeLine3b(model)
   const line7 = computeLine7(scheduleD?.line21)
-  const line8 = computeLine8(model)
+  const line8 = computeLine8(schedule1 ?? undefined)
 
   const line9 = tracedFromComputation(
     line1a.amount + line2b.amount + line3b.amount + line7.amount + line8.amount,
@@ -764,6 +788,6 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     energyCredit: energyCreditResult,
     iraDeduction,
     amtResult,
-    scheduleA, scheduleD,
+    schedule1, scheduleA, scheduleD,
   }
 }

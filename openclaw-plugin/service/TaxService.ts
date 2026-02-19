@@ -18,6 +18,7 @@ import type {
   W2,
   Form1099INT,
   Form1099DIV,
+  Form1099MISC,
   CapitalTransaction,
   Taxpayer,
   Dependent,
@@ -286,6 +287,34 @@ export class TaxService extends EventEmitter {
     const tr = {
       ...this.taxReturn,
       form1099DIVs: this.taxReturn.form1099DIVs.filter((f) => f.id !== id),
+    }
+    this.apply(tr)
+  }
+
+  // ── 1099-MISC ────────────────────────────────────────────────────
+
+  addForm1099MISC(form: Form1099MISC): void {
+    const tr = {
+      ...this.taxReturn,
+      form1099MISCs: [...(this.taxReturn.form1099MISCs ?? []), form],
+    }
+    this.apply(tr)
+  }
+
+  updateForm1099MISC(id: string, updates: Partial<Form1099MISC>): void {
+    const tr = {
+      ...this.taxReturn,
+      form1099MISCs: (this.taxReturn.form1099MISCs ?? []).map((f) =>
+        f.id === id ? { ...f, ...updates } : f,
+      ),
+    }
+    this.apply(tr)
+  }
+
+  removeForm1099MISC(id: string): void {
+    const tr = {
+      ...this.taxReturn,
+      form1099MISCs: (this.taxReturn.form1099MISCs ?? []).filter((f) => f.id !== id),
     }
     this.apply(tr)
   }

@@ -7,6 +7,7 @@ import type {
   W2,
   Form1099INT,
   Form1099DIV,
+  Form1099MISC,
   Form1099B,
   CapitalTransaction,
   Taxpayer,
@@ -50,6 +51,10 @@ export interface TaxStoreState {
   appendForm1099DIVs: (forms: Form1099DIV[]) => void
   updateForm1099DIV: (id: string, form: Partial<Form1099DIV>) => void
   removeForm1099DIV: (id: string) => void
+  addForm1099MISC: (form: Form1099MISC) => void
+  appendForm1099MISCs: (forms: Form1099MISC[]) => void
+  updateForm1099MISC: (id: string, form: Partial<Form1099MISC>) => void
+  removeForm1099MISC: (id: string) => void
   setForm1099Bs: (forms: Form1099B[]) => void
   appendForm1099Bs: (forms: Form1099B[]) => void
   addForm1099B: (form: Form1099B) => void
@@ -299,6 +304,40 @@ export const useTaxStore = create<TaxStoreState>()(
         const tr = {
           ...get().taxReturn,
           form1099DIVs: get().taxReturn.form1099DIVs.filter((f) => f.id !== id),
+        }
+        set(recompute(tr))
+      },
+
+      addForm1099MISC: (form) => {
+        const tr = {
+          ...get().taxReturn,
+          form1099MISCs: [...get().taxReturn.form1099MISCs, form],
+        }
+        set(recompute(tr))
+      },
+
+      appendForm1099MISCs: (forms) => {
+        const tr = {
+          ...get().taxReturn,
+          form1099MISCs: [...get().taxReturn.form1099MISCs, ...forms],
+        }
+        set(recompute(tr))
+      },
+
+      updateForm1099MISC: (id, updates) => {
+        const tr = {
+          ...get().taxReturn,
+          form1099MISCs: get().taxReturn.form1099MISCs.map((f) =>
+            f.id === id ? { ...f, ...updates } : f,
+          ),
+        }
+        set(recompute(tr))
+      },
+
+      removeForm1099MISC: (id) => {
+        const tr = {
+          ...get().taxReturn,
+          form1099MISCs: get().taxReturn.form1099MISCs.filter((f) => f.id !== id),
         }
         set(recompute(tr))
       },

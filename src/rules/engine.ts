@@ -91,6 +91,11 @@ export const NODE_LABELS: Record<string, string> = {
   'scheduleA.line16': 'Other itemized deductions',
   'scheduleA.line17': 'Total itemized deductions',
 
+  // Schedule 1
+  'schedule1.line5': 'Rents and royalties',
+  'schedule1.line8z': 'Other income (prizes, awards, etc.)',
+  'schedule1.line10': 'Total additional income',
+
   // Schedule B
   'scheduleB.line4': 'Total interest',
   'scheduleB.line6': 'Total ordinary dividends',
@@ -177,6 +182,7 @@ export function computeAll(model: TaxReturn): ComputeResult {
   const values = collectAllValues(form1040, scheduleB, model)
 
   const executedSchedules: string[] = ['B']
+  if (form1040.schedule1) executedSchedules.push('1')
   if (form1040.scheduleA) executedSchedules.push('A')
   if (form1040.scheduleD) executedSchedules.push('D')
 
@@ -349,6 +355,14 @@ export function collectAllValues(
     ))
   }
 
+  // Schedule 1
+  if (form1040.schedule1) {
+    const s1 = form1040.schedule1
+    add(s1.line5)
+    add(s1.line8z)
+    add(s1.line10)
+  }
+
   // Schedule A
   if (form1040.scheduleA) {
     const sa = form1040.scheduleA
@@ -464,6 +478,31 @@ export function collectAllValues(
         },
         confidence: 1.0,
       })
+    }
+  }
+
+  // 1099-MISCs
+  for (const f of (model.form1099MISCs ?? [])) {
+    const fields: Array<[string, number]> = [
+      ['box1', f.box1],
+      ['box2', f.box2],
+      ['box3', f.box3],
+      ['box4', f.box4],
+    ]
+    for (const [field, amount] of fields) {
+      if (amount > 0) {
+        values.set(`1099misc:${f.id}:${field}`, {
+          amount,
+          source: {
+            kind: 'document',
+            documentType: '1099-MISC',
+            documentId: f.id,
+            field: boxLabel(field),
+            description: `1099-MISC from ${f.payerName} (${boxLabel(field)})`,
+          },
+          confidence: 1.0,
+        })
+      }
     }
   }
 
@@ -725,6 +764,19 @@ export function resolveDocumentRef(
     const amount = (f as unknown as Record<string, number>)[field] ?? 0
     return {
       label: `1099-DIV from ${f.payerName} (${boxLabel(field)})`,
+      amount,
+    }
+  }
+
+  // 1099-MISC: 1099misc:{id}:{field}
+  m = refId.match(/^1099misc:(.+?):(.+)$/)
+  if (m) {
+    const f = (model.form1099MISCs ?? []).find(f => f.id === m![1])
+    if (!f) return { label: `Unknown 1099-MISC (${m[1]})`, amount: 0 }
+    const field = m[2]
+    const amount = (f as unknown as Record<string, number>)[field] ?? 0
+    return {
+      label: `1099-MISC from ${f.payerName} (${boxLabel(field)})`,
       amount,
     }
   }

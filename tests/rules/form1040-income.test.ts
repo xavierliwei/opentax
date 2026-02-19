@@ -232,8 +232,8 @@ describe('computeLine7 (Capital gain/loss)', () => {
 // ── Line 8 — Other income ──────────────────────────────────────
 
 describe('computeLine8 (Other income)', () => {
-  it('returns $0 (MVP placeholder)', () => {
-    const result = computeLine8(emptyTaxReturn(2025))
+  it('returns $0 when no Schedule 1', () => {
+    const result = computeLine8()
     expect(result.amount).toBe(0)
     expect(result.irsCitation).toBe('Form 1040, Line 8')
   })
@@ -336,7 +336,7 @@ describe('cross-line consistency', () => {
     const line2b = computeLine2b(tr)
     const line3b = computeLine3b(tr)
     const line7 = computeLine7()
-    const line8 = computeLine8(tr)
+    const line8 = computeLine8()
     const line9 = computeLine9(tr)
 
     expect(line9.amount).toBe(

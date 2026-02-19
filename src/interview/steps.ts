@@ -8,6 +8,7 @@ import { DependentsPage } from '../ui/pages/DependentsPage.tsx'
 import { W2IncomePage } from '../ui/pages/W2IncomePage.tsx'
 import { InterestIncomePage } from '../ui/pages/InterestIncomePage.tsx'
 import { DividendIncomePage } from '../ui/pages/DividendIncomePage.tsx'
+import { MiscIncomePage } from '../ui/pages/MiscIncomePage.tsx'
 import { StockSalesPage } from '../ui/pages/StockSalesPage.tsx'
 import { RSUIncomePage } from '../ui/pages/RSUIncomePage.tsx'
 import { PriorYearPage } from '../ui/pages/PriorYearPage.tsx'
@@ -109,6 +110,14 @@ export const STEPS: InterviewStep[] = [
     isVisible: () => true,
     isComplete: () => true,
     component: DividendIncomePage,
+  },
+  {
+    id: 'misc-income',
+    label: 'Other Income',
+    path: '/interview/misc-income',
+    isVisible: () => true,
+    isComplete: () => true,
+    component: MiscIncomePage,
   },
   {
     id: 'stock-sales',
