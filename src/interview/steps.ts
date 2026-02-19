@@ -141,7 +141,7 @@ export const STEPS: InterviewStep[] = [
     id: 'iso-exercises',
     label: 'ISO Exercises',
     path: '/interview/iso-exercises',
-    isVisible: (tr) => tr.isoExercises.length > 0,
+    isVisible: () => true,
     isComplete: () => true,
     component: ISOExercisesPage,
   },
