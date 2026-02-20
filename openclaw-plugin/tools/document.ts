@@ -4,7 +4,6 @@
 
 import { readFileSync } from 'node:fs'
 import type { TaxService } from '../service/TaxService.ts'
-import { parseGenericFormPdf } from '../../src/intake/pdf/genericFormPdfParser.ts'
 import { autoDetectBroker } from '../../src/intake/csv/autoDetect.ts'
 import { convertToCapitalTransactions } from '../../src/intake/csv/convert.ts'
 import { dollars } from '../../src/model/traced.ts'
@@ -90,6 +89,9 @@ export function createDocumentTools(service: TaxService): ToolDef[] {
  * Uses pdfjs-dist text extraction instead of Tesseract OCR.
  */
 export async function processDocumentAsync(filePath: string): Promise<string> {
+  // Lazy import: pdfjs-dist requires DOMMatrix (browser API) which doesn't exist at
+  // Node.js module load time. Importing dynamically defers this until actually called.
+  const { parseGenericFormPdf } = await import('../../src/intake/pdf/genericFormPdfParser.ts')
   const buf = readFileSync(filePath)
   const data = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength)
   const result = await parseGenericFormPdf(data)
