@@ -33,7 +33,9 @@ export async function fillSchedule1(
   setTextField(form, SCH1_HEADER.ssn, formatSSN(taxReturn.taxpayer.ssn))
 
   // Part I — Additional Income
+  setDollarField(form, SCH1_PART1.line1, schedule1.line1.amount)     // Taxable refunds
   setDollarField(form, SCH1_PART1.line5, schedule1.line5.amount)     // Rental/royalty (Schedule E)
+  setDollarField(form, SCH1_PART1.line7, schedule1.line7.amount)     // Unemployment compensation
   setDollarField(form, SCH1_PART1.line8z, schedule1.line8z.amount)   // Other income
   setDollarField(form, SCH1_PART1.line10, schedule1.line10.amount)   // Total additional income
 
