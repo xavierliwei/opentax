@@ -163,6 +163,7 @@ export const NODE_LABELS: Record<string, string> = {
   'adjustments.studentLoan': 'Student loan interest deduction (Schedule 1, Line 21)',
   'hsa.taxableDistributions': 'Taxable HSA distributions',
   'hsa.penalties': 'HSA penalties',
+  'form5329.earlyWithdrawalPenalty': '10% early withdrawal penalty (Form 5329)',
 
   // Other credits (Line 20 components)
   'credits.dependentCare': 'Dependent care credit (Form 2441)',
@@ -332,6 +333,17 @@ export function collectAllValues(
         'HSA penalties',
       ))
     }
+  }
+
+  // Early withdrawal penalty (Form 5329)
+  if (form1040.earlyWithdrawalPenalty && form1040.earlyWithdrawalPenalty.penaltyAmount > 0) {
+    const ewp = form1040.earlyWithdrawalPenalty
+    values.set('form5329.earlyWithdrawalPenalty', tracedFromComputation(
+      ewp.penaltyAmount,
+      'form5329.earlyWithdrawalPenalty',
+      ewp.applicableForms.map(id => `1099r:${id}:box2a`),
+      '10% early withdrawal penalty (Form 5329)',
+    ))
   }
 
   // Student loan interest deduction detail node

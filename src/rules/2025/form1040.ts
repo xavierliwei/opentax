@@ -523,16 +523,58 @@ export function computeLine22(line18: TracedValue, line21: TracedValue): TracedV
   )
 }
 
-// ── Line 23 — Other taxes (Schedule 2, Part II) ────────────────
-// Includes HSA penalties (distribution 20% + excess 6%).
+// ── Early withdrawal penalty (Form 5329, Part I) ────────────────
+// 10% additional tax on early distributions from retirement plans.
+// Applies when distribution code is "1" (early, no known exception).
+// Exception codes (2, 3, 4, 7, G, H, T, etc.) are exempt.
 
-export function computeLine23(hsaDeduction?: HSAResult | null): TracedValue {
-  const distributionPenalty = hsaDeduction?.distributionPenalty ?? 0
-  const excessPenalty = hsaDeduction?.excessPenalty ?? 0
-  const total = distributionPenalty + excessPenalty
+const PENALTY_EXEMPT_CODES = new Set(['2', '3', '4', '5', '7', '8', '9', 'A', 'B', 'D', 'E', 'F', 'G', 'H', 'L', 'N', 'P', 'Q', 'R', 'S', 'T', 'U', 'W'])
+
+export interface EarlyWithdrawalPenaltyResult {
+  penaltyAmount: number   // cents — 10% of taxable early distributions
+  applicableForms: string[] // IDs of 1099-Rs that triggered the penalty
+}
+
+export function computeEarlyWithdrawalPenalty(model: TaxReturn): EarlyWithdrawalPenaltyResult {
+  let penaltyBase = 0
+  const applicableForms: string[] = []
+
+  for (const f of (model.form1099Rs ?? [])) {
+    // Check each character in box7 — code "1" triggers penalty
+    const codes = f.box7.toUpperCase().split('')
+    const hasPenaltyCode = codes.includes('1')
+    const hasExemption = codes.some(c => PENALTY_EXEMPT_CODES.has(c))
+
+    if (hasPenaltyCode && !hasExemption && f.box2a > 0) {
+      penaltyBase += f.box2a
+      applicableForms.push(f.id)
+    }
+  }
+
+  return {
+    penaltyAmount: Math.round(penaltyBase * 0.10),
+    applicableForms,
+  }
+}
+
+// ── Line 23 — Other taxes (Schedule 2, Part II) ────────────────
+// Includes HSA penalties + early withdrawal penalty (Form 5329).
+
+export function computeLine23(
+  hsaDeduction: HSAResult | null | undefined,
+  earlyWithdrawal: EarlyWithdrawalPenaltyResult | null,
+): TracedValue {
+  const hsaDistPenalty = hsaDeduction?.distributionPenalty ?? 0
+  const hsaExcessPenalty = hsaDeduction?.excessPenalty ?? 0
+  const hsaPenalties = hsaDistPenalty + hsaExcessPenalty
+  const earlyPenalty = earlyWithdrawal?.penaltyAmount ?? 0
+  const total = hsaPenalties + earlyPenalty
 
   if (total > 0) {
-    return tracedFromComputation(total, 'form1040.line23', ['hsa.penalties'], 'Form 1040, Line 23')
+    const inputs: string[] = []
+    if (hsaPenalties > 0) inputs.push('hsa.penalties')
+    if (earlyPenalty > 0) inputs.push('form5329.earlyWithdrawalPenalty')
+    return tracedFromComputation(total, 'form1040.line23', inputs, 'Form 1040, Line 23')
   }
   return tracedZero('form1040.line23', 'Form 1040, Line 23')
 }
@@ -793,6 +835,9 @@ export interface Form1040Result {
   // AMT detail (Form 6251)
   amtResult: AMTResult | null
 
+  // Early withdrawal penalty (Form 5329)
+  earlyWithdrawalPenalty: EarlyWithdrawalPenaltyResult | null
+
   // Attached schedules
   schedule1: Schedule1Result | null
   scheduleA: ScheduleAResult | null
@@ -961,7 +1006,8 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
 
   const line21 = computeLine21(line19, line20)
   const line22 = computeLine22(line18, line21)
-  const line23 = computeLine23(hsaResult)
+  const earlyWithdrawalPenalty = computeEarlyWithdrawalPenalty(model)
+  const line23 = computeLine23(hsaResult, earlyWithdrawalPenalty)
   const line24 = computeLine24(line22, line23)
 
   // ── Payments & refundable credits ──────────────────────
@@ -1032,6 +1078,7 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     studentLoanDeduction,
     hsaResult,
     amtResult,
+    earlyWithdrawalPenalty,
     schedule1, scheduleA, scheduleD, scheduleE,
   }
 }
