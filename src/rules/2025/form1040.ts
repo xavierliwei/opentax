@@ -40,7 +40,14 @@ import { computeEnergyCredit } from './energyCredit'
 import type { EnergyCreditResult } from './energyCredit'
 import { computeEducationCredit } from './educationCredit'
 import type { EducationCreditResult } from './educationCredit'
-import { TAX_YEAR } from './constants'
+import {
+  TAX_YEAR,
+  NIIT_RATE,
+  NIIT_THRESHOLD,
+  ADDITIONAL_MEDICARE_RATE,
+  ADDITIONAL_MEDICARE_THRESHOLD,
+  MEDICARE_TAX_RATE,
+} from './constants'
 import { computeIRADeduction } from './iraDeduction'
 import type { IRADeductionResult } from './iraDeduction'
 import { computeHSADeduction } from './hsaDeduction'
@@ -557,23 +564,125 @@ export function computeEarlyWithdrawalPenalty(model: TaxReturn): EarlyWithdrawal
   }
 }
 
+// ── Net Investment Income Tax (Form 8960) ──────────────────────
+// IRC §1411: 3.8% tax on the lesser of:
+//   (a) Net Investment Income (NII), or
+//   (b) MAGI minus the filing-status threshold
+//
+// NII = taxable interest + ordinary dividends + net capital gain
+//       + rental/royalty income + other investment income
+//       (minus investment expenses — not modeled yet)
+//
+// For most individuals, MAGI = AGI.
+
+export interface NIITResult {
+  nii: number            // Net Investment Income (cents)
+  magiExcess: number     // MAGI minus threshold (cents, floored to 0)
+  niitAmount: number     // 3.8% * min(nii, magiExcess) (cents)
+}
+
+export function computeNIIT(
+  model: TaxReturn,
+  agi: number,
+  netCapitalGain: number,
+  scheduleEIncome: number,
+): NIITResult {
+  const threshold = NIIT_THRESHOLD[model.filingStatus]
+  const magiExcess = Math.max(0, agi - threshold)
+
+  if (magiExcess === 0) {
+    return { nii: 0, magiExcess: 0, niitAmount: 0 }
+  }
+
+  // Taxable interest (sum of 1099-INT box 1)
+  const taxableInterest = model.form1099INTs.reduce((s, f) => s + f.box1, 0)
+
+  // Ordinary dividends (sum of 1099-DIV box 1a)
+  const ordinaryDividends = model.form1099DIVs.reduce((s, f) => s + f.box1a, 0)
+
+  // Net capital gain (from Schedule D line 21, already computed — passed in)
+  const capGain = Math.max(0, netCapitalGain)
+
+  // Rental/royalty income from Schedule E (net, can be negative)
+  const rentalIncome = Math.max(0, scheduleEIncome)
+
+  // Other investment income from 1099-MISC (rents box 1, royalties box 2)
+  const miscInvestmentIncome = (model.form1099MISCs ?? []).reduce(
+    (s, f) => s + f.box1 + f.box2, 0,
+  )
+
+  const nii = Math.max(0, taxableInterest + ordinaryDividends + capGain + rentalIncome + miscInvestmentIncome)
+
+  const taxBase = Math.min(nii, magiExcess)
+  const niitAmount = Math.round(taxBase * NIIT_RATE)
+
+  return { nii, magiExcess, niitAmount }
+}
+
+// ── Additional Medicare Tax (Form 8959) ────────────────────────
+// IRC §3101(b)(2): 0.9% additional tax on Medicare wages exceeding
+// the filing-status threshold ($200K single, $250K MFJ, $125K MFS).
+//
+// Employers withhold regular Medicare tax (1.45%) but do NOT
+// withhold the additional 0.9% based on filing status. They only
+// withhold it on wages over $200K regardless of filing status.
+//
+// The employee reconciles on Form 8959:
+//   Tax: 0.9% * max(0, totalMedicareWages - threshold)
+//   Withholding credit: max(0, totalMedicareWithheld - 1.45% * totalMedicareWages)
+//   (credit flows to Schedule 3 Line 11 → Form 1040 Line 31)
+
+export interface AdditionalMedicareTaxResult {
+  medicareWages: number        // Total Medicare wages (cents, sum of W-2 box 5)
+  threshold: number            // Filing status threshold (cents)
+  excessWages: number          // Medicare wages above threshold (cents)
+  additionalTax: number        // 0.9% * excessWages (cents)
+  withholdingCredit: number    // Excess Medicare withholding credit (cents)
+}
+
+export function computeAdditionalMedicareTax(model: TaxReturn): AdditionalMedicareTaxResult {
+  const threshold = ADDITIONAL_MEDICARE_THRESHOLD[model.filingStatus]
+
+  // Sum of W-2 box 5 (Medicare wages) across all W-2s
+  const medicareWages = model.w2s.reduce((s, w) => s + w.box5, 0)
+
+  // Sum of W-2 box 6 (Medicare tax withheld) — includes regular + any additional
+  const medicareWithheld = model.w2s.reduce((s, w) => s + w.box6, 0)
+
+  const excessWages = Math.max(0, medicareWages - threshold)
+  const additionalTax = Math.round(excessWages * ADDITIONAL_MEDICARE_RATE)
+
+  // Withholding credit: employer withheld more than the regular 1.45% rate
+  const regularMedicareTax = Math.round(medicareWages * MEDICARE_TAX_RATE)
+  const withholdingCredit = Math.max(0, medicareWithheld - regularMedicareTax)
+
+  return { medicareWages, threshold, excessWages, additionalTax, withholdingCredit }
+}
+
 // ── Line 23 — Other taxes (Schedule 2, Part II) ────────────────
-// Includes HSA penalties + early withdrawal penalty (Form 5329).
+// Includes: HSA penalties, early withdrawal penalty (Form 5329),
+// NIIT (Form 8960), and Additional Medicare Tax (Form 8959).
 
 export function computeLine23(
   hsaDeduction: HSAResult | null | undefined,
   earlyWithdrawal: EarlyWithdrawalPenaltyResult | null,
+  niit: NIITResult | null,
+  additionalMedicare: AdditionalMedicareTaxResult | null,
 ): TracedValue {
   const hsaDistPenalty = hsaDeduction?.distributionPenalty ?? 0
   const hsaExcessPenalty = hsaDeduction?.excessPenalty ?? 0
   const hsaPenalties = hsaDistPenalty + hsaExcessPenalty
   const earlyPenalty = earlyWithdrawal?.penaltyAmount ?? 0
-  const total = hsaPenalties + earlyPenalty
+  const niitAmount = niit?.niitAmount ?? 0
+  const additionalMedicareAmount = additionalMedicare?.additionalTax ?? 0
+  const total = hsaPenalties + earlyPenalty + niitAmount + additionalMedicareAmount
 
   if (total > 0) {
     const inputs: string[] = []
     if (hsaPenalties > 0) inputs.push('hsa.penalties')
     if (earlyPenalty > 0) inputs.push('form5329.earlyWithdrawalPenalty')
+    if (niitAmount > 0) inputs.push('form8960.niit')
+    if (additionalMedicareAmount > 0) inputs.push('form8959.additionalMedicareTax')
     return tracedFromComputation(total, 'form1040.line23', inputs, 'Form 1040, Line 23')
   }
   return tracedZero('form1040.line23', 'Form 1040, Line 23')
@@ -838,6 +947,12 @@ export interface Form1040Result {
   // Early withdrawal penalty (Form 5329)
   earlyWithdrawalPenalty: EarlyWithdrawalPenaltyResult | null
 
+  // Net Investment Income Tax (Form 8960)
+  niitResult: NIITResult | null
+
+  // Additional Medicare Tax (Form 8959)
+  additionalMedicareTaxResult: AdditionalMedicareTaxResult | null
+
   // Attached schedules
   schedule1: Schedule1Result | null
   scheduleA: ScheduleAResult | null
@@ -1007,7 +1122,16 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   const line21 = computeLine21(line19, line20)
   const line22 = computeLine22(line18, line21)
   const earlyWithdrawalPenalty = computeEarlyWithdrawalPenalty(model)
-  const line23 = computeLine23(hsaResult, earlyWithdrawalPenalty)
+
+  // NIIT (Form 8960): 3.8% on lesser of NII or MAGI excess
+  const netCapitalGain = scheduleD?.line21.amount ?? line7.amount
+  const scheduleENetIncome = scheduleE?.line26.amount ?? 0
+  const niitResult = computeNIIT(model, line11.amount, netCapitalGain, scheduleENetIncome)
+
+  // Additional Medicare Tax (Form 8959): 0.9% on wages above threshold
+  const additionalMedicareTaxResult = computeAdditionalMedicareTax(model)
+
+  const line23 = computeLine23(hsaResult, earlyWithdrawalPenalty, niitResult, additionalMedicareTaxResult)
   const line24 = computeLine24(line22, line23)
 
   // ── Payments & refundable credits ──────────────────────
@@ -1079,6 +1203,8 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     hsaResult,
     amtResult,
     earlyWithdrawalPenalty,
+    niitResult,
+    additionalMedicareTaxResult,
     schedule1, scheduleA, scheduleD, scheduleE,
   }
 }

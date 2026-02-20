@@ -164,6 +164,12 @@ export const NODE_LABELS: Record<string, string> = {
   'hsa.taxableDistributions': 'Taxable HSA distributions',
   'hsa.penalties': 'HSA penalties',
   'form5329.earlyWithdrawalPenalty': '10% early withdrawal penalty (Form 5329)',
+  'form8960.niit': 'Net Investment Income Tax (Form 8960)',
+  'form8960.nii': 'Net investment income',
+  'form8960.magiExcess': 'MAGI above threshold',
+  'form8959.additionalMedicareTax': 'Additional Medicare Tax (Form 8959)',
+  'form8959.medicareWages': 'Total Medicare wages',
+  'form8959.excessWages': 'Medicare wages above threshold',
 
   // Other credits (Line 20 components)
   'credits.dependentCare': 'Dependent care credit (Form 2441)',
@@ -343,6 +349,52 @@ export function collectAllValues(
       'form5329.earlyWithdrawalPenalty',
       ewp.applicableForms.map(id => `1099r:${id}:box2a`),
       '10% early withdrawal penalty (Form 5329)',
+    ))
+  }
+
+  // Net Investment Income Tax (Form 8960)
+  if (form1040.niitResult && form1040.niitResult.niitAmount > 0) {
+    const niit = form1040.niitResult
+    values.set('form8960.nii', tracedFromComputation(
+      niit.nii,
+      'form8960.nii',
+      [],
+      'Net investment income',
+    ))
+    values.set('form8960.magiExcess', tracedFromComputation(
+      niit.magiExcess,
+      'form8960.magiExcess',
+      ['form1040.line11'],
+      'MAGI above threshold',
+    ))
+    values.set('form8960.niit', tracedFromComputation(
+      niit.niitAmount,
+      'form8960.niit',
+      ['form8960.nii', 'form8960.magiExcess'],
+      'Net Investment Income Tax (Form 8960)',
+    ))
+  }
+
+  // Additional Medicare Tax (Form 8959)
+  if (form1040.additionalMedicareTaxResult && form1040.additionalMedicareTaxResult.additionalTax > 0) {
+    const amt = form1040.additionalMedicareTaxResult
+    values.set('form8959.medicareWages', tracedFromComputation(
+      amt.medicareWages,
+      'form8959.medicareWages',
+      model.w2s.map(w => `w2:${w.id}:box5`),
+      'Total Medicare wages',
+    ))
+    values.set('form8959.excessWages', tracedFromComputation(
+      amt.excessWages,
+      'form8959.excessWages',
+      ['form8959.medicareWages'],
+      'Medicare wages above threshold',
+    ))
+    values.set('form8959.additionalMedicareTax', tracedFromComputation(
+      amt.additionalTax,
+      'form8959.additionalMedicareTax',
+      ['form8959.excessWages'],
+      'Additional Medicare Tax (Form 8959)',
     ))
   }
 

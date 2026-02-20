@@ -52,8 +52,8 @@ Lines currently returning **placeholder $0** that need real computation:
 
 ### Line 23 — Schedule 2, Part II (Other Taxes)
 - [x] HSA penalties (distribution 20% + excess 6%) — computation done
-- [ ] Net Investment Income Tax (NIIT) — 3.8% surtax on lesser of NII or MAGI above $200K/$250K. Constants defined but not wired. ← agent 2
-- [ ] Additional Medicare tax — 0.9% on wages/SE income above $200K/$250K ← agent 2
+- [x] Net Investment Income Tax (NIIT) — 3.8% surtax on lesser of NII or MAGI above $200K/$250K ← agent 2 done
+- [x] Additional Medicare tax — 0.9% on wages/SE income above $200K/$250K ← agent 2 done
 - [ ] Self-employment tax — Schedule SE (15.3% on 92.35% of net SE earnings)
 - [ ] Household employment taxes — Schedule H
 
