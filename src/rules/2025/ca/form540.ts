@@ -22,6 +22,7 @@ import {
   CA_EXEMPTION_PHASEOUT,
   CA_RENTERS_CREDIT,
   CA_MORTGAGE_LIMIT,
+  CA_HOME_EQUITY_LIMIT,
 } from './constants'
 import { computeScheduleCA, type ScheduleCAResult } from './scheduleCA'
 
@@ -98,6 +99,20 @@ function computeCAItemized(
     mortgageDeduction = Math.round(d.mortgageInterest * mortgageLimit / d.mortgagePrincipal)
   }
 
+  // Home equity interest: CA still allows deduction (TCJA suspended it federally)
+  // Limited to $100K ($50K MFS) in home equity debt
+  let homeEquityDeduction = 0
+  const heInterest = d.homeEquityInterest ?? 0
+  const hePrincipal = d.homeEquityPrincipal ?? 0
+  if (heInterest > 0) {
+    const heLimit = CA_HOME_EQUITY_LIMIT[filingStatus]
+    if (hePrincipal <= 0 || hePrincipal <= heLimit) {
+      homeEquityDeduction = heInterest
+    } else {
+      homeEquityDeduction = Math.round(heInterest * heLimit / hePrincipal)
+    }
+  }
+
   // Investment interest: same as federal (use federal Schedule A computation)
   const investmentInterest = scheduleA.line9.amount
 
@@ -107,7 +122,7 @@ function computeCAItemized(
   // Other deductions: same as federal
   const other = scheduleA.line16.amount
 
-  return medicalDeduction + caSALT + mortgageDeduction + investmentInterest + charitable + other
+  return medicalDeduction + caSALT + mortgageDeduction + homeEquityDeduction + investmentInterest + charitable + other
 }
 
 // ── Exemption Credits ───────────────────────────────────────────

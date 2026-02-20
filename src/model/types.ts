@@ -339,6 +339,10 @@ export interface ItemizedDeductions {
   mortgagePrincipal: number         // cents — outstanding loan balance (Form 1098 Box 2)
   mortgagePreTCJA: boolean          // true = originated ≤ Dec 15 2017 → $1M limit; false → $750K
 
+  // Home Equity Interest (CA-only — TCJA suspended federal deduction)
+  homeEquityInterest?: number       // cents — interest on home equity loan/HELOC
+  homeEquityPrincipal?: number      // cents — outstanding home equity loan balance
+
   // Investment Interest (Line 9, Form 4952)
   investmentInterest: number        // cents — margin interest + other investment interest
   priorYearInvestmentInterestCarryforward: number  // cents — disallowed excess from prior year(s)

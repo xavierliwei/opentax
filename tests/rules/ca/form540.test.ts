@@ -551,6 +551,152 @@ describe('Form 540 — CA itemized deductions', () => {
     expect(result.caItemizedDeduction).toBe(cents(29000))
   })
 
+  it('includes home equity interest for CA (not deductible federally)', () => {
+    const result = compute540({
+      w2s: [makeW2({ id: 'w', employerName: 'X', box1: cents(200000), box2: cents(30000) })],
+      deductions: {
+        method: 'itemized',
+        itemized: {
+          medicalExpenses: 0,
+          stateLocalIncomeTaxes: 0,
+          stateLocalSalesTaxes: 0,
+          realEstateTaxes: cents(10000),
+          personalPropertyTaxes: 0,
+          mortgageInterest: cents(20000),
+          mortgagePrincipal: cents(600000),
+          mortgagePreTCJA: false,
+          homeEquityInterest: cents(5000),
+          homeEquityPrincipal: cents(80000),  // under $100K limit
+          investmentInterest: 0,
+          priorYearInvestmentInterestCarryforward: 0,
+          charitableCash: 0,
+          charitableNoncash: 0,
+          gamblingLosses: 0,
+          casualtyTheftLosses: 0,
+          federalEstateTaxIRD: 0,
+          otherMiscDeductions: 0,
+        },
+        taxpayerAge65: false,
+        taxpayerBlind: false,
+        spouseAge65: false,
+        spouseBlind: false,
+      },
+    })
+
+    // CA itemized = RE ($10K) + mortgage ($20K) + home equity ($5K) = $35K
+    expect(result.deductionMethod).toBe('itemized')
+    expect(result.caItemizedDeduction).toBe(cents(35000))
+  })
+
+  it('applies CA home equity $100K proportional limit', () => {
+    const result = compute540({
+      w2s: [makeW2({ id: 'w', employerName: 'X', box1: cents(200000), box2: cents(30000) })],
+      deductions: {
+        method: 'itemized',
+        itemized: {
+          medicalExpenses: 0,
+          stateLocalIncomeTaxes: 0,
+          stateLocalSalesTaxes: 0,
+          realEstateTaxes: cents(10000),
+          personalPropertyTaxes: 0,
+          mortgageInterest: cents(20000),
+          mortgagePrincipal: cents(600000),
+          mortgagePreTCJA: false,
+          homeEquityInterest: cents(8000),
+          homeEquityPrincipal: cents(200000),  // over $100K limit
+          investmentInterest: 0,
+          priorYearInvestmentInterestCarryforward: 0,
+          charitableCash: 0,
+          charitableNoncash: 0,
+          gamblingLosses: 0,
+          casualtyTheftLosses: 0,
+          federalEstateTaxIRD: 0,
+          otherMiscDeductions: 0,
+        },
+        taxpayerAge65: false,
+        taxpayerBlind: false,
+        spouseAge65: false,
+        spouseBlind: false,
+      },
+    })
+
+    // Home equity = $8K × ($100K / $200K) = $4,000
+    const expectedHE = Math.round(cents(8000) * cents(100000) / cents(200000))
+    expect(result.caItemizedDeduction).toBe(cents(10000) + cents(20000) + expectedHE)
+  })
+
+  it('MFS home equity limit is $50K', () => {
+    const result = compute540({
+      filingStatus: 'mfs',
+      w2s: [makeW2({ id: 'w', employerName: 'X', box1: cents(150000), box2: cents(25000) })],
+      deductions: {
+        method: 'itemized',
+        itemized: {
+          medicalExpenses: 0,
+          stateLocalIncomeTaxes: 0,
+          stateLocalSalesTaxes: 0,
+          realEstateTaxes: cents(10000),
+          personalPropertyTaxes: 0,
+          mortgageInterest: cents(15000),
+          mortgagePrincipal: cents(400000),
+          mortgagePreTCJA: false,
+          homeEquityInterest: cents(6000),
+          homeEquityPrincipal: cents(100000),  // over MFS $50K limit
+          investmentInterest: 0,
+          priorYearInvestmentInterestCarryforward: 0,
+          charitableCash: 0,
+          charitableNoncash: 0,
+          gamblingLosses: 0,
+          casualtyTheftLosses: 0,
+          federalEstateTaxIRD: 0,
+          otherMiscDeductions: 0,
+        },
+        taxpayerAge65: false,
+        taxpayerBlind: false,
+        spouseAge65: false,
+        spouseBlind: false,
+      },
+    })
+
+    // Home equity = $6K × ($50K / $100K) = $3,000
+    const expectedHE = Math.round(cents(6000) * cents(50000) / cents(100000))
+    expect(result.caItemizedDeduction).toBe(cents(10000) + cents(15000) + expectedHE)
+  })
+
+  it('no home equity fields → same as before (no change)', () => {
+    const result = compute540({
+      w2s: [makeW2({ id: 'w', employerName: 'X', box1: cents(200000), box2: cents(30000) })],
+      deductions: {
+        method: 'itemized',
+        itemized: {
+          medicalExpenses: 0,
+          stateLocalIncomeTaxes: 0,
+          stateLocalSalesTaxes: 0,
+          realEstateTaxes: cents(10000),
+          personalPropertyTaxes: 0,
+          mortgageInterest: cents(20000),
+          mortgagePrincipal: cents(600000),
+          mortgagePreTCJA: false,
+          investmentInterest: 0,
+          priorYearInvestmentInterestCarryforward: 0,
+          charitableCash: cents(5000),
+          charitableNoncash: 0,
+          gamblingLosses: 0,
+          casualtyTheftLosses: 0,
+          federalEstateTaxIRD: 0,
+          otherMiscDeductions: 0,
+        },
+        taxpayerAge65: false,
+        taxpayerBlind: false,
+        spouseAge65: false,
+        spouseBlind: false,
+      },
+    })
+
+    // No home equity → CA itemized = RE ($10K) + mortgage ($20K) + charity ($5K)
+    expect(result.caItemizedDeduction).toBe(cents(35000))
+  })
+
   it('falls back to standard deduction when itemized is lower', () => {
     const result = compute540({
       w2s: [makeW2({ id: 'w', employerName: 'X', box1: cents(50000), box2: cents(5000) })],

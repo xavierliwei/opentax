@@ -83,6 +83,8 @@ export function DeductionsPage() {
     mortgageInterest: 0,
     mortgagePrincipal: 0,
     mortgagePreTCJA: false,
+    homeEquityInterest: 0,
+    homeEquityPrincipal: 0,
     investmentInterest: 0,
     priorYearInvestmentInterestCarryforward: 0,
     charitableCash: 0,
@@ -486,6 +488,28 @@ export function DeductionsPage() {
                 </span>
               </span>
             </label>
+            <div className="border-t border-gray-100 pt-3 mt-1 flex flex-col gap-3">
+              <div className="flex items-center gap-1">
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Home Equity Loan / HELOC</span>
+                <InfoTooltip
+                  explanation="Home equity interest is NOT deductible on your federal return (suspended by TCJA 2017 through 2025). However, California did not conform to this change — if you are a CA resident, this interest is still deductible on your CA Form 540 (up to $100,000 in home equity debt, $50,000 if MFS)."
+                  pubName="FTB — Federal/State Differences"
+                  pubUrl="https://www.ftb.ca.gov/file/personal/deductions/index.html"
+                />
+              </div>
+              <CurrencyInput
+                label="Home equity interest paid"
+                value={itemized.homeEquityInterest ?? 0}
+                onChange={(v) => setItemizedDeductions({ homeEquityInterest: v })}
+                helperText="Not deductible federally (TCJA). Deductible on CA return only."
+              />
+              <CurrencyInput
+                label="Home equity loan balance"
+                value={itemized.homeEquityPrincipal ?? 0}
+                onChange={(v) => setItemizedDeductions({ homeEquityPrincipal: v })}
+                helperText="Used for CA $100K/$50K limit check"
+              />
+            </div>
             <CurrencyInput
               label="Margin / investment interest (Line 9)"
               value={itemized.investmentInterest}
