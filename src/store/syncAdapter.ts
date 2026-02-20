@@ -43,10 +43,7 @@ export function connectToServer(config: SyncConfig): () => void {
 
       const serverHasData = data.stateVersion > 0
 
-      if (serverHasData) {
-        importRemote(data.taxReturn, data.stateVersion)
-        console.info('[syncAdapter] Synced from server (v%d)', data.stateVersion)
-      } else if (localHasData) {
+      if (localHasData) {
         localVersion = data.stateVersion
         fetch(`${serverUrl}/api/sync`, {
           method: 'POST',
@@ -62,6 +59,9 @@ export function connectToServer(config: SyncConfig): () => void {
             console.info('[syncAdapter] Pushed local data to server (v%d)', localVersion)
           })
           .catch((err) => console.warn('[syncAdapter] Initial push failed:', err))
+      } else if (serverHasData) {
+        importRemote(data.taxReturn, data.stateVersion)
+        console.info('[syncAdapter] Synced from server (v%d)', data.stateVersion)
       } else {
         localVersion = data.stateVersion
         console.info('[syncAdapter] Connected (both empty)')
