@@ -10,6 +10,7 @@ import type { TracedValue } from './traced.ts'
 export interface SerializedComputeResult {
   form1040: ComputeResult['form1040']
   scheduleB: ComputeResult['scheduleB']
+  form540: ComputeResult['form540']
   values: Record<string, TracedValue>
   executedSchedules: string[]
 }
@@ -22,6 +23,7 @@ export function serializeComputeResult(result: ComputeResult): SerializedCompute
   return {
     form1040: result.form1040,
     scheduleB: result.scheduleB,
+    form540: result.form540,
     values,
     executedSchedules: result.executedSchedules,
   }
@@ -35,6 +37,7 @@ export function deserializeComputeResult(serialized: SerializedComputeResult): C
   return {
     form1040: serialized.form1040,
     scheduleB: serialized.scheduleB,
+    form540: serialized.form540 ?? null,
     values,
     executedSchedules: serialized.executedSchedules,
   }
