@@ -46,6 +46,7 @@ function LineItem({ label, nodeId, amount, tooltip }: LineItemProps) {
 export function ReviewPage() {
   const taxReturn = useTaxStore((s) => s.taxReturn)
   const form1040 = useTaxStore((s) => s.computeResult.form1040)
+  const form540 = useTaxStore((s) => s.computeResult.form540)
   const executedSchedules = useTaxStore((s) => s.computeResult.executedSchedules)
   const interview = useInterview()
 
@@ -239,6 +240,18 @@ export function ReviewPage() {
               }}
             />
           )}
+          {form1040.line23.amount > 0 && (
+            <LineItem
+              label="Line 23 — Other taxes"
+              nodeId="form1040.line23"
+              amount={form1040.line23.amount}
+              tooltip={{
+                explanation: 'Line 23 includes additional taxes from Schedule 2, Part II: the Net Investment Income Tax (3.8% surtax, Form 8960), Additional Medicare Tax (0.9% on high wages, Form 8959), early withdrawal penalties (Form 5329), and HSA penalties.',
+                pubName: 'IRS Schedule 2 — Additional Taxes',
+                pubUrl: 'https://www.irs.gov/forms-pubs/about-schedule-2-form-1040',
+              }}
+            />
+          )}
           <LineItem
             label="Line 24 — Total tax"
             nodeId="form1040.line24"
@@ -351,6 +364,168 @@ export function ReviewPage() {
           )}
         </div>
       </section>
+
+      {/* California Form 540 */}
+      {form540 && (
+        <>
+          <section className="mt-8">
+            <h2 className="text-sm font-semibold text-amber-700 uppercase tracking-wide border-b border-amber-200 pb-1">
+              California Form 540
+            </h2>
+            <div className="mt-2 flex flex-col">
+              <LineItem
+                label="CA AGI"
+                nodeId="form540.caAGI"
+                amount={form540.caAGI}
+                tooltip={{
+                  explanation: 'California adjusted gross income starts with federal AGI and applies Schedule CA adjustments. CA does not recognize HSA deductions (IRC §223), so HSA contributions are added back. Most other federal adjustments (IRA, student loan) conform to federal treatment.',
+                  pubName: 'FTB Form 540 Instructions — Line 17',
+                  pubUrl: 'https://www.ftb.ca.gov/forms/2025/2025-540-instructions.html',
+                }}
+              />
+              <LineItem
+                label={`CA Deduction (${form540.deductionMethod})`}
+                nodeId="form540.caDeduction"
+                amount={form540.deductionUsed}
+                tooltip={{
+                  explanation: `California uses the larger of the CA standard deduction or CA-adjusted itemized deductions. CA differences from federal: no SALT cap, $1M mortgage limit (not $750K), home equity interest still deductible, and state income tax cannot be deducted from the CA return.`,
+                  pubName: 'FTB Form 540 Instructions — Line 18',
+                  pubUrl: 'https://www.ftb.ca.gov/forms/2025/2025-540-instructions.html',
+                }}
+              />
+              <LineItem
+                label="CA Taxable Income"
+                nodeId="form540.caTaxableIncome"
+                amount={form540.caTaxableIncome}
+                tooltip={{
+                  explanation: 'California taxable income is CA AGI minus your CA deduction. This is taxed using California\'s 9-bracket progressive rate schedule (1% to 12.3%).',
+                  pubName: 'FTB 2025 Tax Rate Schedules',
+                  pubUrl: 'https://www.ftb.ca.gov/forms/2025/2025-540-tax-rate-schedules.pdf',
+                }}
+              />
+            </div>
+          </section>
+
+          <section className="mt-6">
+            <h2 className="text-sm font-semibold text-amber-700 uppercase tracking-wide border-b border-amber-200 pb-1">
+              CA Tax & Credits
+            </h2>
+            <div className="mt-2 flex flex-col">
+              <LineItem
+                label="CA Tax"
+                nodeId="form540.caTax"
+                amount={form540.caTax}
+                tooltip={{
+                  explanation: 'California income tax computed from the 9-bracket rate schedule. All income is taxed at ordinary rates — California has no preferential rate for long-term capital gains or qualified dividends.',
+                  pubName: 'FTB 2025 Tax Rate Schedules',
+                  pubUrl: 'https://www.ftb.ca.gov/forms/2025/2025-540-tax-rate-schedules.pdf',
+                }}
+              />
+              {form540.mentalHealthTax > 0 && (
+                <LineItem
+                  label="Mental Health Services Tax"
+                  nodeId="form540.mentalHealthTax"
+                  amount={form540.mentalHealthTax}
+                  tooltip={{
+                    explanation: 'An additional 1% tax on California taxable income exceeding $1,000,000. This threshold is not doubled for MFJ filers. The revenue funds California\'s Mental Health Services Act (Proposition 63).',
+                    pubName: 'FTB Form 540 Instructions — Line 36',
+                    pubUrl: 'https://www.ftb.ca.gov/forms/2025/2025-540-instructions.html',
+                  }}
+                />
+              )}
+              {form540.totalExemptionCredits > 0 && (
+                <LineItem
+                  label="Exemption Credits"
+                  nodeId="form540.exemptionCredits"
+                  amount={form540.totalExemptionCredits}
+                  tooltip={{
+                    explanation: `Personal exemption credit: $153 per filer. Dependent exemption credit: $475 per dependent. These credits phase out for high-income filers (reduced by 6% for each $2,500 of CA AGI above the threshold).`,
+                    pubName: 'FTB Form 540 Instructions — Line 32',
+                    pubUrl: 'https://www.ftb.ca.gov/forms/2025/2025-540-instructions.html',
+                  }}
+                />
+              )}
+              {form540.rentersCredit > 0 && (
+                <LineItem
+                  label="Renter's Credit"
+                  nodeId="form540.rentersCredit"
+                  amount={form540.rentersCredit}
+                  tooltip={{
+                    explanation: 'Nonrefundable renter\'s credit: $60 for single/MFS filers (CA AGI ≤ $53,994), $120 for MFJ/HOH/QW filers (CA AGI ≤ $107,987). You must have paid rent for at least half the year on your principal California residence.',
+                    pubName: 'FTB — Nonrefundable Renter\'s Credit',
+                    pubUrl: 'https://www.ftb.ca.gov/file/personal/credits/nonrefundable-renters-credit.html',
+                  }}
+                />
+              )}
+              <LineItem
+                label="CA Tax After Credits"
+                nodeId="form540.taxAfterCredits"
+                amount={form540.taxAfterCredits}
+                tooltip={{
+                  explanation: 'California tax after subtracting exemption credits and other nonrefundable credits (including renter\'s credit). This is compared against your CA state withholding to determine your CA refund or amount owed.',
+                  pubName: 'FTB Form 540 Instructions — Line 48',
+                  pubUrl: 'https://www.ftb.ca.gov/forms/2025/2025-540-instructions.html',
+                }}
+              />
+              {form540.stateWithholding > 0 && (
+                <LineItem
+                  label="CA State Withholding"
+                  nodeId="form540.stateWithholding"
+                  amount={form540.stateWithholding}
+                  tooltip={{
+                    explanation: 'California state income tax withheld from your W-2(s) Box 17. This is tax you already paid to the FTB through payroll withholding during the year.',
+                    pubName: 'FTB Form 540 Instructions — Line 71',
+                    pubUrl: 'https://www.ftb.ca.gov/forms/2025/2025-540-instructions.html',
+                  }}
+                />
+              )}
+            </div>
+          </section>
+
+          <section className="mt-6">
+            <h2 className="text-sm font-semibold text-amber-700 uppercase tracking-wide border-b border-amber-200 pb-1">
+              CA Result
+            </h2>
+            <div className="mt-2 flex flex-col">
+              {form540.overpaid > 0 && (
+                <div className="flex items-center justify-between gap-2 py-1.5 sm:py-1">
+                  <span className="text-sm font-medium text-tax-green">CA Refund</span>
+                  <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                    <span className="text-base sm:text-lg font-bold text-tax-green tabular-nums">
+                      {formatCurrency(form540.overpaid)}
+                    </span>
+                    <Link
+                      to="/explain/form540.overpaid"
+                      className="inline-flex items-center justify-center w-6 h-6 sm:w-auto sm:h-auto text-xs text-tax-blue hover:text-blue-700 rounded-full sm:rounded-none hover:bg-blue-50 sm:hover:bg-transparent"
+                    >
+                      ?
+                    </Link>
+                  </div>
+                </div>
+              )}
+              {form540.amountOwed > 0 && (
+                <div className="flex items-center justify-between gap-2 py-1.5 sm:py-1">
+                  <span className="text-sm font-medium text-tax-red">CA Amount You Owe</span>
+                  <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                    <span className="text-base sm:text-lg font-bold text-tax-red tabular-nums">
+                      {formatCurrency(form540.amountOwed)}
+                    </span>
+                    <Link
+                      to="/explain/form540.amountOwed"
+                      className="inline-flex items-center justify-center w-6 h-6 sm:w-auto sm:h-auto text-xs text-tax-blue hover:text-blue-700 rounded-full sm:rounded-none hover:bg-blue-50 sm:hover:bg-transparent"
+                    >
+                      ?
+                    </Link>
+                  </div>
+                </div>
+              )}
+              {form540.overpaid === 0 && form540.amountOwed === 0 && (
+                <div className="py-1 text-sm text-gray-500">CA tax balance: $0.00</div>
+              )}
+            </div>
+          </section>
+        </>
+      )}
 
       {/* Schedules included */}
       {executedSchedules.length > 0 && (
