@@ -18,6 +18,7 @@ import {
   itemizedDeductionReturn,
   activeTraderReturn,
   allCategoriesReturn,
+  rentalPropertyReturn,
 } from '../fixtures/returns'
 import { cents } from '../../src/model/traced'
 import { computeForm1040 } from '../../src/rules/2025/form1040'
@@ -35,6 +36,14 @@ beforeAll(() => {
     f1040sb: new Uint8Array(readFileSync(join(dir, 'f1040sb.pdf'))),
     f1040sd: new Uint8Array(readFileSync(join(dir, 'f1040sd.pdf'))),
     f8949: new Uint8Array(readFileSync(join(dir, 'f8949.pdf'))),
+    f1040s1: new Uint8Array(readFileSync(join(dir, 'f1040s1.pdf'))),
+    f1040s2: new Uint8Array(readFileSync(join(dir, 'f1040s2.pdf'))),
+    f1040s3: new Uint8Array(readFileSync(join(dir, 'f1040s3.pdf'))),
+    f8812: new Uint8Array(readFileSync(join(dir, 'f8812.pdf'))),
+    f8863: new Uint8Array(readFileSync(join(dir, 'f8863.pdf'))),
+    f6251: new Uint8Array(readFileSync(join(dir, 'f6251.pdf'))),
+    f8889: new Uint8Array(readFileSync(join(dir, 'f8889.pdf'))),
+    f1040se: new Uint8Array(readFileSync(join(dir, 'f1040se.pdf'))),
   }
 })
 
@@ -223,6 +232,29 @@ describe('compileFilingPackage', () => {
     for (let i = 1; i < seqNumbers.length; i++) {
       expect(seqNumbers[i] >= seqNumbers[i - 1]).toBe(true)
     }
+  })
+
+  it('includes Schedule E when rental properties exist', async () => {
+    const taxReturn = rentalPropertyReturn()
+    taxReturn.taxpayer.firstName = 'Helen'
+    taxReturn.taxpayer.lastName = 'Landlord'
+    taxReturn.taxpayer.ssn = '666778888'
+
+    const result = await compileFilingPackage(taxReturn, templates)
+
+    const formIds = result.formsIncluded.map(f => f.formId)
+    expect(formIds).toContain('Schedule E')
+    expect(formIds).toContain('Schedule 1')
+
+    // Schedule E should be in correct sequence order (13)
+    const schE = result.formsIncluded.find(f => f.formId === 'Schedule E')
+    expect(schE).toBeDefined()
+    expect(schE!.sequenceNumber).toBe('13')
+    expect(schE!.pageCount).toBe(2) // Schedule E has 2 pages
+
+    // Summary should reflect rental income in AGI
+    const expected = computeForm1040(taxReturn)
+    expect(result.summary.agi).toBe(expected.line11.amount)
   })
 
   it('summary has correct refund amount for overpayment', async () => {

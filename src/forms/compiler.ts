@@ -6,7 +6,7 @@
  * IRS attachment sequence order:
  *   Form 1040 (00) → Schedule 1 (02) → Schedule 2 (05) → Schedule 3 (06)
  *   → Schedule A (07) → Schedule B (08) → Schedule D (12)
- *   → Form 8949 (12A) → Form 8863 (18) → Form 6251 (32)
+ *   → Form 8949 (12A) → Schedule E (13) → Form 8863 (18) → Form 6251 (32)
  *   → Form 8812 (47) → Form 8889 (52)
  */
 
@@ -28,6 +28,7 @@ import { fillForm8812 } from './fillers/form8812Filler'
 import { fillForm8863 } from './fillers/form8863Filler'
 import { fillForm6251 } from './fillers/form6251Filler'
 import { fillForm8889 } from './fillers/form8889Filler'
+import { fillScheduleE } from './fillers/scheduleEFiller'
 import { generateCoverSheet } from './fillers/coverSheet'
 import { tracedZero } from '../model/traced'
 
@@ -77,6 +78,8 @@ export async function compileFilingPackage(
   const needsForm6251 =
     result.amtResult !== null && result.amtResult.amt > 0
 
+  const needsScheduleE = result.scheduleE !== null
+
   const needsForm8889 = result.hsaResult !== null
 
   // ── Fill forms (in IRS attachment sequence order) ──────────
@@ -93,7 +96,7 @@ export async function compileFilingPackage(
   if (needsSchedule1) {
     const sch1Doc = await fillSchedule1(
       templates.f1040s1, taxReturn,
-      result.schedule1 ?? { line5: tracedZero('sch1-5'), line8z: tracedZero('sch1-8z'), line10: tracedZero('sch1-10') },
+      result.schedule1 ?? { line1: tracedZero('sch1-1'), line5: tracedZero('sch1-5'), line7: tracedZero('sch1-7'), line8z: tracedZero('sch1-8z'), line10: tracedZero('sch1-10') },
       result.iraDeduction,
       result.hsaResult,
       result.studentLoanDeduction,
@@ -170,6 +173,15 @@ export async function compileFilingPackage(
         },
       })
     }
+  }
+
+  // Schedule E (sequence 13)
+  if (needsScheduleE) {
+    const schEDoc = await fillScheduleE(templates.f1040se, taxReturn, result.scheduleE!)
+    filledDocs.push({
+      doc: schEDoc,
+      summary: { formId: 'Schedule E', sequenceNumber: '13', pageCount: schEDoc.getPageCount() },
+    })
   }
 
   // Form 8863 (sequence 18)

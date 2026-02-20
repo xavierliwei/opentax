@@ -20,13 +20,13 @@ _Last updated: 2026-02-19 by agent 3. Agent 4 is working on CA state tax (Form 5
 - [x] Child Tax Credit + Additional CTC (Form 8812)
 - [x] Earned Income Credit
 - [x] Dependent care, saver's, and energy credits
-- [x] **PDF filing package: 12 forms** — Form 1040, Schedules A/B/D/1/2/3, Forms 8949/6251/8812/8863/8889
+- [x] **PDF filing package: 13 forms** — Form 1040, Schedules A/B/D/E/1/2/3, Forms 8949/6251/8812/8863/8889
 
 ---
 
 ## Critical Gap — Schedule E PDF
 
-- [ ] **Schedule E PDF filler** — computation + UI exist, but no PDF filler, no `f1040se.pdf` template, and not wired into the compiler. Rental property users can't file by mail without this form.
+- [x] **Schedule E PDF filler** — template, field mappings, filler, and compiler wiring complete. 13 forms in filing package.
 
 ---
 
@@ -50,7 +50,7 @@ These lines are hardcoded to zero. Each needs: data model fields, intake/UI, rul
 | Document | Feeds Into | Priority |
 |----------|-----------|----------|
 | **1099-R** | Lines 4a/4b, 5a/5b (IRA/pension distributions) | High — very common |
-| 1099-G | Line 7 (unemployment), Schedule 1 Line 1 (state refund) | Medium |
+| 1099-G | Line 7 (unemployment), Schedule 1 Line 1 (state refund) | Medium — **agent 3 working** |
 | SSA-1099 | Lines 6a/6b (Social Security) | Medium |
 | 1099-NEC | Schedule C / SE tax | Medium |
 | 1099-K | Schedule C | Low |
