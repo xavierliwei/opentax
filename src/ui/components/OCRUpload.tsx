@@ -9,7 +9,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { parseGenericFormPdf, type DetectedFormType, type ExtractedField } from '../../intake/pdf/genericFormPdfParser.ts'
 import { autoDetectPdfBroker } from '../../intake/pdf/autoDetectPdf.ts'
-import type { Form1099INT, Form1099DIV } from '../../model/types.ts'
+import type { Form1099INT, Form1099DIV, Form1099R } from '../../model/types.ts'
 import {
   OCRVerification,
   buildVerificationFields,
@@ -99,6 +99,7 @@ export function OCRUpload({ formType: expectedFormType }: OCRUploadProps) {
   const addW2 = useTaxStore((s) => s.addW2)
   const addForm1099INT = useTaxStore((s) => s.addForm1099INT)
   const addForm1099DIV = useTaxStore((s) => s.addForm1099DIV)
+  const addForm1099R = useTaxStore((s) => s.addForm1099R)
 
   const processFile = useCallback(async (file: File) => {
     // Validate: accept only PDF
@@ -226,11 +227,28 @@ export function OCRUpload({ formType: expectedFormType }: OCRUploadProps) {
           addForm1099DIV(form)
           break
         }
+        case '1099-R': {
+          const form: Form1099R = {
+            id: crypto.randomUUID(),
+            payerName: fieldValues.get('payerName') ?? '',
+            box1: Number(fieldValues.get('box1')) || 0,
+            box2a: Number(fieldValues.get('box2a')) || 0,
+            box2bTaxableNotDetermined: false,
+            box2bTotalDistribution: false,
+            box3: Number(fieldValues.get('box3')) || 0,
+            box4: Number(fieldValues.get('box4')) || 0,
+            box5: Number(fieldValues.get('box5')) || 0,
+            box7: fieldValues.get('box7') ?? '',
+            iraOrSep: fieldValues.get('iraOrSep') === 'true',
+          }
+          addForm1099R(form)
+          break
+        }
       }
 
       setState({ status: 'imported', formType })
     },
-    [state, addW2, addForm1099INT, addForm1099DIV],
+    [state, addW2, addForm1099INT, addForm1099DIV, addForm1099R],
   )
 
   const handleDiscard = useCallback(() => {

@@ -44,6 +44,10 @@ export const NODE_LABELS: Record<string, string> = {
   'form1040.line2b': 'Taxable interest',
   'form1040.line3a': 'Qualified dividends',
   'form1040.line3b': 'Ordinary dividends',
+  'form1040.line4a': 'IRA distributions',
+  'form1040.line4b': 'IRA distributions (taxable)',
+  'form1040.line5a': 'Pensions and annuities',
+  'form1040.line5b': 'Pensions and annuities (taxable)',
   'form1040.line7': 'Capital gain or (loss)',
   'form1040.line8': 'Other income',
   'form1040.line9': 'Total income',
@@ -94,7 +98,9 @@ export const NODE_LABELS: Record<string, string> = {
   'scheduleA.line17': 'Total itemized deductions',
 
   // Schedule 1
+  'schedule1.line1': 'Taxable refunds of state/local taxes',
   'schedule1.line5': 'Rents and royalties',
+  'schedule1.line7': 'Unemployment compensation',
   'schedule1.line8z': 'Other income (prizes, awards, etc.)',
   'schedule1.line10': 'Total additional income',
 
@@ -228,6 +234,10 @@ export function collectAllValues(
   add(form1040.line2b)
   add(form1040.line3a)
   add(form1040.line3b)
+  add(form1040.line4a)
+  add(form1040.line4b)
+  add(form1040.line5a)
+  add(form1040.line5b)
   add(form1040.line7)
   add(form1040.line8)
   add(form1040.line9)
@@ -431,7 +441,9 @@ export function collectAllValues(
   // Schedule 1
   if (form1040.schedule1) {
     const s1 = form1040.schedule1
+    add(s1.line1)
     add(s1.line5)
+    add(s1.line7)
     add(s1.line8z)
     add(s1.line10)
   }
@@ -632,6 +644,54 @@ export function collectAllValues(
             documentId: f.id,
             field: boxLabel(field),
             description: `1099-MISC from ${f.payerName} (${boxLabel(field)})`,
+          },
+          confidence: 1.0,
+        })
+      }
+    }
+  }
+
+  // 1099-Rs
+  for (const f of (model.form1099Rs ?? [])) {
+    const fields: Array<[string, number]> = [
+      ['box1', f.box1],
+      ['box2a', f.box2a],
+      ['box4', f.box4],
+    ]
+    for (const [fld, amount] of fields) {
+      if (amount > 0) {
+        values.set(`1099r:${f.id}:${fld}`, {
+          amount,
+          source: {
+            kind: 'document',
+            documentType: '1099-R',
+            documentId: f.id,
+            field: boxLabel(fld),
+            description: `1099-R from ${f.payerName} (${boxLabel(fld)})`,
+          },
+          confidence: 1.0,
+        })
+      }
+    }
+  }
+
+  // 1099-Gs
+  for (const f of (model.form1099Gs ?? [])) {
+    const fields: Array<[string, number]> = [
+      ['box1', f.box1],
+      ['box2', f.box2],
+      ['box4', f.box4],
+    ]
+    for (const [fld, amount] of fields) {
+      if (amount > 0) {
+        values.set(`1099g:${f.id}:${fld}`, {
+          amount,
+          source: {
+            kind: 'document',
+            documentType: '1099-G',
+            documentId: f.id,
+            field: boxLabel(fld),
+            description: `1099-G from ${f.payerName} (${boxLabel(fld)})`,
           },
           confidence: 1.0,
         })
@@ -913,6 +973,32 @@ export function resolveDocumentRef(
     const amount = (f as unknown as Record<string, number>)[field] ?? 0
     return {
       label: `1099-MISC from ${f.payerName} (${boxLabel(field)})`,
+      amount,
+    }
+  }
+
+  // 1099-R: 1099r:{id}:{field}
+  m = refId.match(/^1099r:(.+?):(.+)$/)
+  if (m) {
+    const f = (model.form1099Rs ?? []).find(f => f.id === m![1])
+    if (!f) return { label: `Unknown 1099-R (${m[1]})`, amount: 0 }
+    const field = m[2]
+    const amount = (f as unknown as Record<string, number>)[field] ?? 0
+    return {
+      label: `1099-R from ${f.payerName} (${boxLabel(field)})`,
+      amount,
+    }
+  }
+
+  // 1099-G: 1099g:{id}:{field}
+  m = refId.match(/^1099g:(.+?):(.+)$/)
+  if (m) {
+    const f = (model.form1099Gs ?? []).find(f => f.id === m![1])
+    if (!f) return { label: `Unknown 1099-G (${m[1]})`, amount: 0 }
+    const field = m[2]
+    const amount = (f as unknown as Record<string, number>)[field] ?? 0
+    return {
+      label: `1099-G from ${f.payerName} (${boxLabel(field)})`,
       amount,
     }
   }

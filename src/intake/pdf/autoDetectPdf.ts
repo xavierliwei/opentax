@@ -47,8 +47,9 @@ export async function autoDetectPdfBroker(data: ArrayBuffer): Promise<PdfParseOu
   if (firstPageText.includes('1098') && firstPageText.includes('MORTGAGE INTEREST')) {
     return emptyResult('This PDF is a Form 1098 (Mortgage Interest Statement). Upload it on the Deductions page instead.')
   }
+  // 1099-R detected — route to standalone form parser (not a broker consolidated doc)
   if (firstPageText.includes('1099-R') || firstPageText.includes('DISTRIBUTION CODE')) {
-    return emptyResult('This PDF is a 1099-R (retirement distributions). 1099-R support is not yet available — please enter it manually or check back later.')
+    return emptyResult('This PDF is a 1099-R (retirement distributions). Please upload it on the Retirement Distributions page.')
   }
   if (firstPageText.includes('1099-NEC') || firstPageText.includes('NONEMPLOYEE COMPENSATION')) {
     return emptyResult('This PDF is a 1099-NEC (non-employee compensation). 1099-NEC support is not yet available.')

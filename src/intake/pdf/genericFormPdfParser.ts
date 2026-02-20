@@ -22,7 +22,7 @@ import type { RawItem } from './pdfUtils'
 
 // ── Shared types (previously in OCR modules) ─────────────────
 
-export type DetectedFormType = 'W-2' | '1099-INT' | '1099-DIV' | 'unknown'
+export type DetectedFormType = 'W-2' | '1099-INT' | '1099-DIV' | '1099-R' | 'unknown'
 
 export interface ExtractedField {
   value: string
@@ -50,6 +50,10 @@ function detectFormTypeFromText(text: string): DetectedFormType {
 
   if (/DIVIDENDS\s+AND\s+DISTRIBUTIONS/.test(upper) || /1099[\s-]*DIV\b/.test(upper)) {
     return '1099-DIV'
+  }
+
+  if (/DISTRIBUTIONS?\s+FROM\s+PENSIONS/i.test(upper) || /1099[\s-]*R\b/.test(upper) || /DISTRIBUTION\s+CODE/.test(upper)) {
+    return '1099-R'
   }
 
   return 'unknown'
@@ -523,6 +527,177 @@ function parse1099DivLineScan(lineTexts: string[]): Map<string, ExtractedField> 
   return fields
 }
 
+// ── 1099-R positional parsing ──────────────────────────────
+
+function parse1099RPositional(items: RawItem[]): Map<string, ExtractedField> {
+  const fields = new Map<string, ExtractedField>()
+  const page1 = items.filter((it) => it.page === 1)
+
+  const boxLabels: BoxLabelMatch[] = []
+
+  for (const item of page1) {
+    const s = item.str.trim()
+    if (item.x < 250) continue
+
+    if (s === '1') {
+      const nearby = page1.find((it) =>
+        /gross\s+distribution/i.test(it.str) &&
+        Math.abs(it.y - item.y) < 5 && it.x > item.x,
+      )
+      if (nearby) boxLabels.push({ boxKey: 'box1', item })
+    } else if (s === '2a') {
+      const nearby = page1.find((it) =>
+        /taxable\s+amount/i.test(it.str) &&
+        Math.abs(it.y - item.y) < 5 && it.x > item.x,
+      )
+      if (nearby) boxLabels.push({ boxKey: 'box2a', item })
+    } else if (s === '3') {
+      const nearby = page1.find((it) =>
+        /capital\s+gain/i.test(it.str) &&
+        Math.abs(it.y - item.y) < 5 && it.x > item.x,
+      )
+      if (nearby) boxLabels.push({ boxKey: 'box3', item })
+    } else if (s === '4' || /^4\s+Federal/i.test(s)) {
+      const isCombined = /federal/i.test(s)
+      const nearby = isCombined || page1.some((it) =>
+        /federal\s+(?:income\s+)?tax\s+withheld/i.test(it.str) &&
+        Math.abs(it.y - item.y) < 5,
+      )
+      if (nearby) boxLabels.push({ boxKey: 'box4', item })
+    } else if (s === '5') {
+      const nearby = page1.find((it) =>
+        /employee\s+contributions/i.test(it.str) &&
+        Math.abs(it.y - item.y) < 5 && it.x > item.x,
+      )
+      if (nearby) boxLabels.push({ boxKey: 'box5', item })
+    } else if (s === '7') {
+      const nearby = page1.find((it) =>
+        /distribution\s+code/i.test(it.str) &&
+        Math.abs(it.y - item.y) < 5 && it.x > item.x,
+      )
+      if (nearby) boxLabels.push({ boxKey: 'box7', item })
+    }
+  }
+
+  for (const { boxKey, item } of boxLabels) {
+    if (boxKey === 'box7') {
+      // Distribution code is text, not monetary
+      const codeItem = page1.find((it) =>
+        /^[1-9A-T]{1,2}$/i.test(it.str.trim()) &&
+        it.y > item.y && it.y <= item.y + 30 &&
+        Math.abs(it.x - item.x) < 25,
+      )
+      if (codeItem) {
+        fields.set('box7', textField(codeItem.str.trim().toUpperCase()))
+      }
+      continue
+    }
+
+    const dollarSign = page1.find((it) =>
+      it.str.trim() === '$' &&
+      it.page === item.page &&
+      it.y > item.y && it.y <= item.y + 30 &&
+      Math.abs(it.x - item.x) < 25,
+    )
+
+    if (dollarSign) {
+      const val = page1.find((it) =>
+        DOLLARS_RE.test(it.str.trim()) &&
+        it.page === dollarSign.page &&
+        Math.abs(it.y - dollarSign.y) < 5 &&
+        it.x > dollarSign.x && it.x < dollarSign.x + 120,
+      )
+      if (val) {
+        fields.set(boxKey, field(parseCents(val.str.trim())))
+        continue
+      }
+    }
+
+    const val = findDollarBelow(page1, item)
+    if (val !== null) {
+      fields.set(boxKey, field(val))
+    }
+  }
+
+  // Payer name
+  const payerLabel = page1.find((it) => /^PAYER.S$/i.test(it.str.trim()))
+  if (payerLabel) {
+    const payerLines = page1
+      .filter((it) =>
+        it.y > payerLabel.y + 10 &&
+        it.y < payerLabel.y + 60 &&
+        it.x < 250 &&
+        it.str.trim().length > 2 &&
+        !/^payer|^postal|^telephone|^name|^street|^city|^state|^province|^country|^zip|^foreign|^or$/i.test(it.str.trim()),
+      )
+      .sort((a, b) => a.y - b.y)
+
+    if (payerLines.length > 0) {
+      fields.set('payerName', textField(payerLines[0].str.trim()))
+    }
+  }
+
+  // IRA/SEP/SIMPLE checkbox — look for nearby text
+  const iraText = page1.find((it) => /IRA.SEP.SIMPLE/i.test(it.str))
+  if (iraText) {
+    fields.set('iraOrSep', textField('true'))
+  }
+
+  return fields
+}
+
+// ── 1099-R line-scan parsing ──────────────────────────────
+
+function parse1099RLineScan(lineTexts: string[]): Map<string, ExtractedField> {
+  const fields = new Map<string, ExtractedField>()
+
+  for (const t of lineTexts) {
+    if (/payer/i.test(t) && !/box|form|copy|1099/i.test(t)) {
+      const nameMatch = t.match(/(?:payer.s?\s+name\s*[:\-]?\s*)(.+)/i)
+      if (nameMatch) {
+        fields.set('payerName', textField(nameMatch[1].trim()))
+        break
+      }
+    }
+  }
+
+  for (const t of lineTexts) {
+    const val = extractTrailingDollars(t)
+    if (val === null) continue
+
+    if (/\b(?:box\s*)?1\b.*gross\s+distribution/i.test(t) || /^1\s+Gross/i.test(t)) {
+      fields.set('box1', field(val))
+    } else if (/\b(?:box\s*)?2a\b.*taxable\s+amount/i.test(t) || /^2a\s/i.test(t)) {
+      fields.set('box2a', field(val))
+    } else if (/\b(?:box\s*)?3\b.*capital\s+gain/i.test(t) || /^3\s+Capital/i.test(t)) {
+      fields.set('box3', field(val))
+    } else if (/\b(?:box\s*)?4\b.*federal\s+(?:income\s+)?tax\s+withheld/i.test(t) || /^4\s+Federal/i.test(t)) {
+      fields.set('box4', field(val))
+    } else if (/\b(?:box\s*)?5\b.*employee\s+contributions/i.test(t) || /^5\s+Employee/i.test(t)) {
+      fields.set('box5', field(val))
+    }
+  }
+
+  // Distribution code — look for code pattern
+  for (const t of lineTexts) {
+    const codeMatch = t.match(/\b(?:box\s*)?7\b.*?(?:distribution\s+code)?\s*[:\-]?\s*([1-9A-T]{1,2})\b/i)
+    if (codeMatch) {
+      fields.set('box7', textField(codeMatch[1].toUpperCase()))
+      break
+    }
+  }
+
+  // IRA/SEP/SIMPLE
+  for (const t of lineTexts) {
+    if (/IRA.SEP.SIMPLE/i.test(t) && /\bX\b|checked|yes/i.test(t)) {
+      fields.set('iraOrSep', textField('true'))
+      break
+    }
+  }
+
+  return fields
+}
+
 function parseW2LineScan(lineTexts: string[]): Map<string, ExtractedField> {
   const fields = new Map<string, ExtractedField>()
 
@@ -632,6 +807,9 @@ export async function parseGenericFormPdf(data: ArrayBuffer): Promise<GenericPdf
     case '1099-DIV':
       fields = parse1099DivPositional(items)
       break
+    case '1099-R':
+      fields = parse1099RPositional(items)
+      break
     case 'W-2':
       fields = parseW2Positional(items)
       break
@@ -647,6 +825,9 @@ export async function parseGenericFormPdf(data: ArrayBuffer): Promise<GenericPdf
         break
       case '1099-DIV':
         lineScanFields = parse1099DivLineScan(lineTexts)
+        break
+      case '1099-R':
+        lineScanFields = parse1099RLineScan(lineTexts)
         break
       case 'W-2':
         lineScanFields = parseW2LineScan(lineTexts)

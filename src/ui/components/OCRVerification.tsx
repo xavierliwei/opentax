@@ -64,11 +64,23 @@ const FORM_1099_DIV_FIELD_DEFS: { key: string; label: string; type: 'monetary' |
   { key: 'box11', label: 'Box 11 — Exempt-interest dividends', type: 'monetary' },
 ]
 
+const FORM_1099_R_FIELD_DEFS: { key: string; label: string; type: 'monetary' | 'text' }[] = [
+  { key: 'payerName', label: 'Payer name', type: 'text' },
+  { key: 'box1', label: 'Box 1 — Gross distribution', type: 'monetary' },
+  { key: 'box2a', label: 'Box 2a — Taxable amount', type: 'monetary' },
+  { key: 'box3', label: 'Box 3 — Capital gain', type: 'monetary' },
+  { key: 'box4', label: 'Box 4 — Federal tax withheld', type: 'monetary' },
+  { key: 'box5', label: 'Box 5 — Employee contributions', type: 'monetary' },
+  { key: 'box7', label: 'Box 7 — Distribution code', type: 'text' },
+  { key: 'iraOrSep', label: 'IRA/SEP/SIMPLE', type: 'text' },
+]
+
 export function getFieldDefsForType(formType: DetectedFormType) {
   switch (formType) {
     case 'W-2': return W2_FIELD_DEFS
     case '1099-INT': return FORM_1099_INT_FIELD_DEFS
     case '1099-DIV': return FORM_1099_DIV_FIELD_DEFS
+    case '1099-R': return FORM_1099_R_FIELD_DEFS
     default: return []
   }
 }

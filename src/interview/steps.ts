@@ -12,6 +12,8 @@ import { MiscIncomePage } from '../ui/pages/MiscIncomePage.tsx'
 import { StockSalesPage } from '../ui/pages/StockSalesPage.tsx'
 import { RSUIncomePage } from '../ui/pages/RSUIncomePage.tsx'
 import { ISOExercisesPage } from '../ui/pages/ISOExercisesPage.tsx'
+import { Form1099GPage } from '../ui/pages/Form1099GPage.tsx'
+import { RetirementIncomePage } from '../ui/pages/RetirementIncomePage.tsx'
 import { ScheduleEPage } from '../ui/pages/ScheduleEPage.tsx'
 import { PriorYearPage } from '../ui/pages/PriorYearPage.tsx'
 import { DeductionsPage } from '../ui/pages/DeductionsPage.tsx'
@@ -119,6 +121,22 @@ export const STEPS: InterviewStep[] = [
     isVisible: () => true,
     isComplete: () => true,
     component: MiscIncomePage,
+  },
+  {
+    id: '1099g-income',
+    label: 'Unemployment',
+    path: '/interview/1099g-income',
+    isVisible: () => true,
+    isComplete: () => true,
+    component: Form1099GPage,
+  },
+  {
+    id: 'retirement-income',
+    label: 'Retirement',
+    path: '/interview/retirement-income',
+    isVisible: () => true,
+    isComplete: () => true,
+    component: RetirementIncomePage,
   },
   {
     id: 'rental-income',

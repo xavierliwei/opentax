@@ -144,6 +144,77 @@ export function computeLine3b(model: TaxReturn): TracedValue {
   )
 }
 
+// ── Line 4a — IRA distributions (gross) ─────────────────────────
+// Sum of Box 1 from all 1099-R forms where IRA/SEP/SIMPLE is checked.
+
+export function computeLine4a(model: TaxReturn): TracedValue {
+  const iraForms = (model.form1099Rs ?? []).filter(f => f.iraOrSep)
+  const inputIds = iraForms.map(f => `1099r:${f.id}:box1`)
+  const total = iraForms.reduce((sum, f) => sum + f.box1, 0)
+
+  return total > 0
+    ? tracedFromComputation(total, 'form1040.line4a', inputIds, 'Form 1040, Line 4a')
+    : tracedZero('form1040.line4a', 'Form 1040, Line 4a')
+}
+
+// ── Line 4b — IRA distributions (taxable) ───────────────────────
+// Sum of Box 2a from IRA/SEP/SIMPLE 1099-Rs.
+// Code G (direct rollover) and Code H (Roth rollover) → taxable = 0.
+
+const NON_TAXABLE_CODES = new Set(['G', 'H'])
+
+function is1099RNonTaxable(f: { box7: string }): boolean {
+  return f.box7.split('').some(c => NON_TAXABLE_CODES.has(c))
+}
+
+export function computeLine4b(model: TaxReturn): TracedValue {
+  const iraForms = (model.form1099Rs ?? []).filter(f => f.iraOrSep)
+  const inputIds: string[] = []
+  let total = 0
+
+  for (const f of iraForms) {
+    if (is1099RNonTaxable(f)) continue // rollover — not taxable
+    total += f.box2a
+    inputIds.push(`1099r:${f.id}:box2a`)
+  }
+
+  return total > 0
+    ? tracedFromComputation(total, 'form1040.line4b', inputIds, 'Form 1040, Line 4b')
+    : tracedZero('form1040.line4b', 'Form 1040, Line 4b')
+}
+
+// ── Line 5a — Pensions and annuities (gross) ───────────────────
+// Sum of Box 1 from non-IRA 1099-Rs (401k, pension, annuity).
+
+export function computeLine5a(model: TaxReturn): TracedValue {
+  const pensionForms = (model.form1099Rs ?? []).filter(f => !f.iraOrSep)
+  const inputIds = pensionForms.map(f => `1099r:${f.id}:box1`)
+  const total = pensionForms.reduce((sum, f) => sum + f.box1, 0)
+
+  return total > 0
+    ? tracedFromComputation(total, 'form1040.line5a', inputIds, 'Form 1040, Line 5a')
+    : tracedZero('form1040.line5a', 'Form 1040, Line 5a')
+}
+
+// ── Line 5b — Pensions and annuities (taxable) ─────────────────
+// Sum of Box 2a from non-IRA 1099-Rs. Code G/H rollovers excluded.
+
+export function computeLine5b(model: TaxReturn): TracedValue {
+  const pensionForms = (model.form1099Rs ?? []).filter(f => !f.iraOrSep)
+  const inputIds: string[] = []
+  let total = 0
+
+  for (const f of pensionForms) {
+    if (is1099RNonTaxable(f)) continue
+    total += f.box2a
+    inputIds.push(`1099r:${f.id}:box2a`)
+  }
+
+  return total > 0
+    ? tracedFromComputation(total, 'form1040.line5b', inputIds, 'Form 1040, Line 5b')
+    : tracedZero('form1040.line5b', 'Form 1040, Line 5b')
+}
+
 // ── Line 7 — Capital gain or (loss) ───────────────────────────
 // Reads from Schedule D Line 21 (or Line 16 if no 28%/unrecaptured gains).
 // Accepts the Schedule D result as a parameter; returns $0 if not provided.
@@ -479,7 +550,7 @@ export function computeLine24(line22: TracedValue, line23: TracedValue): TracedV
 }
 
 // ── Line 25 — Federal income tax withheld ──────────────────────
-// Sum of W-2 Box 2 + 1099-INT Box 4 + 1099-DIV Box 4 + 1099-MISC Box 4 + 1099-B withholding.
+// Sum of W-2 Box 2 + 1099-INT Box 4 + 1099-DIV Box 4 + 1099-MISC Box 4 + 1099-G Box 4 + 1099-B withholding.
 
 export function computeLine25(model: TaxReturn): TracedValue {
   const inputIds: string[] = []
@@ -508,6 +579,20 @@ export function computeLine25(model: TaxReturn): TracedValue {
     if (f.box4 > 0) {
       total += f.box4
       inputIds.push(`1099misc:${f.id}:box4`)
+    }
+  }
+
+  for (const f of (model.form1099Rs ?? [])) {
+    if (f.box4 > 0) {
+      total += f.box4
+      inputIds.push(`1099r:${f.id}:box4`)
+    }
+  }
+
+  for (const f of (model.form1099Gs ?? [])) {
+    if (f.box4 > 0) {
+      total += f.box4
+      inputIds.push(`1099g:${f.id}:box4`)
     }
   }
 
@@ -641,6 +726,10 @@ export interface Form1040Result {
   line2b: TracedValue
   line3a: TracedValue
   line3b: TracedValue
+  line4a: TracedValue
+  line4b: TracedValue
+  line5a: TracedValue
+  line5b: TracedValue
   line7: TracedValue
   line8: TracedValue
   line9: TracedValue
@@ -742,11 +831,14 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     scheduleE = computeScheduleE(model.scheduleEProperties, model.filingStatus, prelimAGI)
   }
 
-  // Schedule 1 (compute if there is 1099-MISC income or Schedule E)
+  // Schedule 1 (compute if there is 1099-MISC income, 1099-G income, or Schedule E)
   const has1099MISCIncome = (model.form1099MISCs ?? []).some(
     f => f.box1 > 0 || f.box2 > 0 || f.box3 > 0,
   )
-  const needSchedule1 = has1099MISCIncome || hasScheduleEProperties
+  const has1099GIncome = (model.form1099Gs ?? []).some(
+    f => f.box1 > 0 || f.box2 > 0,
+  )
+  const needSchedule1 = has1099MISCIncome || has1099GIncome || hasScheduleEProperties
   const schedule1 = needSchedule1 ? computeSchedule1(model, scheduleE ?? undefined) : null
 
   // ── HSA (computed early — no dependency on Line 9) ──────
@@ -759,13 +851,22 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   const line2b = computeLine2b(model)
   const line3a = computeLine3a(model)
   const line3b = computeLine3b(model)
+  const line4a = computeLine4a(model)
+  const line4b = computeLine4b(model)
+  const line5a = computeLine5a(model)
+  const line5b = computeLine5b(model)
   const line7 = computeLine7(scheduleD?.line21)
   const line8 = computeLine8(schedule1 ?? undefined, hsaResult)
 
+  const line9Inputs = [
+    'form1040.line1z', 'form1040.line2b', 'form1040.line3b',
+    'form1040.line4b', 'form1040.line5b',
+    'form1040.line7', 'form1040.line8',
+  ]
   const line9 = tracedFromComputation(
-    line1z.amount + line2b.amount + line3b.amount + line7.amount + line8.amount,
+    line1z.amount + line2b.amount + line3b.amount + line4b.amount + line5b.amount + line7.amount + line8.amount,
     'form1040.line9',
-    ['form1040.line1z', 'form1040.line2b', 'form1040.line3b', 'form1040.line7', 'form1040.line8'],
+    line9Inputs,
     'Form 1040, Line 9',
   )
 
@@ -915,7 +1016,7 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   const line37 = computeLine37(line24, line33)
 
   return {
-    line1a, line1z, line2a, line2b, line3a, line3b, line7, line8, line9,
+    line1a, line1z, line2a, line2b, line3a, line3b, line4a, line4b, line5a, line5b, line7, line8, line9,
     line10, line11,
     line12, line13, line14, line15,
     line16, line17, line18, line19, line20, line21, line22, line23, line24,

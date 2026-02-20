@@ -14,8 +14,8 @@ These features have working computation engines but **no way for users to input 
 - [x] Form 1040 Line 1z — hardcoded to equal Line 1a (MVP comment in filler); should sum all Line 1 sub-components
 - [x] Additional standard deduction for age 65+ ($2,000 single/HOH, $1,600 MFJ per person)
 - [x] Additional standard deduction for blind ($2,000 single/HOH, $1,600 MFJ per person)
-- [ ] Dependent filer standard deduction limitation (greater of $1,350 or earned income + $450)
-- [ ] Estimated tax payments input — Form 1040-ES quarterly payments, sum on Line 26
+- [ ] Dependent filer standard deduction limitation (greater of $1,350 or earned income + $450) ← agent 1
+- [ ] Estimated tax payments input — Form 1040-ES quarterly payments, sum on Line 26 ← agent 1
 
 ---
 
@@ -83,7 +83,7 @@ Lines currently returning **placeholder $0** that need real computation:
 - [ ] 50% of SE tax deductible on Schedule 1 Line 15
 
 ### Schedule E — Supplemental Income
-- [ ] Rental income/loss (Part I)
+- [x] Rental income/loss (Part I) — with straight-line depreciation calculator
 - [ ] Partnership / S-corp income (Part II, K-1)
 
 ### Form 6251 — Alternative Minimum Tax
@@ -107,12 +107,12 @@ Lines currently returning **placeholder $0** that need real computation:
 
 ## IRS Rules Gaps — Missing Input Documents
 
-### Form 1099-R — Distributions from Pensions, Annuities, Retirement
-- [ ] Model type, parser, and UI page
-- [ ] Distribution codes (code G = direct rollover, code 1 = early, code 7 = normal)
-- [ ] Taxable amount computation (Box 2a vs gross distribution Box 1)
+### Form 1099-R — Distributions from Pensions, Annuities, Retirement ← agent 2
+- [ ] Model type, parser, and UI page ← agent 2
+- [ ] Distribution codes (code G = direct rollover, code 1 = early, code 7 = normal) ← agent 2
+- [ ] Taxable amount computation (Box 2a vs gross distribution Box 1) ← agent 2
 - [ ] 10% early withdrawal penalty (Form 5329) when applicable
-- [ ] Immediate need: Fidelity 401K rollover (code G = non-taxable)
+- [ ] Immediate need: Fidelity 401K rollover (code G = non-taxable) ← agent 2
 
 ### Form 1098-T — Tuition Statement
 - [ ] Qualified tuition and fees (Box 1), scholarships/grants (Box 5)

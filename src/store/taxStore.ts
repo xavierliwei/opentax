@@ -8,6 +8,8 @@ import type {
   Form1099INT,
   Form1099DIV,
   Form1099MISC,
+  Form1099G,
+  Form1099R,
   Form1099B,
   CapitalTransaction,
   Taxpayer,
@@ -60,6 +62,13 @@ export interface TaxStoreState {
   appendForm1099MISCs: (forms: Form1099MISC[]) => void
   updateForm1099MISC: (id: string, form: Partial<Form1099MISC>) => void
   removeForm1099MISC: (id: string) => void
+  addForm1099G: (form: Form1099G) => void
+  updateForm1099G: (id: string, form: Partial<Form1099G>) => void
+  removeForm1099G: (id: string) => void
+  addForm1099R: (form: Form1099R) => void
+  appendForm1099Rs: (forms: Form1099R[]) => void
+  updateForm1099R: (id: string, form: Partial<Form1099R>) => void
+  removeForm1099R: (id: string) => void
   setForm1099Bs: (forms: Form1099B[]) => void
   appendForm1099Bs: (forms: Form1099B[]) => void
   addForm1099B: (form: Form1099B) => void
@@ -362,6 +371,66 @@ export const useTaxStore = create<TaxStoreState>()(
         set(recompute(tr))
       },
 
+      addForm1099G: (form) => {
+        const tr = {
+          ...get().taxReturn,
+          form1099Gs: [...(get().taxReturn.form1099Gs ?? []), form],
+        }
+        set(recompute(tr))
+      },
+
+      updateForm1099G: (id, updates) => {
+        const tr = {
+          ...get().taxReturn,
+          form1099Gs: (get().taxReturn.form1099Gs ?? []).map((f) =>
+            f.id === id ? { ...f, ...updates } : f,
+          ),
+        }
+        set(recompute(tr))
+      },
+
+      removeForm1099G: (id) => {
+        const tr = {
+          ...get().taxReturn,
+          form1099Gs: (get().taxReturn.form1099Gs ?? []).filter((f) => f.id !== id),
+        }
+        set(recompute(tr))
+      },
+
+      addForm1099R: (form) => {
+        const tr = {
+          ...get().taxReturn,
+          form1099Rs: [...(get().taxReturn.form1099Rs ?? []), form],
+        }
+        set(recompute(tr))
+      },
+
+      appendForm1099Rs: (forms) => {
+        const tr = {
+          ...get().taxReturn,
+          form1099Rs: [...(get().taxReturn.form1099Rs ?? []), ...forms],
+        }
+        set(recompute(tr))
+      },
+
+      updateForm1099R: (id, updates) => {
+        const tr = {
+          ...get().taxReturn,
+          form1099Rs: (get().taxReturn.form1099Rs ?? []).map((f) =>
+            f.id === id ? { ...f, ...updates } : f,
+          ),
+        }
+        set(recompute(tr))
+      },
+
+      removeForm1099R: (id) => {
+        const tr = {
+          ...get().taxReturn,
+          form1099Rs: (get().taxReturn.form1099Rs ?? []).filter((f) => f.id !== id),
+        }
+        set(recompute(tr))
+      },
+
       setForm1099Bs: (forms) => {
         const tr = withDerivedCapital({ ...get().taxReturn, form1099Bs: forms })
         set(recompute(tr))
@@ -475,11 +544,13 @@ export const useTaxStore = create<TaxStoreState>()(
 
       setPriorYear: (updates) => {
         const prev = get().taxReturn
-        const existing = prev.priorYear ?? {
+        const defaults: PriorYearInfo = {
           agi: 0,
           capitalLossCarryforwardST: 0,
           capitalLossCarryforwardLT: 0,
+          itemizedLastYear: false,
         }
+        const existing: PriorYearInfo = { ...defaults, ...prev.priorYear }
         const tr = {
           ...prev,
           priorYear: { ...existing, ...updates },
