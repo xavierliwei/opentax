@@ -107,12 +107,12 @@ Lines currently returning **placeholder $0** that need real computation:
 
 ## IRS Rules Gaps — Missing Input Documents
 
-### Form 1099-R — Distributions from Pensions, Annuities, Retirement ← agent 2
-- [ ] Model type, parser, and UI page ← agent 2
-- [ ] Distribution codes (code G = direct rollover, code 1 = early, code 7 = normal) ← agent 2
-- [ ] Taxable amount computation (Box 2a vs gross distribution Box 1) ← agent 2
+### Form 1099-R — Distributions from Pensions, Annuities, Retirement
+- [x] Model type, parser, and UI page
+- [x] Distribution codes (code G = direct rollover, code 1 = early, code 7 = normal)
+- [x] Taxable amount computation (Box 2a vs gross distribution Box 1)
 - [ ] 10% early withdrawal penalty (Form 5329) when applicable
-- [ ] Immediate need: Fidelity 401K rollover (code G = non-taxable) ← agent 2
+- [x] Immediate need: Fidelity 401K rollover (code G = non-taxable)
 
 ### Form 1098-T — Tuition Statement
 - [ ] Qualified tuition and fees (Box 1), scholarships/grants (Box 5)
