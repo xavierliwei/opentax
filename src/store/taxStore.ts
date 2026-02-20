@@ -94,6 +94,8 @@ export interface TaxStoreState {
   setStudentLoanInterest: (cents: number) => void
   setEstimatedTaxPayment: (quarter: 'q1' | 'q2' | 'q3' | 'q4', cents: number) => void
   setHSA: (updates: Partial<HSAInfo>) => void
+  setCAResident: (value: boolean) => void
+  setRentPaidInCA: (value: boolean) => void
   importReturn: (taxReturn: TaxReturn) => void
   resetReturn: () => void
 }
@@ -688,6 +690,16 @@ export const useTaxStore = create<TaxStoreState>()(
           ...prev,
           hsa: { ...existing, ...updates },
         }
+        set(recompute(tr))
+      },
+
+      setCAResident: (value) => {
+        const tr = { ...get().taxReturn, caResident: value }
+        set(recompute(tr))
+      },
+
+      setRentPaidInCA: (value) => {
+        const tr = { ...get().taxReturn, rentPaidInCA: value }
         set(recompute(tr))
       },
 
