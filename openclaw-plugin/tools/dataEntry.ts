@@ -368,19 +368,99 @@ export function createDataEntryTools(service: TaxService): ToolDef[] {
           agi: { type: 'number', description: 'Prior-year AGI in dollars (for e-file identity verification)' },
           capitalLossCarryforwardST: { type: 'number', description: 'Short-term capital loss carryover in dollars (positive amount)' },
           capitalLossCarryforwardLT: { type: 'number', description: 'Long-term capital loss carryover in dollars (positive amount)' },
+          itemizedLastYear: { type: 'boolean', description: 'Whether taxpayer itemized deductions last year (affects taxable state refund on 1099-G Box 2)' },
         },
       },
       execute(args) {
-        const updates: Record<string, number> = {}
+        const updates: Record<string, number | boolean> = {}
         if (args.agi != null) updates.agi = cents(args.agi as number)
         if (args.capitalLossCarryforwardST != null) updates.capitalLossCarryforwardST = cents(args.capitalLossCarryforwardST as number)
         if (args.capitalLossCarryforwardLT != null) updates.capitalLossCarryforwardLT = cents(args.capitalLossCarryforwardLT as number)
+        if (args.itemizedLastYear != null) updates.itemizedLastYear = args.itemizedLastYear as boolean
         service.setPriorYear(updates)
         const parts: string[] = []
         if (args.agi != null) parts.push(`AGI=$${(args.agi as number).toLocaleString('en-US')}`)
         if (args.capitalLossCarryforwardST != null) parts.push(`ST carryover=$${(args.capitalLossCarryforwardST as number).toLocaleString('en-US')}`)
         if (args.capitalLossCarryforwardLT != null) parts.push(`LT carryover=$${(args.capitalLossCarryforwardLT as number).toLocaleString('en-US')}`)
+        if (args.itemizedLastYear != null) parts.push(`itemized last year=${args.itemizedLastYear}`)
         return `Prior-year info set: ${parts.join(', ')}. ${formatRefund(service)}`
+      },
+    },
+
+    {
+      name: 'tax_add_1099_g',
+      description: 'Add a 1099-G form (unemployment compensation, state/local tax refunds). All dollar amounts in dollars.',
+      parameters: {
+        type: 'object',
+        properties: {
+          payerName: { type: 'string', description: 'Payer name (e.g., "State Department of Labor")' },
+          unemployment: { type: 'number', description: 'Box 1: Unemployment compensation (dollars)' },
+          stateRefund: { type: 'number', description: 'Box 2: State/local income tax refunds (dollars, optional)' },
+          federalWithheld: { type: 'number', description: 'Box 4: Federal tax withheld (dollars, optional)' },
+          stateWithheld: { type: 'number', description: 'Box 11: State tax withheld (dollars, optional)' },
+        },
+        required: ['payerName'],
+      },
+      execute(args) {
+        const id = randomUUID()
+        service.addForm1099G({
+          id,
+          payerName: args.payerName as string,
+          box1: args.unemployment != null ? cents(args.unemployment as number) : 0,
+          box2: args.stateRefund != null ? cents(args.stateRefund as number) : 0,
+          box3: 0,
+          box4: args.federalWithheld != null ? cents(args.federalWithheld as number) : 0,
+          box5: 0,
+          box10a: 0,
+          box10b: 0,
+          box11: args.stateWithheld != null ? cents(args.stateWithheld as number) : 0,
+        })
+        const parts: string[] = []
+        if (args.unemployment) parts.push(`$${(args.unemployment as number).toLocaleString('en-US')} unemployment`)
+        if (args.stateRefund) parts.push(`$${(args.stateRefund as number).toLocaleString('en-US')} state refund`)
+        return `Added 1099-G from ${args.payerName} (${parts.join(', ') || 'no amounts'}). ${formatRefund(service)}`
+      },
+    },
+
+    {
+      name: 'tax_add_1099_r',
+      description: 'Add a 1099-R form (retirement distributions — pensions, annuities, 401k, IRA). All dollar amounts in dollars.',
+      parameters: {
+        type: 'object',
+        properties: {
+          payerName: { type: 'string', description: 'Payer name (e.g., "Fidelity Investments")' },
+          grossDistribution: { type: 'number', description: 'Box 1: Gross distribution (dollars)' },
+          taxableAmount: { type: 'number', description: 'Box 2a: Taxable amount (dollars, optional if not determined)' },
+          taxableNotDetermined: { type: 'boolean', description: 'Box 2b: Taxable amount not determined (default false)' },
+          totalDistribution: { type: 'boolean', description: 'Box 2b: Total distribution (default false)' },
+          capitalGain: { type: 'number', description: 'Box 3: Capital gain included in 2a (dollars, optional)' },
+          federalWithheld: { type: 'number', description: 'Box 4: Federal tax withheld (dollars, optional)' },
+          employeeContributions: { type: 'number', description: 'Box 5: Employee/Roth contributions (dollars, optional)' },
+          distributionCode: { type: 'string', description: 'Box 7: Distribution code (1=early, 7=normal, G=rollover, etc.)' },
+          iraOrSep: { type: 'boolean', description: 'IRA/SEP/SIMPLE checkbox (true=IRA Lines 4a/4b, false=pension Lines 5a/5b)' },
+        },
+        required: ['payerName', 'grossDistribution', 'distributionCode'],
+      },
+      execute(args) {
+        const id = randomUUID()
+        const gross = cents(args.grossDistribution as number)
+        const taxable = args.taxableAmount != null ? cents(args.taxableAmount as number) : gross
+        service.addForm1099R({
+          id,
+          payerName: args.payerName as string,
+          box1: gross,
+          box2a: taxable,
+          box2bTaxableNotDetermined: (args.taxableNotDetermined as boolean) ?? false,
+          box2bTotalDistribution: (args.totalDistribution as boolean) ?? false,
+          box3: args.capitalGain != null ? cents(args.capitalGain as number) : 0,
+          box4: args.federalWithheld != null ? cents(args.federalWithheld as number) : 0,
+          box5: args.employeeContributions != null ? cents(args.employeeContributions as number) : 0,
+          box7: args.distributionCode as string,
+          iraOrSep: (args.iraOrSep as boolean) ?? false,
+        })
+        const code = args.distributionCode as string
+        const codeLabel = code === 'G' ? 'rollover' : code === '1' ? 'early distribution' : code === '7' ? 'normal distribution' : `code ${code}`
+        return `Added 1099-R from ${args.payerName} ($${(args.grossDistribution as number).toLocaleString('en-US')} gross, ${codeLabel}). ${formatRefund(service)}`
       },
     },
 

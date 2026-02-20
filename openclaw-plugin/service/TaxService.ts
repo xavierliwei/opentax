@@ -21,6 +21,8 @@ import type {
   Form1099MISC,
   Form1099B,
   Form1099SA,
+  Form1099G,
+  Form1099R,
   CapitalTransaction,
   Taxpayer,
   Dependent,
@@ -360,6 +362,7 @@ export class TaxService extends EventEmitter {
       agi: 0,
       capitalLossCarryforwardST: 0,
       capitalLossCarryforwardLT: 0,
+      itemizedLastYear: false,
     }
     const tr = {
       ...prev,
@@ -521,6 +524,62 @@ export class TaxService extends EventEmitter {
     const tr = {
       ...this.taxReturn,
       isoExercises: this.taxReturn.isoExercises.filter((e) => e.id !== id),
+    }
+    this.apply(tr)
+  }
+
+  // ── 1099-G ────────────────────────────────────────────────────
+
+  addForm1099G(form: Form1099G): void {
+    const tr = {
+      ...this.taxReturn,
+      form1099Gs: [...(this.taxReturn.form1099Gs ?? []), form],
+    }
+    this.apply(tr)
+  }
+
+  updateForm1099G(id: string, updates: Partial<Form1099G>): void {
+    const tr = {
+      ...this.taxReturn,
+      form1099Gs: (this.taxReturn.form1099Gs ?? []).map((f) =>
+        f.id === id ? { ...f, ...updates } : f,
+      ),
+    }
+    this.apply(tr)
+  }
+
+  removeForm1099G(id: string): void {
+    const tr = {
+      ...this.taxReturn,
+      form1099Gs: (this.taxReturn.form1099Gs ?? []).filter((f) => f.id !== id),
+    }
+    this.apply(tr)
+  }
+
+  // ── 1099-R ────────────────────────────────────────────────────
+
+  addForm1099R(form: Form1099R): void {
+    const tr = {
+      ...this.taxReturn,
+      form1099Rs: [...(this.taxReturn.form1099Rs ?? []), form],
+    }
+    this.apply(tr)
+  }
+
+  updateForm1099R(id: string, updates: Partial<Form1099R>): void {
+    const tr = {
+      ...this.taxReturn,
+      form1099Rs: (this.taxReturn.form1099Rs ?? []).map((f) =>
+        f.id === id ? { ...f, ...updates } : f,
+      ),
+    }
+    this.apply(tr)
+  }
+
+  removeForm1099R(id: string): void {
+    const tr = {
+      ...this.taxReturn,
+      form1099Rs: (this.taxReturn.form1099Rs ?? []).filter((f) => f.id !== id),
     }
     this.apply(tr)
   }

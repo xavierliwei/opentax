@@ -111,6 +111,8 @@ export async function processDocumentAsync(filePath: string): Promise<string> {
 
   const toolName = result.formType === 'W-2' ? 'tax_add_w2'
     : result.formType === '1099-INT' ? 'tax_add_1099_int'
+    : result.formType === '1099-DIV' ? 'tax_add_1099_div'
+    : result.formType === '1099-R' ? 'tax_add_1099_r'
     : 'tax_add_1099_div'
   lines.push(`\nReview these values and use ${toolName} to enter them.`)
 

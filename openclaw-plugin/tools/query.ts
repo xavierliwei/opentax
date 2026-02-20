@@ -81,6 +81,12 @@ export function createQueryTools(service: TaxService): ToolDef[] {
         if ((tr.form1099Bs ?? []).length > 0) {
           docs.push(`${tr.form1099Bs!.length} 1099-B(s)`)
         }
+        if ((tr.form1099Gs ?? []).length > 0) {
+          docs.push(`${tr.form1099Gs!.length} 1099-G(s)`)
+        }
+        if ((tr.form1099Rs ?? []).length > 0) {
+          docs.push(`${tr.form1099Rs!.length} 1099-R(s)`)
+        }
         if (tr.capitalTransactions.length > 0) {
           docs.push(`${tr.capitalTransactions.length} capital transaction(s)`)
         }
@@ -92,6 +98,9 @@ export function createQueryTools(service: TaxService): ToolDef[] {
         }
         if (tr.isoExercises.length > 0) {
           docs.push(`${tr.isoExercises.length} ISO exercise(s)`)
+        }
+        if ((tr.scheduleEProperties ?? []).length > 0) {
+          docs.push(`${tr.scheduleEProperties!.length} rental propert${tr.scheduleEProperties!.length === 1 ? 'y' : 'ies'}`)
         }
         if (docs.length > 0) {
           lines.push(`### Documents on File`)
