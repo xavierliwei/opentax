@@ -19,6 +19,7 @@ import { PriorYearPage } from '../ui/pages/PriorYearPage.tsx'
 import { DeductionsPage } from '../ui/pages/DeductionsPage.tsx'
 import { CreditsPage } from '../ui/pages/CreditsPage.tsx'
 import { ReviewPage } from '../ui/pages/ReviewPage.tsx'
+import { CAReviewPage } from '../ui/pages/CAReviewPage.tsx'
 import { DownloadPage } from '../ui/pages/DownloadPage.tsx'
 
 export interface InterviewStep {
@@ -195,6 +196,14 @@ export const STEPS: InterviewStep[] = [
     isVisible: () => true,
     isComplete: () => false,
     component: ReviewPage,
+  },
+  {
+    id: 'ca-review',
+    label: 'CA Form 540',
+    path: '/interview/ca-review',
+    isVisible: (tr) => tr.caResident === true,
+    isComplete: () => false,
+    component: CAReviewPage,
   },
   {
     id: 'download',
