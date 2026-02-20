@@ -26,11 +26,11 @@ Lines currently returning **placeholder $0** that need real computation:
 ### Line 8 — Other Income (via Schedule 1, Part I)
 - [x] Rents, royalties (1099-MISC) — Schedule 1 Line 5
 - [x] Other income: prizes, awards (1099-MISC Box 3) — Schedule 1 Line 8z
-- [ ] Taxable refunds of state/local taxes (Line 1)
+- [x] Taxable refunds of state/local taxes (Line 1) — 1099-G Box 2 — **agent 3 done**
 - [ ] Alimony received (Line 2a, pre-2019 agreements)
 - [ ] Business income/loss from Schedule C (Line 3)
 - [ ] Rental, royalty, partnership, S-corp income from Schedule E (Line 5)
-- [ ] Unemployment compensation — 1099-G (Line 7)
+- [x] Unemployment compensation — 1099-G (Line 7) — **agent 3 done**
 - [ ] Social Security benefits — taxable portion (Line 8, SSA-1099)
 - [ ] Other income: gambling, jury duty, cancellation of debt, etc. (Line 9)
 
@@ -70,7 +70,8 @@ Lines currently returning **placeholder $0** that need real computation:
 
 ### Schedule 1 — Additional Income and Adjustments
 - [x] Part I: 1099-MISC rents/royalties/other → Lines 5, 8z, 10
-- [ ] Part I: remaining income types (business, rental, unemployment, SS benefits)
+- [x] Part I: 1099-G unemployment → Line 7, taxable refunds → Line 1 — **agent 3 done**
+- [ ] Part I: remaining income types (business, SS benefits)
 - [ ] Part II: remaining adjustments (educator, SE deductions)
 
 ### Schedule C — Profit or Loss from Business
@@ -119,8 +120,10 @@ Lines currently returning **placeholder $0** that need real computation:
 - [ ] Needed for AOTC and LLC computation
 
 ### Form 1099-G — Government Payments
-- [ ] Unemployment compensation (Box 1)
-- [ ] State/local tax refunds (Box 2) — taxable if prior year itemized
+- [x] Unemployment compensation (Box 1) → Schedule 1 Line 7 — **agent 3 done**
+- [x] State/local tax refunds (Box 2) → Schedule 1 Line 1 (taxable if prior-year itemized) — **agent 3 done**
+- [x] Federal withholding (Box 4) → Form 1040 Line 25
+- [x] Interview page with prior-year itemization toggle
 
 ### SSA-1099 — Social Security Benefits
 - [ ] Gross benefits, taxable portion worksheet (up to 85% taxable)
@@ -190,7 +193,8 @@ Lines currently returning **placeholder $0** that need real computation:
 - [x] Wash sale detection (IRC §1091)
 - [x] RSU basis adjustment with confidence scoring
 - [x] Capital loss carryforward tracking
-- [x] W-2, 1099-INT, 1099-DIV, 1099-MISC, 1099-B input with OCR
+- [x] 1099-G support — unemployment (Sch1 Line 7), taxable refunds (Sch1 Line 1), withholding
+- [x] W-2, 1099-INT, 1099-DIV, 1099-MISC, 1099-B, 1099-G, 1099-R input with OCR
 - [x] Explainability trace graph with IRS citations
 - [x] PDF generation (IRS assembly order with cover sheet)
 - [x] Investment interest carryforward (Form 4952)
