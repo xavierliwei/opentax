@@ -14,8 +14,8 @@ These features have working computation engines but **no way for users to input 
 - [x] Form 1040 Line 1z — hardcoded to equal Line 1a (MVP comment in filler); should sum all Line 1 sub-components
 - [x] Additional standard deduction for age 65+ ($2,000 single/HOH, $1,600 MFJ per person)
 - [x] Additional standard deduction for blind ($2,000 single/HOH, $1,600 MFJ per person)
-- [ ] Dependent filer standard deduction limitation (greater of $1,350 or earned income + $450) ← agent 1
-- [ ] Estimated tax payments input — Form 1040-ES quarterly payments, sum on Line 26 ← agent 1
+- [x] Dependent filer standard deduction limitation (greater of $1,350 or earned income + $450)
+- [x] Estimated tax payments input — Form 1040-ES quarterly payments, sum on Line 26
 
 ---
 
@@ -52,8 +52,8 @@ Lines currently returning **placeholder $0** that need real computation:
 
 ### Line 23 — Schedule 2, Part II (Other Taxes)
 - [x] HSA penalties (distribution 20% + excess 6%) — computation done
-- [ ] Net Investment Income Tax (NIIT) — 3.8% surtax on lesser of NII or MAGI above $200K/$250K. Constants defined but not wired.
-- [ ] Additional Medicare tax — 0.9% on wages/SE income above $200K/$250K
+- [ ] Net Investment Income Tax (NIIT) — 3.8% surtax on lesser of NII or MAGI above $200K/$250K. Constants defined but not wired. ← agent 2
+- [ ] Additional Medicare tax — 0.9% on wages/SE income above $200K/$250K ← agent 2
 - [ ] Self-employment tax — Schedule SE (15.3% on 92.35% of net SE earnings)
 - [ ] Household employment taxes — Schedule H
 
@@ -157,7 +157,7 @@ Lines currently returning **placeholder $0** that need real computation:
 ---
 
 ## Bigger Features
-- [ ] State tax computation — federal-only today; at least handle top states
+- [ ] State tax computation — CA Form 540 in progress (agent 4); remaining top states TBD
 - [ ] Schedule C / Schedule SE — self-employment income
 - [ ] Multi-year support (hardcoded to 2025)
 
@@ -194,7 +194,12 @@ Lines currently returning **placeholder $0** that need real computation:
 - [x] RSU basis adjustment with confidence scoring
 - [x] Capital loss carryforward tracking
 - [x] 1099-G support — unemployment (Sch1 Line 7), taxable refunds (Sch1 Line 1), withholding
+- [x] 1099-R support — retirement distributions with distribution codes and early withdrawal penalty
+- [x] Schedule E Part I — rental income/loss with straight-line depreciation
+- [x] Dependent filer standard deduction limitation
+- [x] Estimated tax payments (Form 1040-ES) — quarterly inputs, Line 26
 - [x] W-2, 1099-INT, 1099-DIV, 1099-MISC, 1099-B, 1099-G, 1099-R input with OCR
+- [x] OpenClaw plugin — 1099-G and 1099-R CRUD, agent tools, document routing
 - [x] Explainability trace graph with IRS citations
 - [x] PDF generation (IRS assembly order with cover sheet)
 - [x] Investment interest carryforward (Form 4952)
