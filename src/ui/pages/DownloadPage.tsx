@@ -47,7 +47,6 @@ export function DownloadPage() {
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [statePackages, setStatePackages] = useState<StatePackage[]>([])
-  const [showSeparate, setShowSeparate] = useState(false)
 
   const handleDownloadPDF = async () => {
     setGenerating(true)
@@ -223,30 +222,36 @@ export function DownloadPage() {
         </button>
       </div>
 
-      {/* Separate download options — available after first generation */}
-      {statePackages.length > 0 && (
-        <div className="mt-3">
-          <button
-            type="button"
-            onClick={() => setShowSeparate(!showSeparate)}
-            className="text-sm text-tax-blue hover:text-blue-700 underline"
-          >
-            {showSeparate ? 'Hide' : 'Download separately'}
-          </button>
-          {showSeparate && (
-            <div className="mt-2 flex flex-col gap-2">
-              {statePackages.map(pkg => (
-                <button
-                  key={pkg.stateCode}
-                  type="button"
-                  onClick={() => handleDownloadState(pkg)}
-                  className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 text-left"
-                >
-                  {pkg.label} PDF
-                </button>
-              ))}
-            </div>
-          )}
+      {/* Separate state download options — always visible when states exist */}
+      {stateResults.length > 0 && (
+        <div className="mt-4" data-testid="state-download-section">
+          <h3 className="text-sm font-semibold text-gray-700 mb-2">State Returns</h3>
+          <div className="flex flex-col gap-2">
+            {stateResults.map(sr => {
+              const pkg = statePackages.find(p => p.stateCode === sr.stateCode)
+              const isReady = !!pkg
+              return (
+                <div key={sr.stateCode} className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => isReady && handleDownloadState(pkg)}
+                    disabled={!isReady}
+                    data-testid={`download-state-${sr.stateCode}`}
+                    className={`w-full sm:w-auto px-4 py-2 text-sm font-medium border rounded-md text-left ${
+                      isReady
+                        ? 'text-gray-700 border-gray-300 hover:bg-gray-50 cursor-pointer'
+                        : 'text-gray-400 border-gray-200 bg-gray-50 cursor-not-allowed'
+                    }`}
+                  >
+                    {sr.formLabel} PDF
+                  </button>
+                  {!isReady && (
+                    <span className="text-xs text-gray-400">Generate package first</span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
 
