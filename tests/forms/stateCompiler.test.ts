@@ -193,3 +193,66 @@ describe('compileFilingPackage — state form integration', () => {
     }
   })
 })
+
+// ── Part-year CA Form 540NR ───────────────────────────────────
+
+describe('compileFilingPackage — part-year CA (Form 540NR)', () => {
+  function makePartYearCAReturn(): TaxReturn {
+    return {
+      ...emptyTaxReturn(2025),
+      taxpayer: {
+        firstName: 'Part',
+        lastName: 'Year',
+        ssn: '123456789',
+        dateOfBirth: '1990-01-01',
+        address: { street: '456 Oak Ave', city: 'Austin', state: 'TX', zip: '73301' },
+      },
+      stateReturns: [{
+        stateCode: 'CA',
+        residencyType: 'part-year',
+        moveInDate: '2025-01-01',
+        moveOutDate: '2025-06-30',
+      }],
+      w2s: [
+        makeW2({
+          id: 'w2-1',
+          employerName: 'Tech Corp',
+          box1: cents(100000),
+          box2: cents(15000),
+          box15State: 'CA',
+          box16StateWages: cents(100000),
+          box17StateIncomeTax: cents(5000),
+        }),
+      ],
+    }
+  }
+
+  it('part-year CA return generates CA Form 540NR', async () => {
+    const tr = makePartYearCAReturn()
+    const result = computeAll(tr)
+    const stateResult = result.stateResults[0]
+
+    const compiled = await caFormCompiler.compile(
+      tr,
+      stateResult,
+      { templates: new Map() },
+    )
+
+    expect(compiled.forms[0].formId).toBe('CA Form 540NR')
+  })
+
+  it('part-year CA return in filing package uses 540NR label', async () => {
+    const tr = makePartYearCAReturn()
+    const result = await compileFilingPackage(tr, templates)
+
+    expect(result.statePackages).toHaveLength(1)
+    expect(result.statePackages[0].label).toBe('CA Form 540NR')
+  })
+
+  it('full-year CA return uses CA Form 540 label', async () => {
+    const tr = makeCAReturn()
+    const result = await compileFilingPackage(tr, templates)
+
+    expect(result.statePackages[0].label).toBe('CA Form 540')
+  })
+})
