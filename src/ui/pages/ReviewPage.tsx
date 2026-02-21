@@ -366,20 +366,35 @@ export function ReviewPage() {
       </section>
 
       {/* State return links */}
-      {stateResults.length > 0 && stateResults.map(sr => (
-        <div key={sr.stateCode} className="mt-6 border border-amber-200 bg-amber-50/50 rounded-lg p-4 flex items-center justify-between">
-          <div>
-            <span className="text-sm font-semibold text-amber-800">{sr.formLabel}</span>
-            <p className="text-xs text-amber-600 mt-0.5">Your {sr.stateCode} state return is computed — review it on the next page.</p>
+      {stateResults.length > 0 && stateResults.map(sr => {
+        const isRefund = sr.overpaid > 0
+        const isOwed = sr.amountOwed > 0
+        const statusLabel = isRefund ? 'Refund' : isOwed ? 'Amount Owed' : 'Balanced'
+        const statusAmount = isRefund ? sr.overpaid : isOwed ? sr.amountOwed : 0
+        const statusColor = isRefund ? 'text-tax-green' : isOwed ? 'text-tax-red' : 'text-gray-500'
+        const borderColor = isRefund ? 'border-emerald-200' : isOwed ? 'border-red-200' : 'border-amber-200'
+        const bgColor = isRefund ? 'bg-emerald-50/50' : isOwed ? 'bg-red-50/50' : 'bg-amber-50/50'
+
+        return (
+          <div key={sr.stateCode} data-testid={`state-card-${sr.stateCode}`} className={`mt-6 border ${borderColor} ${bgColor} rounded-lg p-4 flex items-center justify-between gap-3`}>
+            <div className="min-w-0">
+              <span className="text-sm font-semibold text-gray-800">{sr.formLabel}</span>
+              <div className="flex items-center gap-2 mt-1">
+                <span data-testid={`state-status-${sr.stateCode}`} className={`text-sm font-semibold ${statusColor}`}>
+                  {statusLabel}{statusAmount > 0 ? `: ${formatCurrency(statusAmount)}` : ''}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 mt-0.5">Review your {sr.stateCode} state return on the next page.</p>
+            </div>
+            <Link
+              to={`/interview/state-review-${sr.stateCode}`}
+              className="text-sm font-medium text-brand hover:text-blue-700 underline underline-offset-2 shrink-0"
+            >
+              View {sr.stateCode} Return
+            </Link>
           </div>
-          <Link
-            to={`/interview/state-review-${sr.stateCode}`}
-            className="text-sm font-medium text-amber-700 hover:text-amber-900 underline underline-offset-2"
-          >
-            View {sr.stateCode} Return
-          </Link>
-        </div>
-      ))}
+        )
+      })}
 
       {/* Schedules included */}
       {executedSchedules.length > 0 && (
