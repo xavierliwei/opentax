@@ -8,7 +8,7 @@ import type { TracedValue } from '../../../model/traced'
 import { tracedFromComputation } from '../../../model/traced'
 import { computeForm540 } from './form540'
 import type { Form540Result } from './form540'
-import type { StateRulesModule, StateComputeResult } from '../../stateEngine'
+import type { StateRulesModule, StateComputeResult, StateReviewSection, StateReviewResultLine } from '../../stateEngine'
 
 /** Map a Form540Result into the standardised StateComputeResult */
 function toStateResult(form540: Form540Result): StateComputeResult {
@@ -136,6 +136,174 @@ function collectCATracedValues(result: StateComputeResult): Map<string, TracedVa
   return values
 }
 
+/** Helper to safely extract Form540Result from StateComputeResult.detail */
+function d(result: StateComputeResult): Form540Result {
+  return result.detail as Form540Result
+}
+
+/** Config-driven review layout for the generic StateReviewPage */
+const CA_REVIEW_LAYOUT: StateReviewSection[] = [
+  {
+    title: 'Income',
+    items: [
+      {
+        label: 'Federal AGI',
+        nodeId: 'form1040.line11',
+        getValue: (r) => d(r).federalAGI,
+        tooltip: {
+          explanation: 'Your federal adjusted gross income from Form 1040 Line 11. This is the starting point for computing California AGI.',
+          pubName: 'FTB Form 540 Instructions — Line 13',
+          pubUrl: 'https://www.ftb.ca.gov/forms/2025/2025-540-instructions.html',
+        },
+      },
+      {
+        label: 'Schedule CA Additions',
+        nodeId: 'scheduleCA.additions',
+        getValue: (r) => d(r).caAdjustments.additions,
+        tooltip: {
+          explanation: 'California requires adding back certain federal deductions it does not recognize. The main addition is HSA contributions — California did not adopt IRC §223, so the federal HSA deduction must be added back to income.',
+          pubName: 'FTB Schedule CA Instructions',
+          pubUrl: 'https://www.ftb.ca.gov/forms/2025/2025-540-ca-instructions.html',
+        },
+        showWhen: (r) => d(r).caAdjustments.additions > 0,
+      },
+      {
+        label: 'CA AGI',
+        nodeId: 'form540.caAGI',
+        getValue: (r) => r.stateAGI,
+        tooltip: {
+          explanation: 'California adjusted gross income starts with federal AGI and applies Schedule CA adjustments. CA does not recognize HSA deductions (IRC §223), so HSA contributions are added back. Most other federal adjustments (IRA, student loan) conform to federal treatment.',
+          pubName: 'FTB Form 540 Instructions — Line 17',
+          pubUrl: 'https://www.ftb.ca.gov/forms/2025/2025-540-instructions.html',
+        },
+      },
+    ],
+  },
+  {
+    title: 'Deductions',
+    items: [
+      {
+        label: 'CA Deduction',
+        nodeId: 'form540.caDeduction',
+        getValue: (r) => d(r).deductionUsed,
+        tooltip: {
+          explanation: 'California uses the larger of the CA standard deduction or CA-adjusted itemized deductions. CA differences from federal: no SALT cap, $1M mortgage limit (not $750K), home equity interest still deductible, and state income tax cannot be deducted from the CA return.',
+          pubName: 'FTB Form 540 Instructions — Line 18',
+          pubUrl: 'https://www.ftb.ca.gov/forms/2025/2025-540-instructions.html',
+        },
+      },
+      {
+        label: 'CA Taxable Income',
+        nodeId: 'form540.caTaxableIncome',
+        getValue: (r) => r.stateTaxableIncome,
+        tooltip: {
+          explanation: "California taxable income is CA AGI minus your CA deduction. This is taxed using California's 9-bracket progressive rate schedule (1% to 12.3%).",
+          pubName: 'FTB 2025 Tax Rate Schedules',
+          pubUrl: 'https://www.ftb.ca.gov/forms/2025/2025-540-tax-rate-schedules.pdf',
+        },
+      },
+    ],
+  },
+  {
+    title: 'Tax & Credits',
+    items: [
+      {
+        label: 'CA Tax',
+        nodeId: 'form540.caTax',
+        getValue: (r) => d(r).caTax,
+        tooltip: {
+          explanation: 'California income tax computed from the 9-bracket rate schedule. All income is taxed at ordinary rates — California has no preferential rate for long-term capital gains or qualified dividends.',
+          pubName: 'FTB 2025 Tax Rate Schedules',
+          pubUrl: 'https://www.ftb.ca.gov/forms/2025/2025-540-tax-rate-schedules.pdf',
+        },
+      },
+      {
+        label: 'Mental Health Services Tax',
+        nodeId: 'form540.mentalHealthTax',
+        getValue: (r) => d(r).mentalHealthTax,
+        tooltip: {
+          explanation: "An additional 1% tax on California taxable income exceeding $1,000,000. This threshold is not doubled for MFJ filers. The revenue funds California's Mental Health Services Act (Proposition 63).",
+          pubName: 'FTB Form 540 Instructions — Line 36',
+          pubUrl: 'https://www.ftb.ca.gov/forms/2025/2025-540-instructions.html',
+        },
+        showWhen: (r) => d(r).mentalHealthTax > 0,
+      },
+      {
+        label: 'Exemption Credits',
+        nodeId: 'form540.exemptionCredits',
+        getValue: (r) => d(r).totalExemptionCredits,
+        tooltip: {
+          explanation: 'Personal exemption credit: $153 per filer. Dependent exemption credit: $475 per dependent. These credits phase out for high-income filers (reduced by 6% for each $2,500 of CA AGI above the threshold).',
+          pubName: 'FTB Form 540 Instructions — Line 32',
+          pubUrl: 'https://www.ftb.ca.gov/forms/2025/2025-540-instructions.html',
+        },
+        showWhen: (r) => d(r).totalExemptionCredits > 0,
+      },
+      {
+        label: "Renter's Credit",
+        nodeId: 'form540.rentersCredit',
+        getValue: (r) => d(r).rentersCredit,
+        tooltip: {
+          explanation: "Nonrefundable renter's credit: $60 for single/MFS filers (CA AGI ≤ $53,994), $120 for MFJ/HOH/QW filers (CA AGI ≤ $107,987). You must have paid rent for at least half the year on your principal California residence.",
+          pubName: "FTB — Nonrefundable Renter's Credit",
+          pubUrl: 'https://www.ftb.ca.gov/file/personal/credits/nonrefundable-renters-credit.html',
+        },
+        showWhen: (r) => d(r).rentersCredit > 0,
+      },
+      {
+        label: 'CA Tax After Credits',
+        nodeId: 'form540.taxAfterCredits',
+        getValue: (r) => r.taxAfterCredits,
+        tooltip: {
+          explanation: "California tax after subtracting exemption credits and other nonrefundable credits (including renter's credit). This is compared against your CA state withholding to determine your CA refund or amount owed.",
+          pubName: 'FTB Form 540 Instructions — Line 48',
+          pubUrl: 'https://www.ftb.ca.gov/forms/2025/2025-540-instructions.html',
+        },
+      },
+    ],
+  },
+  {
+    title: 'Payments & Result',
+    items: [
+      {
+        label: 'CA State Withholding',
+        nodeId: 'form540.stateWithholding',
+        getValue: (r) => r.stateWithholding,
+        tooltip: {
+          explanation: 'California state income tax withheld from your W-2(s) Box 17. This is tax you already paid to the FTB through payroll withholding during the year.',
+          pubName: 'FTB Form 540 Instructions — Line 71',
+          pubUrl: 'https://www.ftb.ca.gov/forms/2025/2025-540-instructions.html',
+        },
+        showWhen: (r) => r.stateWithholding > 0,
+      },
+    ],
+  },
+]
+
+const CA_REVIEW_RESULT_LINES: StateReviewResultLine[] = [
+  {
+    type: 'refund',
+    label: 'CA Refund',
+    nodeId: 'form540.overpaid',
+    getValue: (r) => r.overpaid,
+    showWhen: (r) => r.overpaid > 0,
+  },
+  {
+    type: 'owed',
+    label: 'CA Amount You Owe',
+    nodeId: 'form540.amountOwed',
+    getValue: (r) => r.amountOwed,
+    showWhen: (r) => r.amountOwed > 0,
+  },
+  {
+    type: 'zero',
+    label: 'CA tax balance',
+    nodeId: '',
+    getValue: () => 0,
+    showWhen: (r) => r.overpaid === 0 && r.amountOwed === 0,
+  },
+]
+
 export const caModule: StateRulesModule = {
   stateCode: 'CA',
   formLabel: 'CA Form 540',
@@ -148,6 +316,8 @@ export const caModule: StateRulesModule = {
 
   nodeLabels: CA_NODE_LABELS,
   collectTracedValues: collectCATracedValues,
+  reviewLayout: CA_REVIEW_LAYOUT,
+  reviewResultLines: CA_REVIEW_RESULT_LINES,
 }
 
 /** Extract Form540Result from a CA StateComputeResult (for backward compat) */

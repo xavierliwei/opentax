@@ -42,8 +42,12 @@ export async function generateCoverSheet(
     page.drawText(text, { x, y, size, font: options?.font ?? font, color: options?.color ?? black })
   }
 
+  // Detect state forms in the included forms list
+  const hasStateForms = formsIncluded.some(f => f.sequenceNumber.startsWith('CA-') || f.sequenceNumber.startsWith('NY-') || f.sequenceNumber.startsWith('NJ-'))
+
   // ── Title ────────────────────────────────────────────────
-  drawText('Federal Tax Return — Filing Cover Sheet', 72, 16, { font: fontBold })
+  const title = hasStateForms ? 'Tax Return — Filing Cover Sheet' : 'Federal Tax Return — Filing Cover Sheet'
+  drawText(title, 72, 16, { font: fontBold })
   y -= 10
   drawText(`Tax Year ${summary.taxYear}`, 72, 10, { color: gray })
   y -= 30
@@ -127,6 +131,12 @@ export async function generateCoverSheet(
     y -= 15
   }
 
+  if (hasStateForms) {
+    y -= 10
+    drawText('State forms included — mail state returns separately to your state tax agency.', 90, 9, { color: gray })
+    y -= 15
+  }
+
   y -= 20
 
   // ── Checklist ────────────────────────────────────────────
@@ -138,6 +148,7 @@ export async function generateCoverSheet(
     'Attach W-2s to front of Form 1040',
     'Include all schedules and forms in attachment sequence order',
     ...(hasPayment ? ['Include check or money order'] : []),
+    ...(hasStateForms ? ['Mail state forms separately to state tax agency'] : []),
     'Keep a copy for your records',
   ]
 

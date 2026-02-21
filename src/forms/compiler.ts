@@ -11,11 +11,14 @@
  */
 
 import { PDFDocument } from 'pdf-lib'
-import type { TaxReturn } from '../model/types'
-import type { FormTemplates, CompiledForms, FormSummary, ReturnSummary } from './types'
+import type { TaxReturn, SupportedStateCode } from '../model/types'
+import type { FormTemplates, CompiledForms, FormSummary, ReturnSummary, StatePackage } from './types'
+import type { StateFormTemplates } from './stateCompiler'
 import { computeForm1040 } from '../rules/2025/form1040'
 import type { Form1040Result } from '../rules/2025/form1040'
 import { computeScheduleB } from '../rules/2025/scheduleB'
+import { getStateModule } from '../rules/stateRegistry'
+import { getStateFormCompiler } from './stateFormRegistry'
 import { fillForm1040 } from './fillers/form1040Filler'
 import { fillScheduleA } from './fillers/scheduleAFiller'
 import { fillScheduleB } from './fillers/scheduleBFiller'
@@ -35,13 +38,15 @@ import { tracedZero } from '../model/traced'
 /**
  * Compile a complete filing package for a tax return.
  *
- * @param taxReturn  The input tax return data
- * @param templates  PDF template bytes for each form (loaded by caller)
- * @returns Assembled PDF bytes, forms list, and summary
+ * @param taxReturn       The input tax return data
+ * @param templates       PDF template bytes for each federal form (loaded by caller)
+ * @param stateTemplates  Optional state form templates keyed by state code
+ * @returns Assembled PDF bytes, forms list, summary, and per-state packages
  */
 export async function compileFilingPackage(
   taxReturn: TaxReturn,
   templates: FormTemplates,
+  stateTemplates?: Map<SupportedStateCode, StateFormTemplates>,
 ): Promise<CompiledForms> {
   // ── Run rules engine ──────────────────────────────────────
   const result = computeForm1040(taxReturn)
@@ -220,6 +225,38 @@ export async function compileFilingPackage(
     })
   }
 
+  // ── Compile state forms ─────────────────────────────────────
+  const statePackages: StatePackage[] = []
+
+  for (const config of taxReturn.stateReturns ?? []) {
+    const stateCode = config.stateCode
+    const compiler = getStateFormCompiler(stateCode)
+    const stateModule = getStateModule(stateCode)
+    if (!compiler || !stateModule) continue
+
+    // Compute state result
+    const stateResult = stateModule.compute(taxReturn, result, config)
+
+    // Get state templates (may be empty — programmatic generators don't need them)
+    const stateTempl = stateTemplates?.get(stateCode) ?? { templates: new Map() }
+
+    const compiled = await compiler.compile(taxReturn, stateResult, stateTempl)
+
+    // Save individual state PDF bytes for separate download
+    const statePdfBytes = await compiled.doc.save()
+    statePackages.push({
+      stateCode,
+      label: stateModule.formLabel,
+      pdfBytes: new Uint8Array(statePdfBytes),
+      forms: compiled.forms,
+    })
+
+    // Also add to the combined assembly
+    for (const form of compiled.forms) {
+      filledDocs.push({ doc: compiled.doc, summary: form })
+    }
+  }
+
   // ── Build summary ──────────────────────────────────────────
   const summary = buildSummary(taxReturn, result)
   const formsIncluded = filledDocs.map(f => f.summary)
@@ -234,7 +271,7 @@ export async function compileFilingPackage(
   const coverPages = await finalDoc.copyPages(coverDoc, coverDoc.getPageIndices())
   for (const page of coverPages) finalDoc.addPage(page)
 
-  // Then all forms in attachment sequence order
+  // Federal forms in attachment sequence order
   for (const { doc } of filledDocs) {
     const pages = await finalDoc.copyPages(doc, doc.getPageIndices())
     for (const page of pages) finalDoc.addPage(page)
@@ -246,6 +283,7 @@ export async function compileFilingPackage(
     pdfBytes: new Uint8Array(pdfBytes),
     formsIncluded,
     summary,
+    statePackages,
   }
 }
 

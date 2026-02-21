@@ -25,6 +25,34 @@ export interface StateComputeResult {
   detail: unknown
 }
 
+// ── Config-driven review layout ─────────────────────────────────
+
+/** A single line item in a state review section */
+export interface StateReviewLineItem {
+  label: string
+  nodeId: string
+  /** Dot-path into the detail object, or a standard StateComputeResult key */
+  getValue: (result: StateComputeResult) => number
+  tooltip: { explanation: string; pubName: string; pubUrl: string }
+  /** Only show this line when the predicate returns true */
+  showWhen?: (result: StateComputeResult) => boolean
+}
+
+/** A section in the state review page (e.g. "Income", "Deductions") */
+export interface StateReviewSection {
+  title: string
+  items: StateReviewLineItem[]
+}
+
+/** A result line in the state review page (refund/owed) */
+export interface StateReviewResultLine {
+  type: 'refund' | 'owed' | 'zero'
+  label: string
+  nodeId: string
+  getValue: (result: StateComputeResult) => number
+  showWhen: (result: StateComputeResult) => boolean
+}
+
 /** Contract that each state module must implement */
 export interface StateRulesModule {
   stateCode: SupportedStateCode
@@ -43,4 +71,10 @@ export interface StateRulesModule {
 
   /** Build traced values for the explainability graph */
   collectTracedValues: (result: StateComputeResult) => Map<string, TracedValue>
+
+  /** Config-driven layout for the generic state review page */
+  reviewLayout: StateReviewSection[]
+
+  /** Result lines (refund/owed) for the review page */
+  reviewResultLines: StateReviewResultLine[]
 }

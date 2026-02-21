@@ -24,6 +24,16 @@ export interface CompiledForms {
   pdfBytes: Uint8Array
   formsIncluded: FormSummary[]
   summary: ReturnSummary
+  /** State form PDFs (for separate download). Empty if no states selected. */
+  statePackages: StatePackage[]
+}
+
+/** A compiled state form package (one per state) */
+export interface StatePackage {
+  stateCode: string
+  label: string
+  pdfBytes: Uint8Array
+  forms: FormSummary[]
 }
 
 export interface FormSummary {
