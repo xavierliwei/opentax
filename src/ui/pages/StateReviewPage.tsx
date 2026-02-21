@@ -130,9 +130,13 @@ export function StateReviewPage() {
 
   return (
     <div data-testid="page-state-review" className="max-w-xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900">{stateModule.formLabel}</h1>
+      <h1 className="text-2xl font-bold text-gray-900">{stateResult.formLabel}</h1>
       <p className="mt-1 text-sm text-gray-600">
-        Your {stateModule.formLabel.split(' ')[0]} state return. Click [?] to see how any number was calculated.
+        Your {stateResult.formLabel.split(' ')[0]} state return
+        {stateResult.residencyType === 'part-year' && stateResult.apportionmentRatio !== undefined
+          ? ` (part-year resident \u2014 ${Math.round(stateResult.apportionmentRatio * 100)}% CA)`
+          : ''
+        }. Click [?] to see how any number was calculated.
       </p>
 
       {stateModule.reviewLayout.map((section) => {

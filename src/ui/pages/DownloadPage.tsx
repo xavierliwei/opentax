@@ -172,6 +172,12 @@ export function DownloadPage() {
       {stateResults.map(sr => (
         <div key={sr.stateCode} className="mt-4 border border-gray-200 rounded-lg p-4 sm:p-6 flex flex-col gap-1 text-sm">
           <h2 className="font-semibold text-gray-900 mb-2">{sr.formLabel}</h2>
+          {sr.residencyType === 'part-year' && sr.apportionmentRatio !== undefined && (
+            <div className="flex justify-between">
+              <span className="text-gray-600">{sr.stateCode} Residency:</span>
+              <span className="font-medium">Part-year ({Math.round(sr.apportionmentRatio * 100)}%)</span>
+            </div>
+          )}
           <div className="flex justify-between">
             <span className="text-gray-600">{sr.stateCode} AGI:</span>
             <span className="font-medium">{formatCurrency(sr.stateAGI)}</span>

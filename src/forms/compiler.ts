@@ -246,7 +246,7 @@ export async function compileFilingPackage(
     const statePdfBytes = await compiled.doc.save()
     statePackages.push({
       stateCode,
-      label: stateModule.formLabel,
+      label: stateResult.formLabel,
       pdfBytes: new Uint8Array(statePdfBytes),
       forms: compiled.forms,
     })
