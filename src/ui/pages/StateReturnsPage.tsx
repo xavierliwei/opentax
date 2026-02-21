@@ -173,7 +173,6 @@ export function StateReturnsPage() {
                       }
                       className="mt-1 w-5 h-5 sm:w-4 sm:h-4 shrink-0"
                     />
-                    />
                     <div>
                       <span className="font-medium text-gray-900 inline-flex items-center">
                         I paid rent in {stateName}
