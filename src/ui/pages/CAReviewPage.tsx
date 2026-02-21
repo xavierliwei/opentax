@@ -47,9 +47,9 @@ export function CAReviewPage() {
       <div data-testid="page-ca-review" className="max-w-xl mx-auto">
         <h1 className="text-2xl font-bold text-gray-900">California Form 540</h1>
         <p className="mt-2 text-sm text-gray-500">
-          Enable the California resident checkbox on the{' '}
-          <Link to="/interview/filing-status" className="text-tax-blue hover:text-blue-700 underline">
-            Filing Status
+          Enable California on the{' '}
+          <Link to="/interview/state-returns" className="text-tax-blue hover:text-blue-700 underline">
+            State Returns
           </Link>{' '}
           page to compute your CA state return.
         </p>

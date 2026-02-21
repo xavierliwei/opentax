@@ -47,7 +47,7 @@ export function ReviewPage() {
   const taxReturn = useTaxStore((s) => s.taxReturn)
   const form1040 = useTaxStore((s) => s.computeResult.form1040)
   const executedSchedules = useTaxStore((s) => s.computeResult.executedSchedules)
-  const hasCA = useTaxStore((s) => s.computeResult.form540 !== null)
+  const stateResults = useTaxStore((s) => s.computeResult.stateResults)
   const interview = useInterview()
 
   const FILING_STATUS_LABELS: Record<string, string> = {
@@ -365,21 +365,21 @@ export function ReviewPage() {
         </div>
       </section>
 
-      {/* CA link */}
-      {hasCA && (
-        <div className="mt-6 border border-amber-200 bg-amber-50/50 rounded-lg p-4 flex items-center justify-between">
+      {/* State return links */}
+      {stateResults.length > 0 && stateResults.map(sr => (
+        <div key={sr.stateCode} className="mt-6 border border-amber-200 bg-amber-50/50 rounded-lg p-4 flex items-center justify-between">
           <div>
-            <span className="text-sm font-semibold text-amber-800">California Form 540</span>
-            <p className="text-xs text-amber-600 mt-0.5">Your CA state return is computed — review it on the next page.</p>
+            <span className="text-sm font-semibold text-amber-800">{sr.formLabel}</span>
+            <p className="text-xs text-amber-600 mt-0.5">Your {sr.stateCode} state return is computed — review it on the next page.</p>
           </div>
           <Link
-            to="/interview/ca-review"
+            to={`/interview/state-review-${sr.stateCode}`}
             className="text-sm font-medium text-amber-700 hover:text-amber-900 underline underline-offset-2"
           >
-            View CA Return
+            View {sr.stateCode} Return
           </Link>
         </div>
-      )}
+      ))}
 
       {/* Schedules included */}
       {executedSchedules.length > 0 && (

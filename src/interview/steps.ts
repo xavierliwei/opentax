@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react'
 import type { TaxReturn } from '../model/types.ts'
+import { getSupportedStates } from '../rules/stateRegistry.ts'
 import { WelcomePage } from '../ui/pages/WelcomePage.tsx'
 import { FilingStatusPage } from '../ui/pages/FilingStatusPage.tsx'
 import { PersonalInfoPage } from '../ui/pages/PersonalInfoPage.tsx'
@@ -20,15 +21,48 @@ import { DeductionsPage } from '../ui/pages/DeductionsPage.tsx'
 import { CreditsPage } from '../ui/pages/CreditsPage.tsx'
 import { ReviewPage } from '../ui/pages/ReviewPage.tsx'
 import { CAReviewPage } from '../ui/pages/CAReviewPage.tsx'
+import { StateReturnsPage } from '../ui/pages/StateReturnsPage.tsx'
 import { DownloadPage } from '../ui/pages/DownloadPage.tsx'
+
+export type InterviewSection =
+  | 'getting-started'
+  | 'income'
+  | 'deductions-credits'
+  | 'review'
+  | 'download'
 
 export interface InterviewStep {
   id: string
   label: string
   path: string
+  section: InterviewSection
   isVisible: (tr: TaxReturn) => boolean
   isComplete: (tr: TaxReturn) => boolean
   component: ComponentType
+}
+
+/** Map state codes to their review page components */
+const STATE_REVIEW_COMPONENTS: Record<string, ComponentType> = {
+  CA: CAReviewPage,
+}
+
+/** Map state codes to their sidebar labels */
+const STATE_REVIEW_LABELS: Record<string, string> = {
+  CA: 'CA Form 540',
+}
+
+/** Generate dynamic state review steps from the registry */
+function stateReviewSteps(): InterviewStep[] {
+  return getSupportedStates().map(st => ({
+    id: `state-review-${st.code}`,
+    label: STATE_REVIEW_LABELS[st.code] ?? st.label,
+    path: `/interview/state-review-${st.code}`,
+    section: 'review' as const,
+    isVisible: (tr: TaxReturn) =>
+      (tr.stateReturns ?? []).some(s => s.stateCode === st.code),
+    isComplete: () => false,
+    component: STATE_REVIEW_COMPONENTS[st.code] ?? ReviewPage,
+  }))
 }
 
 export const STEPS: InterviewStep[] = [
@@ -36,6 +70,7 @@ export const STEPS: InterviewStep[] = [
     id: 'welcome',
     label: 'Welcome',
     path: '/',
+    section: 'getting-started',
     isVisible: () => true,
     isComplete: () => true,
     component: WelcomePage,
@@ -44,6 +79,7 @@ export const STEPS: InterviewStep[] = [
     id: 'filing-status',
     label: 'Filing Status',
     path: '/interview/filing-status',
+    section: 'getting-started',
     isVisible: () => true,
     isComplete: (tr) => tr.filingStatus !== undefined,
     component: FilingStatusPage,
@@ -52,6 +88,7 @@ export const STEPS: InterviewStep[] = [
     id: 'personal-info',
     label: 'Your Info',
     path: '/interview/personal-info',
+    section: 'getting-started',
     isVisible: () => true,
     isComplete: (tr) =>
       tr.taxpayer.firstName.length > 0 &&
@@ -67,6 +104,7 @@ export const STEPS: InterviewStep[] = [
     id: 'spouse-info',
     label: 'Spouse Info',
     path: '/interview/spouse-info',
+    section: 'getting-started',
     isVisible: (tr) => tr.filingStatus === 'mfj',
     isComplete: (tr) =>
       tr.spouse !== undefined &&
@@ -79,6 +117,7 @@ export const STEPS: InterviewStep[] = [
     id: 'dependents',
     label: 'Dependents',
     path: '/interview/dependents',
+    section: 'getting-started',
     isVisible: () => true,
     isComplete: () => true,
     component: DependentsPage,
@@ -87,14 +126,25 @@ export const STEPS: InterviewStep[] = [
     id: 'prior-year',
     label: 'Prior Year',
     path: '/interview/prior-year',
+    section: 'getting-started',
     isVisible: () => true,
     isComplete: () => true,
     component: PriorYearPage,
   },
   {
+    id: 'state-returns',
+    label: 'State Returns',
+    path: '/interview/state-returns',
+    section: 'getting-started',
+    isVisible: () => true,
+    isComplete: () => true,
+    component: StateReturnsPage,
+  },
+  {
     id: 'w2-income',
     label: 'W-2 Income',
     path: '/interview/w2-income',
+    section: 'income',
     isVisible: () => true,
     isComplete: (tr) => tr.w2s.length > 0,
     component: W2IncomePage,
@@ -103,6 +153,7 @@ export const STEPS: InterviewStep[] = [
     id: 'interest-income',
     label: 'Interest',
     path: '/interview/interest-income',
+    section: 'income',
     isVisible: () => true,
     isComplete: () => true,
     component: InterestIncomePage,
@@ -111,6 +162,7 @@ export const STEPS: InterviewStep[] = [
     id: 'dividend-income',
     label: 'Dividends',
     path: '/interview/dividend-income',
+    section: 'income',
     isVisible: () => true,
     isComplete: () => true,
     component: DividendIncomePage,
@@ -119,6 +171,7 @@ export const STEPS: InterviewStep[] = [
     id: 'misc-income',
     label: 'Other Income',
     path: '/interview/misc-income',
+    section: 'income',
     isVisible: () => true,
     isComplete: () => true,
     component: MiscIncomePage,
@@ -127,6 +180,7 @@ export const STEPS: InterviewStep[] = [
     id: '1099g-income',
     label: 'Unemployment',
     path: '/interview/1099g-income',
+    section: 'income',
     isVisible: () => true,
     isComplete: () => true,
     component: Form1099GPage,
@@ -135,6 +189,7 @@ export const STEPS: InterviewStep[] = [
     id: 'retirement-income',
     label: 'Retirement',
     path: '/interview/retirement-income',
+    section: 'income',
     isVisible: () => true,
     isComplete: () => true,
     component: RetirementIncomePage,
@@ -143,6 +198,7 @@ export const STEPS: InterviewStep[] = [
     id: 'rental-income',
     label: 'Rental Income',
     path: '/interview/rental-income',
+    section: 'income',
     isVisible: () => true,
     isComplete: () => true,
     component: ScheduleEPage,
@@ -151,6 +207,7 @@ export const STEPS: InterviewStep[] = [
     id: 'stock-sales',
     label: 'Stock Sales',
     path: '/interview/stock-sales',
+    section: 'income',
     isVisible: () => true,
     isComplete: () => true,
     component: StockSalesPage,
@@ -159,6 +216,7 @@ export const STEPS: InterviewStep[] = [
     id: 'rsu-income',
     label: 'RSU Income',
     path: '/interview/rsu-income',
+    section: 'income',
     isVisible: (tr) =>
       tr.rsuVestEvents.length > 0 ||
       tr.w2s.some((w) => w.box12.some((e) => e.code === 'V')),
@@ -169,6 +227,7 @@ export const STEPS: InterviewStep[] = [
     id: 'iso-exercises',
     label: 'ISO Exercises',
     path: '/interview/iso-exercises',
+    section: 'income',
     isVisible: () => true,
     isComplete: () => true,
     component: ISOExercisesPage,
@@ -177,6 +236,7 @@ export const STEPS: InterviewStep[] = [
     id: 'deductions',
     label: 'Deductions',
     path: '/interview/deductions',
+    section: 'deductions-credits',
     isVisible: () => true,
     isComplete: () => true,
     component: DeductionsPage,
@@ -185,30 +245,27 @@ export const STEPS: InterviewStep[] = [
     id: 'credits',
     label: 'Credits',
     path: '/interview/credits',
+    section: 'deductions-credits',
     isVisible: () => true,
     isComplete: () => true,
     component: CreditsPage,
   },
   {
     id: 'review',
-    label: 'Review',
+    label: 'Federal Review',
     path: '/review',
+    section: 'review',
     isVisible: () => true,
     isComplete: () => false,
     component: ReviewPage,
   },
-  {
-    id: 'ca-review',
-    label: 'CA Form 540',
-    path: '/interview/ca-review',
-    isVisible: (tr) => tr.caResident === true,
-    isComplete: () => false,
-    component: CAReviewPage,
-  },
+  // Dynamic state review steps (one per supported state)
+  ...stateReviewSteps(),
   {
     id: 'download',
     label: 'Download',
     path: '/download',
+    section: 'download',
     isVisible: () => true,
     isComplete: () => false,
     component: DownloadPage,

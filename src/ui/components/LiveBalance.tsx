@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { Link } from 'react-router-dom'
 import { useTaxStore } from '../../store/taxStore.ts'
 
@@ -46,7 +47,7 @@ export function LiveBalance() {
   const line16 = useTaxStore((s) => s.computeResult.form1040.line16.amount)
   const line25 = useTaxStore((s) => s.computeResult.form1040.line25.amount)
   const hasIncome = useTaxStore((s) => s.computeResult.form1040.line9.amount > 0)
-  const form540 = useTaxStore((s) => s.computeResult.form540)
+  const stateResults = useTaxStore((s) => s.computeResult.stateResults)
 
   if (!hasIncome) {
     return (
@@ -66,17 +67,10 @@ export function LiveBalance() {
   const fedExplainNode = fedIsRefund ? 'form1040.line34' : 'form1040.line37'
   const fedAccent = accentFor(fedIsRefund, fedAmount)
 
-  // CA state balance (only when CA resident)
-  const caIsRefund = form540 ? form540.overpaid > 0 : false
-  const caAmount = form540 ? (caIsRefund ? form540.overpaid : form540.amountOwed) : 0
-  const caLabel = form540
-    ? (caIsRefund ? 'CA Refund' : caAmount === 0 ? 'CA Balanced' : 'CA Owed')
-    : ''
-  const caExplainNode = caIsRefund ? 'form540.overpaid' : 'form540.amountOwed'
-  const caAccent = accentFor(caIsRefund, caAmount)
+  const hasStates = stateResults.length > 0
 
-  // When no CA, use original single-line layout with larger text
-  if (!form540) {
+  // When no state returns, use original single-line layout with larger text
+  if (!hasStates) {
     const label = fedIsRefund ? 'Estimated Refund' : fedAmount === 0 ? 'Balanced' : 'Amount Owed'
     return (
       <div
@@ -117,26 +111,50 @@ export function LiveBalance() {
     )
   }
 
-  // Dual federal + CA layout
-  // Use the "worse" accent for the background (if either owes, show red bg)
-  const combinedBg = (!fedIsRefund && fedAmount > 0) || (!caIsRefund && caAmount > 0)
-    ? 'bg-red-50/50'
-    : (fedIsRefund || caIsRefund) ? 'bg-emerald-50/50' : 'bg-gray-50/50'
-  const combinedBorder = (!fedIsRefund && fedAmount > 0) || (!caIsRefund && caAmount > 0)
-    ? 'border-red-100'
-    : (fedIsRefund || caIsRefund) ? 'border-emerald-100' : 'border-gray-200'
+  // Multi-pill layout: federal + each state
+  // Determine combined background based on worst result
+  const anyOwed = (!fedIsRefund && fedAmount > 0) ||
+    stateResults.some(sr => sr.overpaid === 0 && sr.amountOwed > 0)
+  const anyRefund = fedIsRefund || stateResults.some(sr => sr.overpaid > 0)
+  const combinedBg = anyOwed ? 'bg-red-50/50' : anyRefund ? 'bg-emerald-50/50' : 'bg-gray-50/50'
+  const combinedBorder = anyOwed ? 'border-red-100' : anyRefund ? 'border-emerald-100' : 'border-gray-200'
+
+  // Build aria label
+  const stateLabels = stateResults.map(sr => {
+    const isRefund = sr.overpaid > 0
+    const amount = isRefund ? sr.overpaid : sr.amountOwed
+    const label = isRefund ? `${sr.stateCode} Refund` : amount === 0 ? `${sr.stateCode} Balanced` : `${sr.stateCode} Owed`
+    return `${label}: ${formatCurrency(amount)}`
+  }).join(', ')
 
   return (
     <div
       data-testid="live-balance"
       className={`sticky top-0 z-40 ${combinedBg} border-b ${combinedBorder} px-4 sm:px-6 py-2 flex items-center justify-between gap-3`}
       aria-live="polite"
-      aria-label={`${fedLabel}: ${formatCurrency(fedAmount)}, ${caLabel}: ${formatCurrency(caAmount)}`}
+      aria-label={`${fedLabel}: ${formatCurrency(fedAmount)}, ${stateLabels}`}
     >
       <div className="flex items-center gap-4 min-w-0 flex-wrap">
         <BalancePill label={fedLabel} amount={fedAmount} explainNode={fedExplainNode} accent={fedAccent} />
-        <div className="w-px h-6 bg-gray-300 hidden sm:block" />
-        <BalancePill label={caLabel} amount={caAmount} explainNode={caExplainNode} accent={caAccent} />
+        {stateResults.map(sr => {
+          const isRefund = sr.overpaid > 0
+          const amount = isRefund ? sr.overpaid : sr.amountOwed
+          const label = isRefund
+            ? `${sr.stateCode} Refund`
+            : amount === 0
+              ? `${sr.stateCode} Balanced`
+              : `${sr.stateCode} Owed`
+          const explainNode = isRefund
+            ? `form540.overpaid`
+            : `form540.amountOwed`
+          const stateAccent = accentFor(isRefund, amount)
+          return (
+            <Fragment key={sr.stateCode}>
+              <div className="w-px h-6 bg-gray-300 hidden sm:block" />
+              <BalancePill label={label} amount={amount} explainNode={explainNode} accent={stateAccent} />
+            </Fragment>
+          )
+        })}
       </div>
     </div>
   )

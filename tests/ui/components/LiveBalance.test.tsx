@@ -23,6 +23,37 @@ function renderLiveBalance() {
   )
 }
 
+const W2_REFUND = {
+  id: 'w2-1',
+  employerEin: '12-3456789',
+  employerName: 'Test Corp',
+  box1: 5000000, // $50,000 wages
+  box2: 1500000, // $15,000 withheld (more than tax on $50k)
+  box3: 5000000,
+  box4: 310000,
+  box5: 5000000,
+  box6: 72500,
+  box7: 0,
+  box8: 0,
+  box10: 0,
+  box11: 0,
+  box12: [] as { code: string; amount: number }[],
+  box13StatutoryEmployee: false,
+  box13RetirementPlan: false,
+  box13ThirdPartySickPay: false,
+  box14: '',
+}
+
+const W2_OWED = {
+  ...W2_REFUND,
+  box1: 10000000, // $100,000 wages
+  box2: 100000,   // $1,000 withheld (way too little)
+  box3: 10000000,
+  box4: 620000,
+  box5: 10000000,
+  box6: 145000,
+}
+
 beforeEach(() => {
   useTaxStore.getState().resetReturn()
 })
@@ -34,113 +65,43 @@ describe('LiveBalance', () => {
   })
 
   it('shows refund amount when overpaid', () => {
-    // Add a W-2 with wages and withholding that exceeds tax
-    useTaxStore.getState().addW2({
-      id: 'w2-1',
-      employerEin: '12-3456789',
-      employerName: 'Test Corp',
-      box1: 5000000, // $50,000 wages
-      box2: 1500000, // $15,000 withheld (more than tax on $50k)
-      box3: 5000000,
-      box4: 310000,
-      box5: 5000000,
-      box6: 72500,
-      box7: 0,
-      box8: 0,
-      box10: 0,
-      box11: 0,
-      box12: [],
-      box13StatutoryEmployee: false,
-      box13RetirementPlan: false,
-      box13ThirdPartySickPay: false,
-      box14: '',
-    })
-
+    useTaxStore.getState().addW2(W2_REFUND)
     renderLiveBalance()
     expect(screen.getByText('Estimated Refund')).toBeDefined()
     expect(screen.getByTestId('live-balance-amount')).toBeDefined()
-    expect(screen.getByText('Why this number?')).toBeDefined()
   })
 
   it('shows amount owed when underpaid', () => {
-    // Add a W-2 with wages but very little withholding
-    useTaxStore.getState().addW2({
-      id: 'w2-1',
-      employerEin: '12-3456789',
-      employerName: 'Test Corp',
-      box1: 10000000, // $100,000 wages
-      box2: 100000, // $1,000 withheld (way too little)
-      box3: 10000000,
-      box4: 620000,
-      box5: 10000000,
-      box6: 145000,
-      box7: 0,
-      box8: 0,
-      box10: 0,
-      box11: 0,
-      box12: [],
-      box13StatutoryEmployee: false,
-      box13RetirementPlan: false,
-      box13ThirdPartySickPay: false,
-      box14: '',
-    })
-
+    useTaxStore.getState().addW2(W2_OWED)
     renderLiveBalance()
-    expect(screen.getByText('Amount You Owe')).toBeDefined()
+    expect(screen.getByText('Amount Owed')).toBeDefined()
   })
 
-  it('shows tax and withheld amounts', () => {
-    useTaxStore.getState().addW2({
-      id: 'w2-1',
-      employerEin: '12-3456789',
-      employerName: 'Test Corp',
-      box1: 5000000,
-      box2: 1500000,
-      box3: 5000000,
-      box4: 310000,
-      box5: 5000000,
-      box6: 72500,
-      box7: 0,
-      box8: 0,
-      box10: 0,
-      box11: 0,
-      box12: [],
-      box13StatutoryEmployee: false,
-      box13RetirementPlan: false,
-      box13ThirdPartySickPay: false,
-      box14: '',
-    })
-
+  it('shows tax and withheld amounts in federal-only mode', () => {
+    useTaxStore.getState().addW2(W2_REFUND)
     renderLiveBalance()
-    // Should show Tax: and Withheld: labels
-    expect(screen.getByText(/^Tax:/)).toBeDefined()
-    expect(screen.getByText(/^Withheld:/)).toBeDefined()
+    expect(screen.getByText('Tax')).toBeDefined()
+    expect(screen.getByText('Withheld')).toBeDefined()
   })
 
   it('links to explain page', () => {
-    useTaxStore.getState().addW2({
-      id: 'w2-1',
-      employerEin: '12-3456789',
-      employerName: 'Test Corp',
-      box1: 5000000,
-      box2: 1500000,
-      box3: 5000000,
-      box4: 310000,
-      box5: 5000000,
-      box6: 72500,
-      box7: 0,
-      box8: 0,
-      box10: 0,
-      box11: 0,
-      box12: [],
-      box13StatutoryEmployee: false,
-      box13RetirementPlan: false,
-      box13ThirdPartySickPay: false,
-      box14: '',
-    })
-
+    useTaxStore.getState().addW2(W2_REFUND)
     renderLiveBalance()
-    const link = screen.getByText('Why this number?')
+    const link = screen.getByText('Why?')
     expect(link.getAttribute('href')).toMatch(/^\/explain\/form1040\.line/)
+  })
+
+  it('shows dual pills when CA state return is selected', () => {
+    useTaxStore.getState().addW2({
+      ...W2_REFUND,
+      box15State: 'CA',
+      box17StateIncomeTax: 300000, // $3,000 CA withholding
+    })
+    useTaxStore.getState().addStateReturn({ stateCode: 'CA', residencyType: 'full-year' })
+    renderLiveBalance()
+    expect(screen.getByText('Federal Refund')).toBeDefined()
+    // CA should show either Refund, Owed, or Balanced
+    const caText = screen.getByText(/^CA (Refund|Owed|Balanced)$/)
+    expect(caText).toBeDefined()
   })
 })

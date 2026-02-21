@@ -32,6 +32,7 @@ export function DownloadPage() {
   const taxReturn = useTaxStore((s) => s.taxReturn)
   const form1040 = useTaxStore((s) => s.computeResult.form1040)
   const executedSchedules = useTaxStore((s) => s.computeResult.executedSchedules)
+  const stateResults = useTaxStore((s) => s.computeResult.stateResults)
   const interview = useInterview()
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -151,6 +152,39 @@ export function DownloadPage() {
           </div>
         )}
       </div>
+
+      {/* State return summaries */}
+      {stateResults.map(sr => (
+        <div key={sr.stateCode} className="mt-4 border border-gray-200 rounded-lg p-6 flex flex-col gap-1 text-sm">
+          <h2 className="font-semibold text-gray-900 mb-2">{sr.formLabel}</h2>
+          <div className="flex justify-between">
+            <span className="text-gray-600">{sr.stateCode} AGI:</span>
+            <span className="font-medium">{formatCurrency(sr.stateAGI)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">{sr.stateCode} Tax:</span>
+            <span className="font-medium">{formatCurrency(sr.taxAfterCredits)}</span>
+          </div>
+          {sr.stateWithholding > 0 && (
+            <div className="flex justify-between">
+              <span className="text-gray-600">{sr.stateCode} Withholding:</span>
+              <span className="font-medium">{formatCurrency(sr.stateWithholding)}</span>
+            </div>
+          )}
+          {sr.overpaid > 0 && (
+            <div className="flex justify-between">
+              <span className="text-tax-green font-medium">{sr.stateCode} Refund:</span>
+              <span className="font-bold text-tax-green">{formatCurrency(sr.overpaid)}</span>
+            </div>
+          )}
+          {sr.amountOwed > 0 && (
+            <div className="flex justify-between">
+              <span className="text-tax-red font-medium">{sr.stateCode} Amount Owed:</span>
+              <span className="font-bold text-tax-red">{formatCurrency(sr.amountOwed)}</span>
+            </div>
+          )}
+        </div>
+      ))}
 
       {/* Download buttons */}
       <div className="mt-6 flex flex-col sm:flex-row gap-3">

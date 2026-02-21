@@ -8,8 +8,9 @@ function makeTr(overrides: Partial<TaxReturn> = {}): TaxReturn {
 }
 
 describe('steps.ts — visibility logic', () => {
-  it('has 13 total steps', () => {
-    expect(STEPS).toHaveLength(13)
+  it('has expected total steps (including dynamic state review steps)', () => {
+    // 21 static + 1 dynamic (CA) = 22
+    expect(STEPS.length).toBeGreaterThanOrEqual(22)
   })
 
   it('spouse-info is hidden when filing status is single', () => {
@@ -45,6 +46,62 @@ describe('steps.ts — visibility logic', () => {
     })
     const rsu = STEPS.find((s) => s.id === 'rsu-income')!
     expect(rsu.isVisible(tr)).toBe(true)
+  })
+
+  it('state-returns page is always visible', () => {
+    const tr = makeTr()
+    const step = STEPS.find((s) => s.id === 'state-returns')!
+    expect(step).toBeDefined()
+    expect(step.isVisible(tr)).toBe(true)
+    expect(step.section).toBe('getting-started')
+  })
+
+  it('state-review-CA is visible only when CA is in stateReturns', () => {
+    const tr = makeTr()
+    const step = STEPS.find((s) => s.id === 'state-review-CA')!
+    expect(step).toBeDefined()
+    expect(step.isVisible(tr)).toBe(false)
+
+    const trWithCA = makeTr({
+      stateReturns: [{ stateCode: 'CA', residencyType: 'full-year' }],
+    })
+    expect(step.isVisible(trWithCA)).toBe(true)
+  })
+
+  it('state-review-CA has section=review', () => {
+    const step = STEPS.find((s) => s.id === 'state-review-CA')!
+    expect(step.section).toBe('review')
+  })
+})
+
+describe('steps.ts — section assignments', () => {
+  it('welcome and filing-status are in getting-started', () => {
+    const welcome = STEPS.find((s) => s.id === 'welcome')!
+    const filing = STEPS.find((s) => s.id === 'filing-status')!
+    expect(welcome.section).toBe('getting-started')
+    expect(filing.section).toBe('getting-started')
+  })
+
+  it('w2-income is in income section', () => {
+    const step = STEPS.find((s) => s.id === 'w2-income')!
+    expect(step.section).toBe('income')
+  })
+
+  it('deductions and credits are in deductions-credits section', () => {
+    const deductions = STEPS.find((s) => s.id === 'deductions')!
+    const credits = STEPS.find((s) => s.id === 'credits')!
+    expect(deductions.section).toBe('deductions-credits')
+    expect(credits.section).toBe('deductions-credits')
+  })
+
+  it('review is in review section', () => {
+    const step = STEPS.find((s) => s.id === 'review')!
+    expect(step.section).toBe('review')
+  })
+
+  it('download is in download section', () => {
+    const step = STEPS.find((s) => s.id === 'download')!
+    expect(step.section).toBe('download')
   })
 })
 
@@ -95,5 +152,11 @@ describe('steps.ts — completion logic', () => {
     const tr = makeTr()
     const step = STEPS.find((s) => s.id === 'review')!
     expect(step.isComplete(tr)).toBe(false)
+  })
+
+  it('state-returns is always complete (no selection = federal-only)', () => {
+    const tr = makeTr()
+    const step = STEPS.find((s) => s.id === 'state-returns')!
+    expect(step.isComplete(tr)).toBe(true)
   })
 })

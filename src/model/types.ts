@@ -427,6 +427,20 @@ export interface Credit {
   amount: number          // cents
 }
 
+// ── State Return Config ────────────────────────────────────────
+
+/** Supported state codes (expand as states are added) */
+export type SupportedStateCode = 'CA'
+// Future: | 'NY' | 'NJ' | 'IL' | 'MA' | 'PA'
+
+/** Per-state return configuration selected by the user */
+export interface StateReturnConfig {
+  stateCode: SupportedStateCode
+  residencyType: 'full-year'         // Phase 1: full-year only
+  // State-specific flags
+  rentPaid?: boolean                  // CA renter's credit
+}
+
 // ── Tax Return (top-level) ─────────────────────────────────────
 
 export interface TaxReturn {
@@ -495,9 +509,13 @@ export interface TaxReturn {
   energyCredits?: EnergyCredits
   educationExpenses?: EducationExpenses
 
-  // State — California
-  caResident?: boolean              // true if CA resident for full year
-  rentPaidInCA?: boolean            // for CA renter's credit
+  // State returns
+  stateReturns: StateReturnConfig[]
+
+  /** @deprecated Use stateReturns instead */
+  caResident?: boolean
+  /** @deprecated Use stateReturns instead */
+  rentPaidInCA?: boolean
 }
 
 // ── Factory ────────────────────────────────────────────────────
@@ -540,5 +558,6 @@ export function emptyTaxReturn(taxYear: number): TaxReturn {
       spouseBlind: false,
     },
     credits: [],
+    stateReturns: [],
   }
 }

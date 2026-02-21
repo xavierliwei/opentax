@@ -1,9 +1,11 @@
 import { NavLink } from 'react-router-dom'
+import type { InterviewSection } from '../../interview/steps.ts'
 
 export interface SidebarStep {
   id: string
   label: string
   path: string
+  section: InterviewSection
   isComplete: boolean
   status: 'completed' | 'current' | 'pending'
 }
@@ -11,6 +13,14 @@ export interface SidebarStep {
 interface SidebarProps {
   steps: SidebarStep[]
   currentPath: string
+}
+
+const SECTION_LABELS: Record<InterviewSection, string> = {
+  'getting-started': 'Getting Started',
+  'income': 'Income',
+  'deductions-credits': 'Deductions & Credits',
+  'review': 'Review',
+  'download': 'Download',
 }
 
 function StepBadge({ status, index }: { status: SidebarStep['status']; index: number }) {
@@ -50,6 +60,9 @@ export function Sidebar({ steps }: SidebarProps) {
   const completedCount = steps.filter((s) => s.isComplete).length
   const progress = steps.length > 0 ? completedCount / steps.length : 0
 
+  // Group steps by section, preserving order
+  let lastSection: InterviewSection | null = null
+
   return (
     <nav className="flex flex-col h-full" aria-label="Interview steps">
       {/* Brand header */}
@@ -68,8 +81,20 @@ export function Sidebar({ steps }: SidebarProps) {
         {steps.map((step, index) => {
           const effectiveStatus =
             step.isComplete && step.status === 'current' ? 'completed' : step.status
+
+          // Render section header when section changes
+          const showHeader = step.section !== lastSection
+          lastSection = step.section
+
           return (
             <li key={step.id}>
+              {showHeader && (
+                <div className="px-3 pt-3 pb-1 first:pt-1">
+                  <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                    {SECTION_LABELS[step.section]}
+                  </span>
+                </div>
+              )}
               <NavLink
                 to={step.path}
                 className={({ isActive }) =>
@@ -96,7 +121,14 @@ export function Sidebar({ steps }: SidebarProps) {
           <span className="text-gray-400">{completedCount} of {steps.length} complete</span>
           <span className="font-medium text-gray-500">{Math.round(progress * 100)}%</span>
         </div>
-        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+        <div
+          className="h-1.5 bg-gray-100 rounded-full overflow-hidden"
+          role="progressbar"
+          aria-valuenow={Math.round(progress * 100)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={`Interview progress: ${completedCount} of ${steps.length} steps complete`}
+        >
           <div
             className={`h-full rounded-full transition-all duration-300 ${
               progress === 1 ? 'bg-emerald-500' : 'bg-blue-500'

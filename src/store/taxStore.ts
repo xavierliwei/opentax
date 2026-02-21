@@ -4,6 +4,8 @@ import { openDB } from 'idb'
 import type {
   TaxReturn,
   FilingStatus,
+  SupportedStateCode,
+  StateReturnConfig,
   W2,
   Form1099INT,
   Form1099DIV,
@@ -94,7 +96,12 @@ export interface TaxStoreState {
   setStudentLoanInterest: (cents: number) => void
   setEstimatedTaxPayment: (quarter: 'q1' | 'q2' | 'q3' | 'q4', cents: number) => void
   setHSA: (updates: Partial<HSAInfo>) => void
+  addStateReturn: (config: StateReturnConfig) => void
+  removeStateReturn: (stateCode: SupportedStateCode) => void
+  updateStateReturn: (stateCode: SupportedStateCode, updates: Partial<StateReturnConfig>) => void
+  /** @deprecated Use addStateReturn/removeStateReturn instead */
   setCAResident: (value: boolean) => void
+  /** @deprecated Use updateStateReturn instead */
   setRentPaidInCA: (value: boolean) => void
   importReturn: (taxReturn: TaxReturn) => void
   resetReturn: () => void
@@ -693,14 +700,58 @@ export const useTaxStore = create<TaxStoreState>()(
         set(recompute(tr))
       },
 
-      setCAResident: (value) => {
-        const tr = { ...get().taxReturn, caResident: value }
+      addStateReturn: (config) => {
+        const prev = get().taxReturn
+        const existing = prev.stateReturns ?? []
+        if (existing.some(s => s.stateCode === config.stateCode)) return
+        const tr = { ...prev, stateReturns: [...existing, config] }
+        // Keep legacy fields in sync for backward compat
+        if (config.stateCode === 'CA') {
+          tr.caResident = true
+          tr.rentPaidInCA = config.rentPaid ?? false
+        }
         set(recompute(tr))
       },
 
-      setRentPaidInCA: (value) => {
-        const tr = { ...get().taxReturn, rentPaidInCA: value }
+      removeStateReturn: (stateCode) => {
+        const prev = get().taxReturn
+        const tr = {
+          ...prev,
+          stateReturns: (prev.stateReturns ?? []).filter(s => s.stateCode !== stateCode),
+        }
+        if (stateCode === 'CA') {
+          tr.caResident = false
+          tr.rentPaidInCA = false
+        }
         set(recompute(tr))
+      },
+
+      updateStateReturn: (stateCode, updates) => {
+        const prev = get().taxReturn
+        const tr = {
+          ...prev,
+          stateReturns: (prev.stateReturns ?? []).map(s =>
+            s.stateCode === stateCode ? { ...s, ...updates } : s,
+          ),
+        }
+        // Keep legacy fields in sync
+        if (stateCode === 'CA') {
+          const ca = tr.stateReturns.find(s => s.stateCode === 'CA')
+          if (ca) tr.rentPaidInCA = ca.rentPaid ?? false
+        }
+        set(recompute(tr))
+      },
+
+      setCAResident: (value) => {
+        if (value) {
+          get().addStateReturn({ stateCode: 'CA', residencyType: 'full-year' })
+        } else {
+          get().removeStateReturn('CA')
+        }
+      },
+
+      setRentPaidInCA: (value) => {
+        get().updateStateReturn('CA', { rentPaid: value })
       },
 
       importReturn: (taxReturn) => {
@@ -756,6 +807,16 @@ export const useTaxStore = create<TaxStoreState>()(
             }
             delete raw.otherDeductions
           }
+
+          // Migrate legacy caResident → stateReturns
+          if (state.taxReturn.caResident && !state.taxReturn.stateReturns?.length) {
+            state.taxReturn.stateReturns = [{
+              stateCode: 'CA',
+              residencyType: 'full-year',
+              rentPaid: state.taxReturn.rentPaidInCA ?? false,
+            }]
+          }
+          state.taxReturn.stateReturns ??= []
 
           state.computeResult = computeAll(state.taxReturn)
         }
