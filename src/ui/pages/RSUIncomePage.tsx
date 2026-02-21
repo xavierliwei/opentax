@@ -44,7 +44,7 @@ function RSUVestCard({ event }: { event: RSUVestEvent }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <DateInput
           label="Vest date"
           value={event.vestDate}
@@ -62,7 +62,7 @@ function RSUVestCard({ event }: { event: RSUVestEvent }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-gray-700">Shares vested</label>
           <input
@@ -101,7 +101,7 @@ function RSUVestCard({ event }: { event: RSUVestEvent }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <CurrencyInput
           label={<>FMV at vest (per share)<InfoTooltip
             explanation="Fair Market Value at vest is the closing stock price on the vest date. This amount × shares vested is included in your W-2 Box 1 as ordinary income. The FMV at vest becomes your cost basis for future sales — your broker's 1099-B may report a lower or zero basis if they did not account for the W-2 income inclusion."

@@ -33,7 +33,7 @@ function LineItem({ label, nodeId, amount, tooltip }: LineItemProps) {
         <span className="text-sm font-medium tabular-nums">{formatCurrency(amount)}</span>
         <Link
           to={`/explain/${nodeId}`}
-          className="inline-flex items-center justify-center w-6 h-6 sm:w-auto sm:h-auto text-xs text-tax-blue hover:text-blue-700 rounded-full sm:rounded-none hover:bg-blue-50 sm:hover:bg-transparent"
+          className="inline-flex items-center justify-center w-10 h-10 sm:w-auto sm:h-auto text-xs text-tax-blue hover:text-blue-700 rounded-full sm:rounded-none hover:bg-blue-50 sm:hover:bg-transparent"
           title="Why this number?"
         >
           ?
@@ -71,7 +71,7 @@ export function ReviewPage() {
           <span className="text-gray-600 shrink-0">Filing Status:</span>
           <div className="flex items-center gap-2 justify-end">
             <span className="font-medium text-right">{FILING_STATUS_LABELS[taxReturn.filingStatus]}</span>
-            <Link to="/interview/filing-status" className="text-xs text-tax-blue hover:text-blue-700">
+            <Link to="/interview/filing-status" className="text-xs text-tax-blue hover:text-blue-700 py-2 -my-2 px-2 -mx-1 sm:py-0 sm:-my-0 sm:px-0 sm:-mx-0">
               Edit
             </Link>
           </div>
@@ -83,7 +83,7 @@ export function ReviewPage() {
               {taxReturn.taxpayer.firstName} {taxReturn.taxpayer.lastName}
               {taxReturn.taxpayer.ssn && ` (${maskSSN(taxReturn.taxpayer.ssn)})`}
             </span>
-            <Link to="/interview/personal-info" className="text-xs text-tax-blue hover:text-blue-700">
+            <Link to="/interview/personal-info" className="text-xs text-tax-blue hover:text-blue-700 py-2 -my-2 px-2 -mx-1 sm:py-0 sm:-my-0 sm:px-0 sm:-mx-0">
               Edit
             </Link>
           </div>
@@ -336,7 +336,7 @@ export function ReviewPage() {
                 </span>
                 <Link
                   to="/explain/form1040.line34"
-                  className="inline-flex items-center justify-center w-6 h-6 sm:w-auto sm:h-auto text-xs text-tax-blue hover:text-blue-700 rounded-full sm:rounded-none hover:bg-blue-50 sm:hover:bg-transparent"
+                  className="inline-flex items-center justify-center w-10 h-10 sm:w-auto sm:h-auto text-xs text-tax-blue hover:text-blue-700 rounded-full sm:rounded-none hover:bg-blue-50 sm:hover:bg-transparent"
                 >
                   ?
                 </Link>
@@ -352,7 +352,7 @@ export function ReviewPage() {
                 </span>
                 <Link
                   to="/explain/form1040.line37"
-                  className="inline-flex items-center justify-center w-6 h-6 sm:w-auto sm:h-auto text-xs text-tax-blue hover:text-blue-700 rounded-full sm:rounded-none hover:bg-blue-50 sm:hover:bg-transparent"
+                  className="inline-flex items-center justify-center w-10 h-10 sm:w-auto sm:h-auto text-xs text-tax-blue hover:text-blue-700 rounded-full sm:rounded-none hover:bg-blue-50 sm:hover:bg-transparent"
                 >
                   ?
                 </Link>
@@ -376,7 +376,7 @@ export function ReviewPage() {
         const bgColor = isRefund ? 'bg-emerald-50/50' : isOwed ? 'bg-red-50/50' : 'bg-amber-50/50'
 
         return (
-          <div key={sr.stateCode} data-testid={`state-card-${sr.stateCode}`} className={`mt-6 border ${borderColor} ${bgColor} rounded-lg p-4 flex items-center justify-between gap-3`}>
+          <div key={sr.stateCode} data-testid={`state-card-${sr.stateCode}`} className={`mt-6 border ${borderColor} ${bgColor} rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3`}>
             <div className="min-w-0">
               <span className="text-sm font-semibold text-gray-800">{sr.formLabel}</span>
               <div className="flex items-center gap-2 mt-1">
@@ -388,7 +388,7 @@ export function ReviewPage() {
             </div>
             <Link
               to={`/interview/state-review-${sr.stateCode}`}
-              className="text-sm font-medium text-brand hover:text-blue-700 underline underline-offset-2 shrink-0"
+              className="text-sm font-medium text-brand hover:text-blue-700 underline underline-offset-2 shrink-0 py-2 sm:py-0"
             >
               View {sr.stateCode} Return
             </Link>

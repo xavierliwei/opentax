@@ -57,7 +57,7 @@ export function SpouseInfoPage() {
         </div>
 
         {/* SSN + DOB */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <SSNInput
             label="Social Security Number"
             value={ssn}

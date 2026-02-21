@@ -61,7 +61,7 @@ function Form1099RCard({ form }: { form: Form1099R }) {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <CurrencyInput
           label={<>Box 1 — Gross distribution<InfoTooltip
             explanation="Box 1 reports the total amount of the distribution before income tax or other deductions were withheld. This includes taxable and non-taxable amounts. For IRA/SEP/SIMPLE distributions, this flows to Form 1040 Line 4a. For pensions/401(k), it flows to Line 5a."
@@ -97,7 +97,7 @@ function Form1099RCard({ form }: { form: Form1099R }) {
       </div>
 
       {/* Distribution code + IRA checkbox */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-gray-700">
             Box 7 — Distribution code

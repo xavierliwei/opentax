@@ -207,7 +207,7 @@ export function DownloadPage() {
           type="button"
           onClick={handleDownloadPDF}
           disabled={generating}
-          className="w-full sm:w-auto px-6 py-3 text-sm font-medium text-white bg-brand rounded-md hover:bg-blue-900 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full sm:w-auto px-6 py-3.5 sm:py-3 text-sm font-medium text-white bg-brand rounded-md hover:bg-blue-900 active:bg-blue-950 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           data-testid="download-pdf-btn"
         >
           {generating ? 'Generating...' : stateResults.length > 0 ? 'Download All (Federal + State)' : 'Download PDF'}
@@ -215,7 +215,7 @@ export function DownloadPage() {
         <button
           type="button"
           onClick={handleExportJSON}
-          className="w-full sm:w-auto px-6 py-3 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+          className="w-full sm:w-auto px-6 py-3.5 sm:py-3 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 active:bg-gray-100 transition-colors"
           data-testid="export-json-btn"
         >
           Export JSON
@@ -231,13 +231,13 @@ export function DownloadPage() {
               const pkg = statePackages.find(p => p.stateCode === sr.stateCode)
               const isReady = !!pkg
               return (
-                <div key={sr.stateCode} className="flex items-center gap-3">
+                <div key={sr.stateCode} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                   <button
                     type="button"
                     onClick={() => isReady && handleDownloadState(pkg)}
                     disabled={!isReady}
                     data-testid={`download-state-${sr.stateCode}`}
-                    className={`w-full sm:w-auto px-4 py-2 text-sm font-medium border rounded-md text-left ${
+                    className={`w-full sm:w-auto px-4 py-3 sm:py-2 text-sm font-medium border rounded-md text-left transition-colors ${
                       isReady
                         ? 'text-gray-700 border-gray-300 hover:bg-gray-50 cursor-pointer'
                         : 'text-gray-400 border-gray-200 bg-gray-50 cursor-not-allowed'

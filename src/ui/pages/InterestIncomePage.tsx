@@ -37,7 +37,7 @@ function Form1099INTCard({ form }: { form: Form1099INT }) {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <CurrencyInput
           label={<>Box 1 — Interest income<InfoTooltip
             explanation="Box 1 reports taxable interest income from bank accounts, money market funds, CDs, and most bonds. It is fully taxable as ordinary income and flows to Form 1040 Line 2b (taxable interest)."

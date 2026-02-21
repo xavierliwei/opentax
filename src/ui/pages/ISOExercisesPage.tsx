@@ -46,7 +46,7 @@ function ISOExerciseCard({ exercise }: { exercise: ISOExercise }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <DateInput
           label="Exercise date"
           value={exercise.exerciseDate}
@@ -75,7 +75,7 @@ function ISOExerciseCard({ exercise }: { exercise: ISOExercise }) {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <CurrencyInput
           label="Exercise price (per share)"
           value={exercise.exercisePrice}

@@ -39,7 +39,7 @@ function Form1099DIVCard({ form }: { form: Form1099DIV }) {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <CurrencyInput
           label="Box 1a — Ordinary dividends"
           value={form.box1a}

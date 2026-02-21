@@ -22,7 +22,7 @@ export function DashboardLayout() {
           </div>
           <a
             href="/interview/filing-status"
-            className="flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors"
+            className="flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-800 active:text-blue-900 transition-colors py-2 -my-2 px-2 -mx-2 sm:py-0 sm:-my-0 sm:px-0 sm:-mx-0 rounded-md"
           >
             Open Interview
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>

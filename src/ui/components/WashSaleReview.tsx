@@ -56,7 +56,7 @@ export function WashSaleReview({
           >
             <div className="font-medium text-sm text-gray-900">{match.symbol}</div>
 
-            <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               {/* Loss sale */}
               <div className="flex flex-col gap-1">
                 <span className="font-medium text-gray-700">Loss sale</span>
