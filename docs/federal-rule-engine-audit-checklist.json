@@ -1,0 +1,354 @@
+{
+  "auditDate": "2026-02-20",
+  "taxYear": 2025,
+  "methodology": "Line-by-line review vs IRS publications, Form instructions, Rev. Proc. 2024-40, OBBBA",
+  "summary": {
+    "totalRulesReviewed": 37,
+    "accurate": 33,
+    "needsUpdate": 4,
+    "unclear": 0,
+    "gapsIdentified": 8
+  },
+  "rules": [
+    {
+      "id": "std-deduction",
+      "name": "Standard Deduction",
+      "file": "src/rules/2025/constants.ts",
+      "lines": "25-31",
+      "status": "needs_update",
+      "severity": "high",
+      "source": "OBBBA §70102, IRS Pub 501 (2025)",
+      "issue": "OBBBA raised amounts: single $15,000→$15,750, mfj $30,000→$31,500, mfs $15,000→$15,750, hoh $22,500→$23,625, qw $30,000→$31,500"
+    },
+    {
+      "id": "std-deduction-additional",
+      "name": "Additional Standard Deduction (age 65+/blind)",
+      "file": "src/rules/2025/constants.ts",
+      "lines": "35-41",
+      "status": "accurate",
+      "source": "Rev. Proc. 2024-40 §3.02"
+    },
+    {
+      "id": "income-brackets",
+      "name": "Income Tax Brackets",
+      "file": "src/rules/2025/constants.ts",
+      "lines": "56-103",
+      "status": "accurate",
+      "source": "Rev. Proc. 2024-40 §3.01, IRS.gov bracket page"
+    },
+    {
+      "id": "ltcg-brackets",
+      "name": "Long-Term Capital Gains Brackets",
+      "file": "src/rules/2025/constants.ts",
+      "lines": "111-139",
+      "status": "accurate",
+      "source": "Rev. Proc. 2024-40 §3.03"
+    },
+    {
+      "id": "niit",
+      "name": "Net Investment Income Tax",
+      "file": "src/rules/2025/constants.ts",
+      "lines": "144-151",
+      "status": "accurate",
+      "source": "IRC §1411"
+    },
+    {
+      "id": "ss-medicare",
+      "name": "Social Security & Medicare",
+      "file": "src/rules/2025/constants.ts",
+      "lines": "156-166",
+      "status": "accurate",
+      "source": "SSA announcement Oct 2024, IRS Topic 751"
+    },
+    {
+      "id": "salt-cap",
+      "name": "SALT Cap & Phase-Out",
+      "file": "src/rules/2025/constants.ts",
+      "lines": "182-206",
+      "status": "accurate",
+      "source": "OBBBA §70120"
+    },
+    {
+      "id": "mortgage-limit",
+      "name": "Mortgage Interest Limits",
+      "file": "src/rules/2025/constants.ts",
+      "lines": "212-226",
+      "status": "accurate",
+      "source": "IRC §163(h)(3), TCJA §11043"
+    },
+    {
+      "id": "charitable-limits",
+      "name": "Charitable Contribution AGI Limits",
+      "file": "src/rules/2025/constants.ts",
+      "lines": "230-231",
+      "status": "accurate",
+      "source": "IRC §170(b)"
+    },
+    {
+      "id": "capital-loss-limit",
+      "name": "Capital Loss Deduction Limit",
+      "file": "src/rules/2025/constants.ts",
+      "lines": "236-242",
+      "status": "accurate",
+      "source": "IRC §1211(b)"
+    },
+    {
+      "id": "ctc",
+      "name": "Child Tax Credit",
+      "file": "src/rules/2025/constants.ts",
+      "lines": "248-262",
+      "status": "needs_update",
+      "severity": "high",
+      "source": "OBBBA §70101, IRS.gov CTC page",
+      "issue": "CTC_PER_QUALIFYING_CHILD should be $2,200 (not $2,000) per OBBBA"
+    },
+    {
+      "id": "eic",
+      "name": "Earned Income Credit Schedules",
+      "file": "src/rules/2025/constants.ts",
+      "lines": "277-290",
+      "status": "accurate",
+      "source": "Rev. Proc. 2024-40 §3.07, IRS EITC tables"
+    },
+    {
+      "id": "dependent-care",
+      "name": "Dependent Care Credit",
+      "file": "src/rules/2025/constants.ts",
+      "lines": "295-300",
+      "status": "accurate",
+      "source": "IRC §21, IRS Pub 503 (2025)"
+    },
+    {
+      "id": "savers-credit",
+      "name": "Saver's Credit Thresholds",
+      "file": "src/rules/2025/constants.ts",
+      "lines": "311-317",
+      "status": "needs_update",
+      "severity": "low",
+      "source": "Rev. Proc. 2024-40 §3.10, Form 8880 Instructions",
+      "issue": "rate10 thresholds too low: single/mfs $39,000→$39,500, hoh $58,500→$59,250, mfj/qw $78,000→$79,000"
+    },
+    {
+      "id": "education-credits",
+      "name": "Education Credits (AOTC + LLC)",
+      "file": "src/rules/2025/constants.ts",
+      "lines": "322-339",
+      "status": "accurate",
+      "source": "IRC §25A, Form 8863 Instructions (2025)"
+    },
+    {
+      "id": "energy-credits",
+      "name": "Energy Credits (§25C, §25D)",
+      "file": "src/rules/2025/constants.ts",
+      "lines": "344-350",
+      "status": "accurate",
+      "source": "IRC §25C/§25D, IRS energy credit FAQ"
+    },
+    {
+      "id": "amt-exemption",
+      "name": "AMT Exemption & Phase-Out",
+      "file": "src/rules/2025/constants.ts",
+      "lines": "355-371",
+      "status": "accurate",
+      "source": "Rev. Proc. 2024-40 §3.02"
+    },
+    {
+      "id": "amt-28-threshold",
+      "name": "AMT 28% Threshold",
+      "file": "src/rules/2025/constants.ts",
+      "lines": "373-379",
+      "status": "needs_update",
+      "severity": "medium",
+      "source": "2025 Form 6251 Instructions",
+      "issue": "Should be $239,100/$119,550, not $248,300/$124,150"
+    },
+    {
+      "id": "ira-deduction",
+      "name": "IRA Deduction",
+      "file": "src/rules/2025/constants.ts",
+      "lines": "384-398",
+      "status": "accurate",
+      "source": "IRS IRA Deduction Limits, Rev. Proc. 2024-40"
+    },
+    {
+      "id": "hsa",
+      "name": "HSA Limits & Penalties",
+      "file": "src/rules/2025/constants.ts",
+      "lines": "403-408",
+      "status": "accurate",
+      "source": "Rev. Proc. 2024-25"
+    },
+    {
+      "id": "student-loan",
+      "name": "Student Loan Interest Deduction",
+      "file": "src/rules/2025/constants.ts",
+      "lines": "413-421",
+      "status": "accurate",
+      "source": "IRS Topic 456, IRC §221"
+    },
+    {
+      "id": "pal",
+      "name": "Passive Activity Loss (PAL)",
+      "file": "src/rules/2025/constants.ts",
+      "lines": "427-431",
+      "status": "accurate",
+      "source": "IRC §469(i), Schedule E Instructions (2025)"
+    },
+    {
+      "id": "dependent-filer",
+      "name": "Dependent Filer Standard Deduction Limitation",
+      "file": "src/rules/2025/constants.ts",
+      "lines": "439-440",
+      "status": "accurate",
+      "source": "IRS Pub 501 (2025), IRC §63(c)(5)"
+    },
+    {
+      "id": "bracket-tax-computation",
+      "name": "Bracket Tax Computation",
+      "file": "src/rules/2025/taxComputation.ts",
+      "status": "accurate",
+      "source": "2025 Form 1040 Instructions"
+    },
+    {
+      "id": "qdcg-worksheet",
+      "name": "QDCG Tax Worksheet",
+      "file": "src/rules/2025/taxComputation.ts",
+      "status": "accurate",
+      "source": "2025 Form 1040 Instructions, QDCG Worksheet"
+    },
+    {
+      "id": "form1040",
+      "name": "Form 1040 Orchestration (Lines 1-37)",
+      "file": "src/rules/2025/form1040.ts",
+      "status": "accurate",
+      "source": "2025 Form 1040 Instructions"
+    },
+    {
+      "id": "schedule-a",
+      "name": "Schedule A — Itemized Deductions",
+      "file": "src/rules/2025/scheduleA.ts",
+      "status": "accurate",
+      "source": "IRC §§163, 164, 170, 213"
+    },
+    {
+      "id": "schedule-b",
+      "name": "Schedule B — Interest & Dividends",
+      "file": "src/rules/2025/scheduleB.ts",
+      "status": "accurate",
+      "source": "2025 Schedule B Instructions"
+    },
+    {
+      "id": "schedule-d",
+      "name": "Schedule D — Capital Gains/Losses",
+      "file": "src/rules/2025/scheduleD.ts",
+      "status": "accurate",
+      "source": "2025 Schedule D Instructions, IRC §1211(b)"
+    },
+    {
+      "id": "schedule-1",
+      "name": "Schedule 1 — Additional Income",
+      "file": "src/rules/2025/schedule1.ts",
+      "status": "accurate",
+      "source": "2025 Schedule 1 Instructions"
+    },
+    {
+      "id": "schedule-e",
+      "name": "Schedule E — Rental Property",
+      "file": "src/rules/2025/scheduleE.ts",
+      "status": "accurate",
+      "source": "2025 Schedule E Instructions, IRC §469(i)"
+    },
+    {
+      "id": "form-8949",
+      "name": "Form 8949 — Capital Asset Sales",
+      "file": "src/rules/2025/form8949.ts",
+      "status": "accurate",
+      "source": "2025 Form 8949 Instructions"
+    },
+    {
+      "id": "amt-computation",
+      "name": "AMT Computation Logic",
+      "file": "src/rules/2025/amt.ts",
+      "status": "accurate",
+      "source": "2025 Form 6251 Instructions"
+    },
+    {
+      "id": "ctc-computation",
+      "name": "CTC/ACTC Computation Logic",
+      "file": "src/rules/2025/childTaxCredit.ts",
+      "status": "accurate",
+      "source": "2025 Form 8812 Instructions, IRC §24"
+    },
+    {
+      "id": "eic-computation",
+      "name": "EITC Computation Logic",
+      "file": "src/rules/2025/earnedIncomeCredit.ts",
+      "status": "accurate",
+      "source": "2025 Schedule EIC Instructions"
+    },
+    {
+      "id": "wash-sale",
+      "name": "Wash Sale Detection",
+      "file": "src/rules/2025/washSale.ts",
+      "status": "accurate",
+      "source": "IRC §1091"
+    },
+    {
+      "id": "rsu-adjustment",
+      "name": "RSU Basis Adjustment",
+      "file": "src/rules/2025/rsuAdjustment.ts",
+      "status": "accurate",
+      "source": "IRS guidance on RSU taxation"
+    }
+  ],
+  "gaps": [
+    {
+      "id": "gap-qbi",
+      "name": "QBI Deduction (Form 1040 Line 13)",
+      "risk": "medium",
+      "description": "Placeholder $0. Affects sole proprietors, partnerships, S-corps."
+    },
+    {
+      "id": "gap-senior-deduction",
+      "name": "OBBBA $6,000 Senior Deduction (§70103)",
+      "risk": "medium",
+      "description": "New OBBBA provision for age 65+, separate from additional standard deduction."
+    },
+    {
+      "id": "gap-self-employment",
+      "name": "Self-Employment Tax (Schedule SE)",
+      "risk": "medium",
+      "description": "Not implemented. Affects freelancers and gig workers."
+    },
+    {
+      "id": "gap-estimated-penalty",
+      "name": "Estimated Tax Penalty (Form 2210)",
+      "risk": "low",
+      "description": "Not computed; informational for most filers."
+    },
+    {
+      "id": "gap-kiddie-tax",
+      "name": "Kiddie Tax (Form 8615)",
+      "risk": "low",
+      "description": "Not implemented. Affects dependents with unearned income."
+    },
+    {
+      "id": "gap-foreign-income",
+      "name": "Foreign Earned Income Exclusion (Form 2555)",
+      "risk": "low",
+      "description": "Not implemented. Niche use case."
+    },
+    {
+      "id": "gap-k1",
+      "name": "Partnership/S-Corp K-1 Income Flows",
+      "risk": "medium",
+      "description": "Not implemented."
+    },
+    {
+      "id": "gap-1098e",
+      "name": "Form 1098-E Integration",
+      "risk": "low",
+      "description": "Student loan interest is user-entered; 1098-E parsing not wired."
+    }
+  ]
+}
