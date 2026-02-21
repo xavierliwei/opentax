@@ -20,7 +20,7 @@ import { PriorYearPage } from '../ui/pages/PriorYearPage.tsx'
 import { DeductionsPage } from '../ui/pages/DeductionsPage.tsx'
 import { CreditsPage } from '../ui/pages/CreditsPage.tsx'
 import { ReviewPage } from '../ui/pages/ReviewPage.tsx'
-import { CAReviewPage } from '../ui/pages/CAReviewPage.tsx'
+import { StateReviewPage } from '../ui/pages/StateReviewPage.tsx'
 import { StateReturnsPage } from '../ui/pages/StateReturnsPage.tsx'
 import { DownloadPage } from '../ui/pages/DownloadPage.tsx'
 
@@ -41,27 +41,18 @@ export interface InterviewStep {
   component: ComponentType
 }
 
-/** Map state codes to their review page components */
-const STATE_REVIEW_COMPONENTS: Record<string, ComponentType> = {
-  CA: CAReviewPage,
-}
-
-/** Map state codes to their sidebar labels */
-const STATE_REVIEW_LABELS: Record<string, string> = {
-  CA: 'CA Form 540',
-}
-
-/** Generate dynamic state review steps from the registry */
+/** Generate dynamic state review steps from the registry.
+ *  All states use the generic config-driven StateReviewPage. */
 function stateReviewSteps(): InterviewStep[] {
   return getSupportedStates().map(st => ({
     id: `state-review-${st.code}`,
-    label: STATE_REVIEW_LABELS[st.code] ?? st.label,
+    label: st.label,
     path: `/interview/state-review-${st.code}`,
     section: 'review' as const,
     isVisible: (tr: TaxReturn) =>
       (tr.stateReturns ?? []).some(s => s.stateCode === st.code),
     isComplete: () => false,
-    component: STATE_REVIEW_COMPONENTS[st.code] ?? ReviewPage,
+    component: StateReviewPage,
   }))
 }
 

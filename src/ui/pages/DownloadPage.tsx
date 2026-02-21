@@ -3,7 +3,7 @@ import { useTaxStore } from '../../store/taxStore.ts'
 import { useInterview } from '../../interview/useInterview.ts'
 import { InterviewNav } from './InterviewNav.tsx'
 import { compileFilingPackage } from '../../forms/compiler.ts'
-import type { FormTemplates } from '../../forms/types.ts'
+import type { FormTemplates, StatePackage } from '../../forms/types.ts'
 import { dollars } from '../../model/traced.ts'
 
 function formatCurrency(cents: number): string {
@@ -28,6 +28,16 @@ async function loadTemplate(path: string): Promise<Uint8Array> {
   return new Uint8Array(await resp.arrayBuffer())
 }
 
+function downloadBlob(bytes: Uint8Array, filename: string) {
+  const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 export function DownloadPage() {
   const taxReturn = useTaxStore((s) => s.taxReturn)
   const form1040 = useTaxStore((s) => s.computeResult.form1040)
@@ -36,6 +46,9 @@ export function DownloadPage() {
   const interview = useInterview()
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [statePackages, setStatePackages] = useState<StatePackage[]>([])
+  const [showSeparate, setShowSeparate] = useState(false)
+
   const handleDownloadPDF = async () => {
     setGenerating(true)
     setError(null)
@@ -74,18 +87,21 @@ export function DownloadPage() {
         )
       }
 
-      const blob = new Blob([compiled.pdfBytes as BlobPart], { type: 'application/pdf' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `OpenTax-2025-${taxReturn.taxpayer.lastName || 'Return'}.pdf`
-      a.click()
-      URL.revokeObjectURL(url)
+      // Save state packages for separate download
+      setStatePackages(compiled.statePackages)
+
+      const lastName = taxReturn.taxpayer.lastName || 'Return'
+      downloadBlob(compiled.pdfBytes, `OpenTax-2025-${lastName}.pdf`)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to generate PDF')
     } finally {
       setGenerating(false)
     }
+  }
+
+  const handleDownloadState = (pkg: StatePackage) => {
+    const lastName = taxReturn.taxpayer.lastName || 'Return'
+    downloadBlob(pkg.pdfBytes, `OpenTax-2025-${lastName}-${pkg.stateCode}.pdf`)
   }
 
   const handleExportJSON = () => {
@@ -195,7 +211,7 @@ export function DownloadPage() {
           className="w-full sm:w-auto px-6 py-3 text-sm font-medium text-white bg-brand rounded-md hover:bg-blue-900 disabled:opacity-50 disabled:cursor-not-allowed"
           data-testid="download-pdf-btn"
         >
-          {generating ? 'Generating...' : 'Download PDF'}
+          {generating ? 'Generating...' : stateResults.length > 0 ? 'Download All (Federal + State)' : 'Download PDF'}
         </button>
         <button
           type="button"
@@ -207,6 +223,33 @@ export function DownloadPage() {
         </button>
       </div>
 
+      {/* Separate download options — available after first generation */}
+      {statePackages.length > 0 && (
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={() => setShowSeparate(!showSeparate)}
+            className="text-sm text-tax-blue hover:text-blue-700 underline"
+          >
+            {showSeparate ? 'Hide' : 'Download separately'}
+          </button>
+          {showSeparate && (
+            <div className="mt-2 flex flex-col gap-2">
+              {statePackages.map(pkg => (
+                <button
+                  key={pkg.stateCode}
+                  type="button"
+                  onClick={() => handleDownloadState(pkg)}
+                  className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 text-left"
+                >
+                  {pkg.label} PDF
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {error && (
         <div className="mt-4 bg-red-50 border border-red-200 rounded-md p-3 text-sm text-red-700">
           {error}
@@ -215,6 +258,7 @@ export function DownloadPage() {
 
       <div className="mt-4 bg-blue-50 border border-blue-200 rounded-md p-3 text-sm text-blue-800">
         This PDF is for review only. E-file via IRS Free File or print and mail.
+        {stateResults.length > 0 && ' State forms may need to be mailed to a different address than federal.'}
       </div>
 
       <InterviewNav interview={interview} />
