@@ -3,16 +3,28 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OpenTax — Open-Source Tax Preparation</title>
-  <meta name="description" content="Free, open-source tax preparation software with transparent computation and full explainability. All computation runs in your browser — no data leaves your device." />
+  <title>OpenTax — Free Open-Source Tax Preparation Software</title>
+  <meta name="description" content="Free, open-source tax preparation that shows its work. Every number traces to IRS rules and your source documents. All computation runs in your browser — your data never leaves your device." />
+  <meta name="keywords" content="open source tax software, free tax preparation, tax filing 2026, explainable tax computation, privacy-first tax, IRS form 1040" />
+
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://opentax-org.github.io/opentax/" />
 
   <!-- Open Graph -->
-  <meta property="og:title" content="OpenTax — Open-Source Tax Preparation" />
-  <meta property="og:description" content="Free, open-source tax preparation with transparent computation and full explainability." />
+  <meta property="og:title" content="OpenTax — Free Open-Source Tax Preparation Software" />
+  <meta property="og:description" content="Tax prep that shows its work. Every number traces to IRS rules and your documents. Runs in your browser — your data never leaves your device." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://opentax-org.github.io/opentax/" />
-  <!-- TODO: Add og:image once a screenshot/graphic is available -->
-  <!-- <meta property="og:image" content="https://opentax-org.github.io/opentax/og-image.png" /> -->
+  <meta property="og:image" content="https://opentax-org.github.io/opentax/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:site_name" content="OpenTax" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="OpenTax — Free Open-Source Tax Preparation Software" />
+  <meta name="twitter:description" content="Tax prep that shows its work. Every number traces to IRS rules and your documents. Runs in your browser — your data never leaves." />
+  <meta name="twitter:image" content="https://opentax-org.github.io/opentax/og-image.png" />
 
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -34,6 +46,11 @@
   <style>
     html { scroll-behavior: smooth; }
   </style>
+
+  <!-- Analytics: Plausible (privacy-first, no cookies, GDPR-compliant)
+       To enable: uncomment the script tag below and set data-domain to your GitHub Pages domain.
+  <script defer data-domain="opentax-org.github.io" src="https://plausible.io/js/script.tagged-events.js"></script>
+  -->
 </head>
 <body class="font-sans text-gray-900 antialiased">
 
@@ -51,8 +68,9 @@
       </div>
       <div class="flex items-center gap-6 text-sm font-medium">
         <a href="#features" class="hover:text-blue-200 transition-colors hidden sm:inline">Features</a>
-        <a href="#forms" class="hover:text-blue-200 transition-colors hidden sm:inline">Supported Forms</a>
-        <a href="#get-started" class="hover:text-blue-200 transition-colors hidden sm:inline">Get Started</a>
+        <a href="trust/" class="hover:text-blue-200 transition-colors hidden sm:inline">Trust Center</a>
+        <a href="demo/" class="hover:text-blue-200 transition-colors hidden md:inline">Demo</a>
+        <a href="docs/" class="hover:text-blue-200 transition-colors hidden md:inline">Docs</a>
         <a href="https://github.com/opentax-org/opentax" target="_blank" rel="noopener"
            class="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 backdrop-blur px-4 py-2 rounded-lg transition-colors">
           <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
@@ -70,19 +88,21 @@
         Tax preparation that<br class="hidden sm:inline" /> shows its work
       </h1>
       <p class="text-lg sm:text-xl text-blue-100 max-w-2xl mx-auto mb-10 leading-relaxed">
-        Open-source tax preparation with transparent computation and full explainability.
         Every number traces back to your source documents and the IRS rules that produced it.
+        Run it standalone in your browser, or drop it into any AI agent as an
+        <a href="docs/openclaw-plugin.html" class="underline decoration-blue-300 hover:text-white">OpenClaw plugin</a>.
+        Your data never leaves your device.
       </p>
       <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-        <a href="https://github.com/opentax-org/opentax" target="_blank" rel="noopener"
+        <a href="demo/"
            class="inline-flex items-center gap-2 bg-white text-brand font-semibold px-8 py-3.5 rounded-xl hover:bg-blue-50 transition-colors shadow-lg shadow-black/20">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Try the Demo
+        </a>
+        <a href="https://github.com/opentax-org/opentax" target="_blank" rel="noopener"
+           class="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur font-semibold px-8 py-3.5 rounded-xl transition-colors">
           <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
           View on GitHub
-        </a>
-        <a href="#get-started"
-           class="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur font-semibold px-8 py-3.5 rounded-xl transition-colors">
-          Get started
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
         </a>
       </div>
     </div>
@@ -102,7 +122,7 @@
           <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         </div>
         <h3 class="font-semibold text-lg mb-2">Free forever</h3>
-        <p class="text-gray-600 text-sm leading-relaxed">No upsells, no paywalls. Core tax filing for $0. Every feature available to everyone.</p>
+        <p class="text-gray-600 text-sm leading-relaxed">No upsells, no paywalls. MIT-licensed, open-source. Every feature available to everyone.</p>
       </div>
       <!-- Card 2 -->
       <div class="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-lg hover:border-blue-200 transition-all">
@@ -118,21 +138,75 @@
           <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
         </div>
         <h3 class="font-semibold text-lg mb-2">Privacy-first</h3>
-        <p class="text-gray-600 text-sm leading-relaxed">All computation runs in your browser. No data leaves your device. Your tax information stays yours.</p>
+        <p class="text-gray-600 text-sm leading-relaxed">All computation runs in your browser. No server, no account, no tracking. Your tax data stays yours.</p>
       </div>
       <!-- Card 4 -->
       <div class="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-lg hover:border-blue-200 transition-all">
         <div class="w-12 h-12 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center mb-4">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
         </div>
-        <h3 class="font-semibold text-lg mb-2">Open source</h3>
-        <p class="text-gray-600 text-sm leading-relaxed">Deterministic rules engine, auditable by anyone. Review every calculation, contribute improvements, or fork it.</p>
+        <h3 class="font-semibold text-lg mb-2">Audited correctness</h3>
+        <p class="text-gray-600 text-sm leading-relaxed">Deterministic rules engine with 1,300+ tests cross-referenced against IRS publications. <a href="trust/" class="text-brand hover:underline">View Trust Center</a>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────── Two Ways to Use ───────────────── -->
+  <section class="bg-gray-50 border-y border-gray-200">
+    <div class="max-w-6xl mx-auto px-6 py-20 sm:py-28">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">Two ways to use OpenTax</h2>
+        <p class="text-gray-600 text-lg max-w-2xl mx-auto">Run it standalone for personal filing, or integrate it into AI-powered tools as an OpenClaw plugin.</p>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-8">
+        <!-- Standalone -->
+        <div class="bg-white border border-gray-200 rounded-2xl p-8 hover:shadow-lg transition-all">
+          <div class="w-12 h-12 bg-brand/10 text-brand rounded-xl flex items-center justify-center mb-5">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          </div>
+          <h3 class="text-xl font-bold mb-3">Standalone app</h3>
+          <p class="text-gray-600 text-sm leading-relaxed mb-4">
+            Clone the repo, run <code class="bg-gray-100 px-1.5 py-0.5 rounded text-xs">npm run dev</code>, and file your taxes in your browser.
+            Upload W-2s and 1099s, walk through a guided interview, and download IRS-ready PDFs.
+          </p>
+          <ul class="text-sm text-gray-600 space-y-2 mb-6">
+            <li class="flex items-start gap-2"><span class="text-green-500 mt-0.5">&#10003;</span> Client-side only — zero data transmission</li>
+            <li class="flex items-start gap-2"><span class="text-green-500 mt-0.5">&#10003;</span> Full trace/explainability for every line</li>
+            <li class="flex items-start gap-2"><span class="text-green-500 mt-0.5">&#10003;</span> Federal + California state returns</li>
+          </ul>
+          <a href="docs/standalone.html" class="inline-flex items-center gap-2 text-brand font-semibold text-sm hover:underline">
+            Standalone quickstart
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+          </a>
+        </div>
+
+        <!-- OpenClaw Plugin -->
+        <div class="bg-white border border-gray-200 rounded-2xl p-8 hover:shadow-lg transition-all">
+          <div class="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center mb-5">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"/></svg>
+          </div>
+          <h3 class="text-xl font-bold mb-3">OpenClaw plugin</h3>
+          <p class="text-gray-600 text-sm leading-relaxed mb-4">
+            Tax filing as an agent tool. 16 tool definitions, SSE streaming, and a REST API &mdash;
+            purpose-built for conversational AI agents.
+          </p>
+          <ul class="text-sm text-gray-600 space-y-2 mb-6">
+            <li class="flex items-start gap-2"><span class="text-green-500 mt-0.5">&#10003;</span> Drop into any OpenClaw-compatible agent</li>
+            <li class="flex items-start gap-2"><span class="text-green-500 mt-0.5">&#10003;</span> TaxService API for Node.js</li>
+            <li class="flex items-start gap-2"><span class="text-green-500 mt-0.5">&#10003;</span> Full trace metadata in every response</li>
+          </ul>
+          <a href="docs/openclaw-plugin.html" class="inline-flex items-center gap-2 text-purple-600 font-semibold text-sm hover:underline">
+            Plugin integration guide
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+          </a>
+        </div>
       </div>
     </div>
   </section>
 
   <!-- ───────────────── Supported Forms ───────────────── -->
-  <section id="forms" class="bg-gray-50 border-y border-gray-200">
+  <section id="forms">
     <div class="max-w-6xl mx-auto px-6 py-20 sm:py-28">
       <div class="text-center mb-16">
         <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">What's supported</h2>
@@ -185,44 +259,50 @@
           <div class="text-xs text-gray-500">Child Tax, Education, &amp; more</div>
         </div>
         <div class="bg-white rounded-xl border border-gray-200 p-4 text-center">
-          <div class="text-sm font-bold text-brand mb-1">Deductions</div>
-          <div class="text-xs text-gray-500">Student Loan, HSA, &amp; more</div>
+          <div class="text-sm font-bold text-brand mb-1">CA 540</div>
+          <div class="text-xs text-gray-500">California State Return</div>
         </div>
+      </div>
+
+      <div class="text-center mt-8">
+        <a href="trust/limitations.html" class="text-sm text-gray-500 hover:text-brand transition-colors">View known limitations &amp; scope &rarr;</a>
       </div>
     </div>
   </section>
 
   <!-- ───────────────── How It Works ───────────────── -->
-  <section class="max-w-6xl mx-auto px-6 py-20 sm:py-28">
-    <div class="text-center mb-16">
-      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">How it works</h2>
-      <p class="text-gray-600 text-lg max-w-2xl mx-auto">Three steps to a completed return. No account required.</p>
-    </div>
+  <section class="bg-gray-50 border-y border-gray-200">
+    <div class="max-w-6xl mx-auto px-6 py-20 sm:py-28">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">How it works</h2>
+        <p class="text-gray-600 text-lg max-w-2xl mx-auto">Three steps to a completed return. No account required.</p>
+      </div>
 
-    <div class="grid sm:grid-cols-3 gap-8 lg:gap-12">
-      <!-- Step 1 -->
-      <div class="text-center">
-        <div class="w-14 h-14 bg-brand text-white rounded-2xl flex items-center justify-center mx-auto mb-5 text-xl font-bold">1</div>
-        <h3 class="font-semibold text-lg mb-2">Upload documents</h3>
-        <p class="text-gray-600 text-sm leading-relaxed">Import your W-2s, 1099s, and other tax documents. Data is extracted locally in your browser.</p>
-      </div>
-      <!-- Step 2 -->
-      <div class="text-center">
-        <div class="w-14 h-14 bg-brand text-white rounded-2xl flex items-center justify-center mx-auto mb-5 text-xl font-bold">2</div>
-        <h3 class="font-semibold text-lg mb-2">Review computed return</h3>
-        <p class="text-gray-600 text-sm leading-relaxed">Walk through an guided interview. Every computed value is explainable — click to trace it back to source.</p>
-      </div>
-      <!-- Step 3 -->
-      <div class="text-center">
-        <div class="w-14 h-14 bg-brand text-white rounded-2xl flex items-center justify-center mx-auto mb-5 text-xl font-bold">3</div>
-        <h3 class="font-semibold text-lg mb-2">File or print</h3>
-        <p class="text-gray-600 text-sm leading-relaxed">Download IRS-ready PDF forms for e-filing through IRS Free File or printing for mail submission.</p>
+      <div class="grid sm:grid-cols-3 gap-8 lg:gap-12">
+        <!-- Step 1 -->
+        <div class="text-center">
+          <div class="w-14 h-14 bg-brand text-white rounded-2xl flex items-center justify-center mx-auto mb-5 text-xl font-bold">1</div>
+          <h3 class="font-semibold text-lg mb-2">Upload documents</h3>
+          <p class="text-gray-600 text-sm leading-relaxed">Import your W-2s, 1099s, and other tax documents. Data is extracted locally in your browser.</p>
+        </div>
+        <!-- Step 2 -->
+        <div class="text-center">
+          <div class="w-14 h-14 bg-brand text-white rounded-2xl flex items-center justify-center mx-auto mb-5 text-xl font-bold">2</div>
+          <h3 class="font-semibold text-lg mb-2">Review computed return</h3>
+          <p class="text-gray-600 text-sm leading-relaxed">Walk through a guided interview. Every computed value is explainable — click to trace it back to source.</p>
+        </div>
+        <!-- Step 3 -->
+        <div class="text-center">
+          <div class="w-14 h-14 bg-brand text-white rounded-2xl flex items-center justify-center mx-auto mb-5 text-xl font-bold">3</div>
+          <h3 class="font-semibold text-lg mb-2">File or print</h3>
+          <p class="text-gray-600 text-sm leading-relaxed">Download IRS-ready PDF forms for e-filing through IRS Free File or printing for mail submission.</p>
+        </div>
       </div>
     </div>
   </section>
 
   <!-- ───────────────── Get Started ───────────────── -->
-  <section id="get-started" class="bg-gray-50 border-y border-gray-200">
+  <section id="get-started">
     <div class="max-w-4xl mx-auto px-6 py-20 sm:py-28">
       <div class="text-center mb-12">
         <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">Get started</h2>
@@ -246,32 +326,79 @@
         </code>
       </div>
 
-      <div class="text-center mt-10">
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mt-10">
         <a href="https://github.com/opentax-org/opentax" target="_blank" rel="noopener"
            class="inline-flex items-center gap-2 bg-brand hover:bg-brand-light text-white font-semibold px-8 py-3.5 rounded-xl transition-colors shadow-lg">
           <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
           View on GitHub
+        </a>
+        <a href="docs/"
+           class="inline-flex items-center gap-2 text-brand hover:text-brand-light font-semibold px-8 py-3.5 rounded-xl border border-brand/20 hover:border-brand/40 transition-colors">
+          Read the docs
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
         </a>
       </div>
     </div>
   </section>
 
   <!-- ───────────────── Footer ───────────────── -->
-  <footer class="max-w-6xl mx-auto px-6 py-10">
-    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
-      <div class="flex items-center gap-2">
-        <img src="favicon.svg" alt="OpenTax" class="w-5 h-5" />
-        <span class="font-medium text-gray-700">OpenTax</span>
-        <span class="text-gray-300">|</span>
-        <span>MIT License</span>
+  <footer class="bg-gray-50 border-t border-gray-200">
+    <div class="max-w-6xl mx-auto px-6 py-10">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
+        <div class="flex items-center gap-2">
+          <img src="favicon.svg" alt="OpenTax" class="w-5 h-5" />
+          <span class="font-medium text-gray-700">OpenTax</span>
+          <span class="text-gray-300">|</span>
+          <span>MIT License</span>
+        </div>
+        <div class="flex items-center gap-4 flex-wrap justify-center">
+          <a href="trust/" class="hover:text-brand transition-colors">Trust Center</a>
+          <span class="text-gray-300">|</span>
+          <a href="demo/" class="hover:text-brand transition-colors">Demo</a>
+          <span class="text-gray-300">|</span>
+          <a href="docs/" class="hover:text-brand transition-colors">Docs</a>
+          <span class="text-gray-300">|</span>
+          <a href="privacy.html" class="hover:text-brand transition-colors">Privacy</a>
+          <span class="text-gray-300">|</span>
+          <a href="https://github.com/opentax-org/opentax" target="_blank" rel="noopener" class="hover:text-brand transition-colors">GitHub</a>
+        </div>
       </div>
-      <div class="flex items-center gap-4">
-        <span>Not affiliated with the IRS</span>
-        <span class="text-gray-300">|</span>
-        <a href="https://github.com/opentax-org/opentax" target="_blank" rel="noopener" class="hover:text-brand transition-colors">GitHub</a>
-      </div>
+      <div class="text-center text-xs text-gray-400 mt-4">Not affiliated with the IRS. OpenTax is not tax advice.</div>
     </div>
   </footer>
+
+  <!-- Analytics: Custom event helpers (activate after enabling Plausible above)
+  <script>
+    // Fire custom analytics events. Requires Plausible script to be loaded.
+    // Usage: trackEvent('cta_click', { cta_id: 'hero-demo', page: '/' })
+    function trackEvent(name, props) {
+      if (typeof plausible !== 'undefined') {
+        plausible(name, { props: props });
+      }
+    }
+    // Track CTA clicks
+    document.querySelectorAll('[data-analytics]').forEach(function(el) {
+      el.addEventListener('click', function() {
+        var data = JSON.parse(el.getAttribute('data-analytics'));
+        trackEvent(data.event, data.props);
+      });
+    });
+    // Track scroll depth milestones
+    (function() {
+      var milestones = [25, 50, 75, 100];
+      var fired = {};
+      window.addEventListener('scroll', function() {
+        var scrollPct = Math.round(100 * (window.scrollY + window.innerHeight) / document.documentElement.scrollHeight);
+        milestones.forEach(function(m) {
+          if (scrollPct >= m && !fired[m]) {
+            fired[m] = true;
+            trackEvent('scroll_depth', { page: '/', percent: m });
+          }
+        });
+      });
+    })();
+  </script>
+  -->
 
 </body>
 </html>
