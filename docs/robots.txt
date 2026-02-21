@@ -1,0 +1,7 @@
+# OpenTax — Search engine directives
+# Allow all crawlers full access
+
+User-agent: *
+Allow: /
+
+Sitemap: https://opentax-org.github.io/opentax/sitemap.xml
