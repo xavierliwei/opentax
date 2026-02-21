@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Architecture — OpenTax Engine, Boundaries &amp; Data Flow</title>
+  <meta name="description" content="OpenTax architecture guide: rules engine internals, standalone vs. plugin topology, data flow boundaries, trace system design, and security model." />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Architecture — OpenTax Engine, Boundaries & Data Flow" />
+  <meta property="og:description" content="How the deterministic rules engine, trace system, and dual-mode topology fit together." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://opentax-org.github.io/opentax/docs/architecture.html" />
+
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <link rel="canonical" href="https://opentax-org.github.io/opentax/docs/architecture.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          colors: {
+            brand: { DEFAULT: '#1e40af', light: '#2563eb' },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+  </style>
+</head>
+<body class="font-sans text-gray-900 antialiased">
+
+  <!-- ───────────────── Header ───────────────── -->
+  <header class="relative bg-gradient-to-br from-gray-900 via-brand to-brand-light text-white overflow-hidden">
+    <div class="absolute inset-0 opacity-10">
+      <div class="absolute top-10 left-10 w-72 h-72 bg-white rounded-full blur-3xl"></div>
+      <div class="absolute bottom-10 right-10 w-96 h-96 bg-blue-400 rounded-full blur-3xl"></div>
+    </div>
+
+    <nav class="relative max-w-6xl mx-auto flex items-center justify-between px-6 py-5">
+      <a href="../" class="flex items-center gap-3 hover:opacity-90 transition-opacity">
+        <img src="../favicon.svg" alt="OpenTax logo" class="w-8 h-8" />
+        <span class="text-lg font-bold tracking-tight">OpenTax</span>
+      </a>
+      <div class="flex items-center gap-6 text-sm font-medium">
+        <a href="../" class="hover:text-blue-200 transition-colors hidden sm:inline">Home</a>
+        <a href="./" class="hover:text-blue-200 transition-colors hidden sm:inline">Docs</a>
+        <a href="https://github.com/opentax-org/opentax" target="_blank" rel="noopener"
+           class="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 backdrop-blur px-4 py-2 rounded-lg transition-colors">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+          GitHub
+        </a>
+      </div>
+    </nav>
+
+    <div class="relative max-w-4xl mx-auto px-6 pt-12 pb-20 sm:pt-20 sm:pb-28">
+      <nav class="text-sm text-blue-200 mb-6 flex items-center gap-2">
+        <a href="./" class="hover:text-white transition-colors">Docs</a>
+        <svg class="w-4 h-4 text-blue-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+        <span class="text-white">Architecture</span>
+      </nav>
+      <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight mb-6">
+        Architecture
+      </h1>
+      <p class="text-lg sm:text-xl text-blue-100 max-w-2xl leading-relaxed">
+        A layered architecture with clear boundaries: the rules engine is deterministic and pure, the surface layer adapts to each mode.
+      </p>
+    </div>
+  </header>
+
+  <!-- ───────────────── System Overview ───────────────── -->
+  <section class="max-w-4xl mx-auto px-6 py-20 sm:py-28">
+    <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">System overview</h2>
+    <p class="text-gray-600 text-lg mb-10 max-w-2xl">OpenTax is three layers. The bottom two are shared; only the top layer differs between standalone and plugin mode.</p>
+
+    <div class="bg-gray-900 rounded-2xl p-6 sm:p-8 text-sm font-mono text-gray-300 overflow-x-auto shadow-xl">
+      <div class="flex items-center gap-2 mb-4">
+        <span class="w-3 h-3 rounded-full bg-red-500"></span>
+        <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
+        <span class="w-3 h-3 rounded-full bg-green-500"></span>
+        <span class="ml-3 text-gray-500 text-xs font-sans">System layers</span>
+      </div>
+<pre class="leading-relaxed">
+<span class="text-gray-500">Layer 3 — Surface (mode-specific)</span>
+<span class="text-blue-400">┌──────────────────────┐</span>  <span class="text-purple-400">┌──────────────────────┐</span>
+<span class="text-blue-400">│</span>  <span class="text-blue-300 font-bold">Standalone UI</span>       <span class="text-blue-400">│</span>  <span class="text-purple-400">│</span>  <span class="text-purple-300 font-bold">OpenClaw Plugin</span>     <span class="text-purple-400">│</span>
+<span class="text-blue-400">│</span>                      <span class="text-blue-400">│</span>  <span class="text-purple-400">│</span>                      <span class="text-purple-400">│</span>
+<span class="text-blue-400">│</span>  React + Router      <span class="text-blue-400">│</span>  <span class="text-purple-400">│</span>  Express server       <span class="text-purple-400">│</span>
+<span class="text-blue-400">│</span>  Zustand store       <span class="text-blue-400">│</span>  <span class="text-purple-400">│</span>  REST API + SSE       <span class="text-purple-400">│</span>
+<span class="text-blue-400">│</span>  OCR (Tesseract.js)  <span class="text-blue-400">│</span>  <span class="text-purple-400">│</span>  16 agent tool defs   <span class="text-purple-400">│</span>
+<span class="text-blue-400">│</span>  PDF gen (pdf-lib)   <span class="text-blue-400">│</span>  <span class="text-purple-400">│</span>  SQLite persistence   <span class="text-purple-400">│</span>
+<span class="text-blue-400">│</span>  IndexedDB storage   <span class="text-blue-400">│</span>  <span class="text-purple-400">│</span>  PDF gen (pdf-lib)    <span class="text-purple-400">│</span>
+<span class="text-blue-400">└───────────┬──────────┘</span>  <span class="text-purple-400">└───────────┬──────────┘</span>
+            <span class="text-blue-400">│</span>                          <span class="text-purple-400">│</span>
+            <span class="text-blue-400">▼</span>                          <span class="text-purple-400">▼</span>
+<span class="text-gray-500">Layer 2 — Service API (shared)</span>
+<span class="text-yellow-400">┌─────────────────────────────────────────────────┐</span>
+<span class="text-yellow-400">│</span>                 <span class="text-yellow-300 font-bold">TaxService</span>                      <span class="text-yellow-400">│</span>
+<span class="text-yellow-400">│</span>                                                 <span class="text-yellow-400">│</span>
+<span class="text-yellow-400">│</span>  createReturn()  addW2()     compute()          <span class="text-yellow-400">│</span>
+<span class="text-yellow-400">│</span>  add1099()       setCredits()  traceLine()      <span class="text-yellow-400">│</span>
+<span class="text-yellow-400">│</span>  getSummary()    generatePdf()                  <span class="text-yellow-400">│</span>
+<span class="text-yellow-400">└────────────────────────┬────────────────────────┘</span>
+                         <span class="text-yellow-400">│</span>
+                         <span class="text-yellow-400">▼</span>
+<span class="text-gray-500">Layer 1 — Rules Engine (shared, deterministic)</span>
+<span class="text-orange-400">┌─────────────────────────────────────────────────┐</span>
+<span class="text-orange-400">│</span>              <span class="text-orange-300 font-bold">Rules Engine</span>                      <span class="text-orange-400">│</span>
+<span class="text-orange-400">│</span>                                                 <span class="text-orange-400">│</span>
+<span class="text-orange-400">│</span>  IRS rules (Rev. Proc. 2024-40, Pub 501, ...)  <span class="text-orange-400">│</span>
+<span class="text-orange-400">│</span>  Tax brackets · Standard deduction              <span class="text-orange-400">│</span>
+<span class="text-orange-400">│</span>  Credits · Deductions · AMT · State (CA)        <span class="text-orange-400">│</span>
+<span class="text-orange-400">│</span>  Trace tree generation · IRS citations           <span class="text-orange-400">│</span>
+<span class="text-orange-400">│</span>  Deterministic: same input → same output         <span class="text-orange-400">│</span>
+<span class="text-orange-400">└─────────────────────────────────────────────────┘</span>
+</pre>
+    </div>
+  </section>
+
+  <!-- ───────────────── Rules Engine ───────────────── -->
+  <section class="bg-gray-50 border-y border-gray-200">
+    <div class="max-w-4xl mx-auto px-6 py-20 sm:py-28">
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">Rules engine</h2>
+      <p class="text-gray-600 text-lg mb-10 max-w-2xl">The engine is a pure-function computation graph. Given identical inputs, it always produces identical outputs. No side effects, no network calls, no randomness.</p>
+
+      <div class="grid sm:grid-cols-2 gap-8 mb-10">
+        <div class="bg-white border border-gray-200 rounded-2xl p-6">
+          <h3 class="font-semibold text-lg mb-3">Computation model</h3>
+          <ul class="text-gray-600 text-sm leading-relaxed space-y-2">
+            <li class="flex items-start gap-2">
+              <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+              Each IRS form is a TypeScript module that exports a <code class="bg-gray-100 px-1 rounded text-xs">compute()</code> function
+            </li>
+            <li class="flex items-start gap-2">
+              <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+              Forms declare dependencies on other forms (e.g., Schedule D feeds into Form 1040 Line 7)
+            </li>
+            <li class="flex items-start gap-2">
+              <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+              The engine resolves the dependency graph topologically and executes forms in order
+            </li>
+            <li class="flex items-start gap-2">
+              <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+              Every intermediate value is annotated with its IRS citation and source type
+            </li>
+          </ul>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-2xl p-6">
+          <h3 class="font-semibold text-lg mb-3">Supported forms</h3>
+          <ul class="text-gray-600 text-sm leading-relaxed space-y-2">
+            <li class="flex items-start gap-2">
+              <span class="text-brand font-mono text-xs font-bold mt-0.5">1040</span>
+              <span>Individual income tax (main return)</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-brand font-mono text-xs font-bold mt-0.5">Sch A</span>
+              <span>Itemized deductions</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-brand font-mono text-xs font-bold mt-0.5">Sch B</span>
+              <span>Interest and dividends</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-brand font-mono text-xs font-bold mt-0.5">Sch D</span>
+              <span>Capital gains and losses</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-brand font-mono text-xs font-bold mt-0.5">Sch E</span>
+              <span>Rental and royalty income</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-brand font-mono text-xs font-bold mt-0.5">8949</span>
+              <span>Sales of capital assets (wash sales)</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-brand font-mono text-xs font-bold mt-0.5">8889</span>
+              <span>Health Savings Accounts</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-brand font-mono text-xs font-bold mt-0.5">6251</span>
+              <span>Alternative Minimum Tax</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-brand font-mono text-xs font-bold mt-0.5">CA 540</span>
+              <span>California state return</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <h3 class="font-semibold text-lg mb-4">File mapping</h3>
+      <div class="bg-gray-900 rounded-2xl p-6 sm:p-8 text-sm font-mono text-gray-300 overflow-x-auto shadow-xl">
+        <div class="flex items-center gap-2 mb-4">
+          <span class="w-3 h-3 rounded-full bg-red-500"></span>
+          <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
+          <span class="w-3 h-3 rounded-full bg-green-500"></span>
+          <span class="ml-3 text-gray-500 text-xs font-sans">src/rules/2025/</span>
+        </div>
+<pre class="leading-relaxed">
+<span class="text-blue-400">src/rules/2025/</span>
+├── constants.ts          <span class="text-gray-500"># Brackets, thresholds (Rev. Proc. 2024-40)</span>
+├── form1040.ts           <span class="text-gray-500"># Main 1040 computation</span>
+├── taxComputation.ts     <span class="text-gray-500"># Tax-on-income calculation</span>
+├── scheduleA.ts          <span class="text-gray-500"># Itemized deductions</span>
+├── scheduleD.ts          <span class="text-gray-500"># Capital gains</span>
+├── form8949.ts           <span class="text-gray-500"># Capital asset sales</span>
+├── form8889.ts           <span class="text-gray-500"># HSA deductions</span>
+├── amt.ts                <span class="text-gray-500"># Alternative Minimum Tax</span>
+├── childTaxCredit.ts     <span class="text-gray-500"># CTC / ACTC</span>
+├── earnedIncomeCredit.ts <span class="text-gray-500"># EITC</span>
+├── educationCredit.ts    <span class="text-gray-500"># AOTC + LLC</span>
+├── saversCredit.ts       <span class="text-gray-500"># Retirement savings credit</span>
+├── hsaDeduction.ts       <span class="text-gray-500"># HSA above-the-line deduction</span>
+└── <span class="text-green-400">ca/</span>
+    ├── constants.ts      <span class="text-gray-500"># California thresholds</span>
+    └── form540.ts        <span class="text-gray-500"># CA 540 computation</span>
+</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────── Trace System ───────────────── -->
+  <section class="max-w-4xl mx-auto px-6 py-20 sm:py-28">
+    <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">Trace system</h2>
+    <p class="text-gray-600 text-lg mb-10 max-w-2xl">Every computed value in the engine produces a trace node. The trace tree is the foundation of OpenTax's explainability.</p>
+
+    <div class="grid sm:grid-cols-3 gap-6 mb-10">
+      <div class="bg-white border border-gray-200 rounded-2xl p-5">
+        <div class="w-10 h-10 bg-green-100 text-green-600 rounded-lg flex items-center justify-center mb-3">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        </div>
+        <h3 class="font-semibold mb-1">Document source</h3>
+        <p class="text-gray-600 text-sm">Value extracted from an uploaded document (W-2 Box 1, 1099-INT amount).</p>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-2xl p-5">
+        <div class="w-10 h-10 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center mb-3">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+        </div>
+        <h3 class="font-semibold mb-1">Computed value</h3>
+        <p class="text-gray-600 text-sm">Derived by the rules engine from other values (total tax, taxable income).</p>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-2xl p-5">
+        <div class="w-10 h-10 bg-gray-100 text-gray-600 rounded-lg flex items-center justify-center mb-3">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+        </div>
+        <h3 class="font-semibold mb-1">User entry</h3>
+        <p class="text-gray-600 text-sm">Manually entered by the user during the interview (filing status, dependents).</p>
+      </div>
+    </div>
+
+    <h3 class="font-semibold text-lg mb-4">Trace node structure</h3>
+    <div class="bg-gray-900 rounded-2xl p-6 sm:p-8 text-sm font-mono text-gray-300 overflow-x-auto shadow-xl">
+      <div class="flex items-center gap-2 mb-4">
+        <span class="w-3 h-3 rounded-full bg-red-500"></span>
+        <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
+        <span class="w-3 h-3 rounded-full bg-green-500"></span>
+        <span class="ml-3 text-gray-500 text-xs font-sans">TraceNode</span>
+      </div>
+<pre class="leading-relaxed">
+{
+  <span class="text-purple-400">"nodeId"</span>:      <span class="text-green-400">"form1040.line24"</span>,
+  <span class="text-purple-400">"label"</span>:       <span class="text-green-400">"Total tax"</span>,
+  <span class="text-purple-400">"amount"</span>:      <span class="text-orange-300">1173400</span>,              <span class="text-gray-500">// cents (integer)</span>
+  <span class="text-purple-400">"irsCitation"</span>: <span class="text-green-400">"Form 1040, Line 24"</span>,
+  <span class="text-purple-400">"sourceType"</span>:  <span class="text-green-400">"computed"</span>,            <span class="text-gray-500">// "document" | "computed" | "user-entry"</span>
+  <span class="text-purple-400">"confidence"</span>:  <span class="text-orange-300">1.0</span>,                  <span class="text-gray-500">// 0.0–1.0 (OCR = lower)</span>
+  <span class="text-purple-400">"inputs"</span>: [
+    { <span class="text-purple-400">"nodeId"</span>: <span class="text-green-400">"taxComputation.taxOnIncome"</span>, ... },
+    { <span class="text-purple-400">"nodeId"</span>: <span class="text-green-400">"form1040.line23"</span>, ... }
+  ]
+}
+</pre>
+    </div>
+  </section>
+
+  <!-- ───────────────── Data Flow Comparison ───────────────── -->
+  <section class="bg-gray-50 border-y border-gray-200">
+    <div class="max-w-4xl mx-auto px-6 py-20 sm:py-28">
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">Data flow by mode</h2>
+      <p class="text-gray-600 text-lg mb-10 max-w-2xl">The data flow is fundamentally different in each mode. The engine itself is identical&mdash;only the I/O boundary changes.</p>
+
+      <div class="grid sm:grid-cols-2 gap-8">
+        <!-- Standalone -->
+        <div class="bg-white border border-gray-200 rounded-2xl p-6">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            </div>
+            <h3 class="font-bold text-lg">Standalone mode</h3>
+          </div>
+          <ol class="text-gray-600 text-sm leading-relaxed space-y-3">
+            <li class="flex items-start gap-3">
+              <span class="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">1</span>
+              <span>User uploads documents in the browser. OCR extracts data locally via Tesseract.js.</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <span class="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">2</span>
+              <span>Extracted data is stored in a Zustand store backed by IndexedDB.</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <span class="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">3</span>
+              <span>UI calls <code class="bg-gray-100 px-1 rounded text-xs">TaxService.compute()</code> which runs the rules engine in the main thread.</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <span class="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">4</span>
+              <span>Results and trace tree render in the React UI. PDF generation happens client-side via pdf-lib.</span>
+            </li>
+          </ol>
+          <div class="mt-5 pt-4 border-t border-gray-100">
+            <p class="text-xs text-gray-500"><strong>Network calls:</strong> Zero. All data stays in the browser.</p>
+          </div>
+        </div>
+
+        <!-- Plugin -->
+        <div class="bg-white border border-gray-200 rounded-2xl p-6">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            </div>
+            <h3 class="font-bold text-lg">Plugin mode</h3>
+          </div>
+          <ol class="text-gray-600 text-sm leading-relaxed space-y-3">
+            <li class="flex items-start gap-3">
+              <span class="w-6 h-6 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">1</span>
+              <span>Agent discovers tools from the OpenClaw manifest at <code class="bg-gray-100 px-1 rounded text-xs">/.well-known/openclaw.json</code>.</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <span class="w-6 h-6 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">2</span>
+              <span>Agent sends structured JSON via tool calls (REST). Data is stored in SQLite on the server.</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <span class="w-6 h-6 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">3</span>
+              <span>Server calls the same <code class="bg-gray-100 px-1 rounded text-xs">TaxService.compute()</code> in Node.js. Progress streams via SSE.</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <span class="w-6 h-6 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">4</span>
+              <span>Results return as JSON. Agent presents them conversationally. PDFs generated server-side.</span>
+            </li>
+          </ol>
+          <div class="mt-5 pt-4 border-t border-gray-100">
+            <p class="text-xs text-gray-500"><strong>Network calls:</strong> Agent &harr; plugin server (localhost or private network).</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────── Boundaries ───────────────── -->
+  <section class="max-w-4xl mx-auto px-6 py-20 sm:py-28">
+    <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">Architectural boundaries</h2>
+    <p class="text-gray-600 text-lg mb-10 max-w-2xl">Clear separation of concerns keeps the codebase maintainable and each layer independently testable.</p>
+
+    <div class="space-y-6">
+      <div class="bg-white border border-gray-200 rounded-2xl p-6">
+        <h3 class="font-semibold text-lg mb-2">Rules engine &rarr; TaxService</h3>
+        <p class="text-gray-600 text-sm leading-relaxed mb-3">The rules engine is pure computation. It takes a canonical tax model as input and produces computed forms + trace tree as output. It never touches I/O, storage, or network.</p>
+        <p class="text-gray-600 text-sm leading-relaxed"><code class="bg-gray-100 px-1.5 py-0.5 rounded text-xs">TaxService</code> wraps the engine with return lifecycle management (create, update, compute, trace). Both modes consume TaxService; neither calls the engine directly.</p>
+      </div>
+
+      <div class="bg-white border border-gray-200 rounded-2xl p-6">
+        <h3 class="font-semibold text-lg mb-2">TaxService &rarr; Surface layer</h3>
+        <p class="text-gray-600 text-sm leading-relaxed mb-3">In standalone mode, the React UI imports TaxService directly as an ES module. In plugin mode, the Express server wraps TaxService behind REST endpoints and SSE streams.</p>
+        <p class="text-gray-600 text-sm leading-relaxed">The surface layer handles I/O concerns: storage (IndexedDB vs. SQLite), document handling (client-side OCR vs. agent-provided data), and output (React rendering vs. JSON responses).</p>
+      </div>
+
+      <div class="bg-white border border-gray-200 rounded-2xl p-6">
+        <h3 class="font-semibold text-lg mb-2">Plugin &rarr; Agent</h3>
+        <p class="text-gray-600 text-sm leading-relaxed">The plugin boundary is the OpenClaw protocol. The plugin exposes tools and accepts structured JSON input. It makes no assumptions about the agent's implementation, LLM provider, or conversation history. Any OpenClaw-compatible agent can integrate.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────── Security Model ───────────────── -->
+  <section class="bg-gray-50 border-y border-gray-200">
+    <div class="max-w-4xl mx-auto px-6 py-20 sm:py-28">
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">Security model</h2>
+      <p class="text-gray-600 text-lg mb-10 max-w-2xl">Tax data is sensitive. The architecture is designed to minimize exposure.</p>
+
+      <div class="grid sm:grid-cols-2 gap-8">
+        <div class="bg-white border border-gray-200 rounded-2xl p-6">
+          <h3 class="font-semibold text-lg mb-3 flex items-center gap-2">
+            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            Standalone
+          </h3>
+          <ul class="text-gray-600 text-sm leading-relaxed space-y-2">
+            <li>All computation in browser (no server)</li>
+            <li>Data stored in IndexedDB (user's device only)</li>
+            <li>No cookies, no tracking, no analytics by default</li>
+            <li>No SSN/PII ever leaves the client</li>
+            <li>User clears data by clearing browser storage</li>
+          </ul>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-2xl p-6">
+          <h3 class="font-semibold text-lg mb-3 flex items-center gap-2">
+            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            Plugin
+          </h3>
+          <ul class="text-gray-600 text-sm leading-relaxed space-y-2">
+            <li>Plugin server runs on localhost or private network</li>
+            <li>SQLite database is local to the server process</li>
+            <li>No outbound network calls from the engine</li>
+            <li>Agent &harr; plugin traffic stays on the local machine</li>
+            <li>Data lifecycle controlled by the agent operator</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────── Testing ───────────────── -->
+  <section class="max-w-4xl mx-auto px-6 py-20 sm:py-28">
+    <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">Testing strategy</h2>
+    <p class="text-gray-600 text-lg mb-10 max-w-2xl">The layered architecture enables focused testing at each boundary.</p>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left">
+        <thead>
+          <tr class="border-b border-gray-200">
+            <th class="py-3 pr-6 font-semibold text-gray-900">Layer</th>
+            <th class="py-3 pr-6 font-semibold text-gray-900">Test type</th>
+            <th class="py-3 font-semibold text-gray-900">What's verified</th>
+          </tr>
+        </thead>
+        <tbody class="text-gray-600">
+          <tr class="border-b border-gray-100">
+            <td class="py-3 pr-6 font-medium text-gray-900">Rules engine</td>
+            <td class="py-3 pr-6">Unit tests (1,300+)</td>
+            <td class="py-3">Every form computation against IRS-published expected values</td>
+          </tr>
+          <tr class="border-b border-gray-100">
+            <td class="py-3 pr-6 font-medium text-gray-900">TaxService</td>
+            <td class="py-3 pr-6">Integration tests</td>
+            <td class="py-3">Return lifecycle: create &rarr; populate &rarr; compute &rarr; trace</td>
+          </tr>
+          <tr class="border-b border-gray-100">
+            <td class="py-3 pr-6 font-medium text-gray-900">Plugin API</td>
+            <td class="py-3 pr-6">HTTP tests</td>
+            <td class="py-3">REST endpoints return correct status codes, shapes, and data</td>
+          </tr>
+          <tr>
+            <td class="py-3 pr-6 font-medium text-gray-900">UI</td>
+            <td class="py-3 pr-6">Component tests (129+)</td>
+            <td class="py-3">Interview flow, responsiveness, accessibility, touch targets</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ───────────────── Next Steps ───────────────── -->
+  <section class="bg-gray-50 border-y border-gray-200">
+    <div class="max-w-4xl mx-auto px-6 py-20 sm:py-28 text-center">
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">Start building</h2>
+      <p class="text-gray-600 text-lg max-w-2xl mx-auto mb-10">Choose your path and start building with the OpenTax engine.</p>
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <a href="./standalone-webapp.html"
+           class="inline-flex items-center gap-2 bg-brand hover:bg-brand-light text-white font-semibold px-8 py-3.5 rounded-xl transition-colors shadow-lg">
+          Standalone quickstart
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+        </a>
+        <a href="./openclaw-plugin.html"
+           class="inline-flex items-center gap-2 bg-white border border-gray-200 hover:border-blue-200 hover:shadow-lg text-gray-900 font-semibold px-8 py-3.5 rounded-xl transition-all">
+          OpenClaw plugin guide
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────── Footer ───────────────── -->
+  <footer class="max-w-6xl mx-auto px-6 py-10">
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
+      <div class="flex items-center gap-2">
+        <img src="../favicon.svg" alt="OpenTax" class="w-5 h-5" />
+        <span class="font-medium text-gray-700">OpenTax</span>
+        <span class="text-gray-300">|</span>
+        <span>MIT License</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <span>Not affiliated with the IRS</span>
+        <span class="text-gray-300">|</span>
+        <a href="https://github.com/opentax-org/opentax" target="_blank" rel="noopener" class="hover:text-brand transition-colors">GitHub</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

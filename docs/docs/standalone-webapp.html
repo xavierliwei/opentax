@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Standalone Web App — Get Started with OpenTax</title>
+  <meta name="description" content="Run OpenTax as a standalone, client-side web app. Clone the repo, install dependencies, and start preparing tax returns locally in under a minute." />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Standalone Web App — Get Started with OpenTax" />
+  <meta property="og:description" content="Clone, install, and run the open-source tax engine locally. No server, no account required." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://opentax-org.github.io/opentax/docs/standalone-webapp.html" />
+
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <link rel="canonical" href="https://opentax-org.github.io/opentax/docs/standalone-webapp.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          colors: {
+            brand: { DEFAULT: '#1e40af', light: '#2563eb' },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+  </style>
+</head>
+<body class="font-sans text-gray-900 antialiased">
+
+  <!-- ───────────────── Header ───────────────── -->
+  <header class="relative bg-gradient-to-br from-gray-900 via-brand to-brand-light text-white overflow-hidden">
+    <div class="absolute inset-0 opacity-10">
+      <div class="absolute top-10 left-10 w-72 h-72 bg-white rounded-full blur-3xl"></div>
+      <div class="absolute bottom-10 right-10 w-96 h-96 bg-blue-400 rounded-full blur-3xl"></div>
+    </div>
+
+    <nav class="relative max-w-6xl mx-auto flex items-center justify-between px-6 py-5">
+      <a href="../" class="flex items-center gap-3 hover:opacity-90 transition-opacity">
+        <img src="../favicon.svg" alt="OpenTax logo" class="w-8 h-8" />
+        <span class="text-lg font-bold tracking-tight">OpenTax</span>
+      </a>
+      <div class="flex items-center gap-6 text-sm font-medium">
+        <a href="../" class="hover:text-blue-200 transition-colors hidden sm:inline">Home</a>
+        <a href="./" class="hover:text-blue-200 transition-colors hidden sm:inline">Docs</a>
+        <a href="https://github.com/opentax-org/opentax" target="_blank" rel="noopener"
+           class="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 backdrop-blur px-4 py-2 rounded-lg transition-colors">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+          GitHub
+        </a>
+      </div>
+    </nav>
+
+    <div class="relative max-w-4xl mx-auto px-6 pt-12 pb-20 sm:pt-20 sm:pb-28">
+      <nav class="text-sm text-blue-200 mb-6 flex items-center gap-2">
+        <a href="./" class="hover:text-white transition-colors">Docs</a>
+        <svg class="w-4 h-4 text-blue-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+        <span class="text-white">Standalone Web App</span>
+      </nav>
+      <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight mb-6">
+        Standalone Web App
+      </h1>
+      <p class="text-lg sm:text-xl text-blue-100 max-w-2xl leading-relaxed">
+        Run OpenTax as a complete, client-side tax preparation application. No server, no account, no data leaving your machine.
+      </p>
+    </div>
+  </header>
+
+  <!-- ───────────────── Quickstart ───────────────── -->
+  <section class="max-w-4xl mx-auto px-6 py-20 sm:py-28">
+    <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">Quickstart</h2>
+    <p class="text-gray-600 text-lg mb-10">Get a local instance running in three commands. You'll need <a href="https://nodejs.org/" target="_blank" rel="noopener" class="text-brand hover:underline">Node.js 20+</a> installed.</p>
+
+    <div class="space-y-4 mb-12">
+      <!-- Step 1 -->
+      <div class="bg-gray-900 rounded-2xl p-6 sm:p-8 text-sm font-mono text-gray-300 overflow-x-auto shadow-xl relative group">
+        <div class="flex items-center gap-2 mb-4">
+          <span class="w-3 h-3 rounded-full bg-red-500"></span>
+          <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
+          <span class="w-3 h-3 rounded-full bg-green-500"></span>
+          <span class="ml-3 text-gray-500 text-xs font-sans">Clone &amp; install</span>
+        </div>
+        <code id="code-clone">
+          <span class="text-green-400">$</span> git clone https://github.com/opentax-org/opentax.git<br />
+          <span class="text-green-400">$</span> cd opentax<br />
+          <span class="text-green-400">$</span> npm install
+        </code>
+        <button onclick="copyCode('code-clone')" class="absolute top-6 right-6 text-gray-500 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/10" title="Copy to clipboard">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+        </button>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="bg-gray-900 rounded-2xl p-6 sm:p-8 text-sm font-mono text-gray-300 overflow-x-auto shadow-xl relative group">
+        <div class="flex items-center gap-2 mb-4">
+          <span class="w-3 h-3 rounded-full bg-red-500"></span>
+          <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
+          <span class="w-3 h-3 rounded-full bg-green-500"></span>
+          <span class="ml-3 text-gray-500 text-xs font-sans">Start the dev server</span>
+        </div>
+        <code id="code-dev">
+          <span class="text-green-400">$</span> npm run dev<br />
+          <br />
+          <span class="text-gray-500"># Opens at http://localhost:5173</span>
+        </code>
+        <button onclick="copyCode('code-dev')" class="absolute top-6 right-6 text-gray-500 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/10" title="Copy to clipboard">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <p class="text-gray-600 text-sm">That's it. Open <code class="bg-gray-100 px-2 py-0.5 rounded text-brand text-xs">http://localhost:5173</code> in your browser and you're running a full tax preparation environment.</p>
+  </section>
+
+  <!-- ───────────────── What You Get ───────────────── -->
+  <section class="bg-gray-50 border-y border-gray-200">
+    <div class="max-w-6xl mx-auto px-6 py-20 sm:py-28">
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">What you get</h2>
+      <p class="text-gray-600 text-lg mb-12 max-w-2xl">The standalone app bundles everything a tax filer needs into a single client-side application.</p>
+
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div class="bg-white border border-gray-200 rounded-2xl p-6">
+          <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-4">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          </div>
+          <h3 class="font-semibold text-lg mb-2">Document import</h3>
+          <p class="text-gray-600 text-sm leading-relaxed">Upload W-2s, 1099s, and broker statements. OCR runs locally via Tesseract.js&mdash;no server upload.</p>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-2xl p-6">
+          <div class="w-12 h-12 bg-green-100 text-green-600 rounded-xl flex items-center justify-center mb-4">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+          </div>
+          <h3 class="font-semibold text-lg mb-2">Guided interview</h3>
+          <p class="text-gray-600 text-sm leading-relaxed">13-step interview walks through income, deductions, credits, and dependents with real-time computation.</p>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-2xl p-6">
+          <div class="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center mb-4">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+          </div>
+          <h3 class="font-semibold text-lg mb-2">Full traceability</h3>
+          <p class="text-gray-600 text-sm leading-relaxed">Click any computed line to see exactly how it was derived, which IRS rule applies, and which documents contributed.</p>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-2xl p-6">
+          <div class="w-12 h-12 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center mb-4">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          </div>
+          <h3 class="font-semibold text-lg mb-2">PDF generation</h3>
+          <p class="text-gray-600 text-sm leading-relaxed">Download IRS-ready Form 1040, schedules, and supporting forms for e-filing via IRS Free File or mailing.</p>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-2xl p-6">
+          <div class="w-12 h-12 bg-red-100 text-red-600 rounded-xl flex items-center justify-center mb-4">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+          </div>
+          <h3 class="font-semibold text-lg mb-2">Zero data transmission</h3>
+          <p class="text-gray-600 text-sm leading-relaxed">Everything runs in the browser. Tax data is stored in IndexedDB locally. No server calls, no accounts, no tracking.</p>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-2xl p-6">
+          <div class="w-12 h-12 bg-yellow-100 text-yellow-600 rounded-xl flex items-center justify-center mb-4">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <h3 class="font-semibold text-lg mb-2">State returns</h3>
+          <p class="text-gray-600 text-sm leading-relaxed">California Form 540 is supported, with additional states on the roadmap. Federal + state computed together.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────── Tech Stack ───────────────── -->
+  <section class="max-w-4xl mx-auto px-6 py-20 sm:py-28">
+    <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">Tech stack</h2>
+    <p class="text-gray-600 text-lg mb-10 max-w-2xl">Modern frontend tools, zero backend dependencies for the standalone mode.</p>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left">
+        <thead>
+          <tr class="border-b border-gray-200">
+            <th class="py-3 pr-6 font-semibold text-gray-900">Layer</th>
+            <th class="py-3 pr-6 font-semibold text-gray-900">Technology</th>
+            <th class="py-3 font-semibold text-gray-900">Purpose</th>
+          </tr>
+        </thead>
+        <tbody class="text-gray-600">
+          <tr class="border-b border-gray-100">
+            <td class="py-3 pr-6 font-medium text-gray-900">Framework</td>
+            <td class="py-3 pr-6">React 19 + React Router 7</td>
+            <td class="py-3">UI rendering and client-side routing</td>
+          </tr>
+          <tr class="border-b border-gray-100">
+            <td class="py-3 pr-6 font-medium text-gray-900">State</td>
+            <td class="py-3 pr-6">Zustand 5</td>
+            <td class="py-3">Tax return state with IndexedDB persistence</td>
+          </tr>
+          <tr class="border-b border-gray-100">
+            <td class="py-3 pr-6 font-medium text-gray-900">Styling</td>
+            <td class="py-3 pr-6">Tailwind CSS 4</td>
+            <td class="py-3">Utility-first CSS with native <code class="bg-gray-100 px-1.5 py-0.5 rounded text-xs">@theme</code> config</td>
+          </tr>
+          <tr class="border-b border-gray-100">
+            <td class="py-3 pr-6 font-medium text-gray-900">Build</td>
+            <td class="py-3 pr-6">Vite 6</td>
+            <td class="py-3">Dev server with HMR, production bundling</td>
+          </tr>
+          <tr class="border-b border-gray-100">
+            <td class="py-3 pr-6 font-medium text-gray-900">OCR</td>
+            <td class="py-3 pr-6">Tesseract.js 5</td>
+            <td class="py-3">Client-side document text extraction</td>
+          </tr>
+          <tr class="border-b border-gray-100">
+            <td class="py-3 pr-6 font-medium text-gray-900">PDF</td>
+            <td class="py-3 pr-6">pdf-lib</td>
+            <td class="py-3">Client-side IRS form filling and download</td>
+          </tr>
+          <tr>
+            <td class="py-3 pr-6 font-medium text-gray-900">Testing</td>
+            <td class="py-3 pr-6">Vitest 3</td>
+            <td class="py-3">Unit and integration tests (1,300+ test cases)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ───────────────── Project Structure ───────────────── -->
+  <section class="bg-gray-50 border-y border-gray-200">
+    <div class="max-w-4xl mx-auto px-6 py-20 sm:py-28">
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">Project structure</h2>
+      <p class="text-gray-600 text-lg mb-10">Key directories and what they contain.</p>
+
+      <div class="bg-gray-900 rounded-2xl p-6 sm:p-8 text-sm font-mono text-gray-300 overflow-x-auto shadow-xl">
+        <div class="flex items-center gap-2 mb-4">
+          <span class="w-3 h-3 rounded-full bg-red-500"></span>
+          <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
+          <span class="w-3 h-3 rounded-full bg-green-500"></span>
+          <span class="ml-3 text-gray-500 text-xs font-sans">Project layout</span>
+        </div>
+<pre class="leading-relaxed">
+<span class="text-blue-400">opentax/</span>
+├── <span class="text-green-400">src/</span>
+│   ├── <span class="text-green-400">rules/</span>
+│   │   └── <span class="text-green-400">2025/</span>          <span class="text-gray-500"># IRS rules engine (TY2025)</span>
+│   │       ├── form1040.ts    <span class="text-gray-500"># Form 1040 computation</span>
+│   │       ├── scheduleA.ts   <span class="text-gray-500"># Itemized deductions</span>
+│   │       ├── scheduleD.ts   <span class="text-gray-500"># Capital gains</span>
+│   │       └── ...            <span class="text-gray-500"># All supported forms</span>
+│   ├── <span class="text-green-400">ui/</span>
+│   │   ├── <span class="text-green-400">components/</span>    <span class="text-gray-500"># React components</span>
+│   │   ├── <span class="text-green-400">pages/</span>         <span class="text-gray-500"># Route pages (interview steps)</span>
+│   │   └── <span class="text-green-400">store/</span>         <span class="text-gray-500"># Zustand state management</span>
+│   ├── <span class="text-green-400">services/</span>
+│   │   └── TaxService.ts     <span class="text-gray-500"># Public API for the engine</span>
+│   └── <span class="text-green-400">trace/</span>             <span class="text-gray-500"># Explainability / trace tree</span>
+├── <span class="text-green-400">server/</span>                <span class="text-gray-500"># Express backend (plugin mode)</span>
+├── <span class="text-green-400">openclaw-plugin/</span>       <span class="text-gray-500"># OpenClaw agent tool defs</span>
+├── <span class="text-green-400">docs/</span>                  <span class="text-gray-500"># GitHub Pages site (you are here)</span>
+└── <span class="text-green-400">tests/</span>                 <span class="text-gray-500"># 1,300+ test cases</span>
+</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────── Development Workflow ───────────────── -->
+  <section class="max-w-4xl mx-auto px-6 py-20 sm:py-28">
+    <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">Development workflow</h2>
+    <p class="text-gray-600 text-lg mb-10 max-w-2xl">Common commands for day-to-day development.</p>
+
+    <div class="space-y-6">
+      <div>
+        <h3 class="font-semibold text-lg mb-3">Run tests</h3>
+        <div class="bg-gray-900 rounded-2xl p-6 text-sm font-mono text-gray-300 overflow-x-auto shadow-xl">
+          <code>
+            <span class="text-green-400">$</span> npm test              <span class="text-gray-500"># Run full test suite</span><br />
+            <span class="text-green-400">$</span> npm test -- --watch   <span class="text-gray-500"># Watch mode for TDD</span>
+          </code>
+        </div>
+      </div>
+
+      <div>
+        <h3 class="font-semibold text-lg mb-3">Production build</h3>
+        <div class="bg-gray-900 rounded-2xl p-6 text-sm font-mono text-gray-300 overflow-x-auto shadow-xl">
+          <code>
+            <span class="text-green-400">$</span> npm run build         <span class="text-gray-500"># Build to dist/</span><br />
+            <span class="text-green-400">$</span> npm run preview       <span class="text-gray-500"># Preview production build</span>
+          </code>
+        </div>
+      </div>
+
+      <div>
+        <h3 class="font-semibold text-lg mb-3">Lint and type-check</h3>
+        <div class="bg-gray-900 rounded-2xl p-6 text-sm font-mono text-gray-300 overflow-x-auto shadow-xl">
+          <code>
+            <span class="text-green-400">$</span> npx tsc --noEmit      <span class="text-gray-500"># TypeScript type checking</span><br />
+            <span class="text-green-400">$</span> npm run lint           <span class="text-gray-500"># ESLint</span>
+          </code>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────── Next Steps ───────────────── -->
+  <section class="bg-gray-50 border-y border-gray-200">
+    <div class="max-w-4xl mx-auto px-6 py-20 sm:py-28 text-center">
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">Next steps</h2>
+      <p class="text-gray-600 text-lg max-w-2xl mx-auto mb-10">Now that you're running locally, explore further.</p>
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <a href="./openclaw-plugin.html"
+           class="inline-flex items-center gap-2 bg-brand hover:bg-brand-light text-white font-semibold px-8 py-3.5 rounded-xl transition-colors shadow-lg">
+          OpenClaw plugin guide
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+        </a>
+        <a href="./architecture.html"
+           class="inline-flex items-center gap-2 bg-white border border-gray-200 hover:border-blue-200 hover:shadow-lg text-gray-900 font-semibold px-8 py-3.5 rounded-xl transition-all">
+          Architecture overview
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────── Footer ───────────────── -->
+  <footer class="max-w-6xl mx-auto px-6 py-10">
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
+      <div class="flex items-center gap-2">
+        <img src="../favicon.svg" alt="OpenTax" class="w-5 h-5" />
+        <span class="font-medium text-gray-700">OpenTax</span>
+        <span class="text-gray-300">|</span>
+        <span>MIT License</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <span>Not affiliated with the IRS</span>
+        <span class="text-gray-300">|</span>
+        <a href="https://github.com/opentax-org/opentax" target="_blank" rel="noopener" class="hover:text-brand transition-colors">GitHub</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    function copyCode(id) {
+      const el = document.getElementById(id);
+      const text = el.textContent.replace(/\$ /g, '').replace(/# .*/g, '').trim();
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = el.parentElement.querySelector('button');
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>';
+        setTimeout(() => { btn.innerHTML = originalHTML; }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>

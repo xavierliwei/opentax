@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OpenClaw Tax Plugin — AI Agent Tax Filing Integration</title>
+  <meta name="description" content="Embed OpenTax in any OpenClaw-compatible AI agent. 16 tool definitions, SSE streaming, REST API, and TaxService programmatic access for conversational tax filing." />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="OpenClaw Tax Plugin — AI Agent Tax Filing Integration" />
+  <meta property="og:description" content="16 agent tools, SSE streaming, and a REST API. Purpose-built for conversational AI tax filing." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://opentax-org.github.io/opentax/docs/openclaw-plugin.html" />
+
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <link rel="canonical" href="https://opentax-org.github.io/opentax/docs/openclaw-plugin.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          colors: {
+            brand: { DEFAULT: '#1e40af', light: '#2563eb' },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+  </style>
+</head>
+<body class="font-sans text-gray-900 antialiased">
+
+  <!-- ───────────────── Header ───────────────── -->
+  <header class="relative bg-gradient-to-br from-gray-900 via-brand to-brand-light text-white overflow-hidden">
+    <div class="absolute inset-0 opacity-10">
+      <div class="absolute top-10 left-10 w-72 h-72 bg-white rounded-full blur-3xl"></div>
+      <div class="absolute bottom-10 right-10 w-96 h-96 bg-blue-400 rounded-full blur-3xl"></div>
+    </div>
+
+    <nav class="relative max-w-6xl mx-auto flex items-center justify-between px-6 py-5">
+      <a href="../" class="flex items-center gap-3 hover:opacity-90 transition-opacity">
+        <img src="../favicon.svg" alt="OpenTax logo" class="w-8 h-8" />
+        <span class="text-lg font-bold tracking-tight">OpenTax</span>
+      </a>
+      <div class="flex items-center gap-6 text-sm font-medium">
+        <a href="../" class="hover:text-blue-200 transition-colors hidden sm:inline">Home</a>
+        <a href="./" class="hover:text-blue-200 transition-colors hidden sm:inline">Docs</a>
+        <a href="https://github.com/opentax-org/opentax" target="_blank" rel="noopener"
+           class="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 backdrop-blur px-4 py-2 rounded-lg transition-colors">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+          GitHub
+        </a>
+      </div>
+    </nav>
+
+    <div class="relative max-w-4xl mx-auto px-6 pt-12 pb-20 sm:pt-20 sm:pb-28">
+      <nav class="text-sm text-blue-200 mb-6 flex items-center gap-2">
+        <a href="./" class="hover:text-white transition-colors">Docs</a>
+        <svg class="w-4 h-4 text-blue-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+        <span class="text-white">OpenClaw Plugin</span>
+      </nav>
+      <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight mb-6">
+        OpenClaw Plugin
+      </h1>
+      <p class="text-lg sm:text-xl text-blue-100 max-w-2xl leading-relaxed">
+        Drop full tax-filing capability into any OpenClaw-compatible AI agent. 16 tools, SSE streaming, and a REST API&mdash;purpose-built for conversational tax preparation.
+      </p>
+    </div>
+  </header>
+
+  <!-- ───────────────── What Is OpenClaw ───────────────── -->
+  <section class="max-w-4xl mx-auto px-6 py-20 sm:py-28">
+    <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">What is OpenClaw?</h2>
+    <p class="text-gray-600 text-lg mb-6 leading-relaxed">
+      <a href="https://github.com/openclaw" target="_blank" rel="noopener" class="text-brand hover:underline">OpenClaw</a> is an open protocol for composable AI-agent plugins. Agents discover tools via a standard manifest, invoke them over HTTP, and receive results as structured JSON or streamed SSE events.
+    </p>
+    <p class="text-gray-600 text-lg leading-relaxed">
+      The OpenTax plugin exposes the full tax engine through this protocol. An agent can create a return, feed it income data, compute results, and trace any number&mdash;all through tool calls, with no UI required.
+    </p>
+  </section>
+
+  <!-- ───────────────── Installation ───────────────── -->
+  <section class="bg-gray-50 border-y border-gray-200">
+    <div class="max-w-4xl mx-auto px-6 py-20 sm:py-28">
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">Installation</h2>
+      <p class="text-gray-600 text-lg mb-10">Start the plugin server and register it with your agent.</p>
+
+      <div class="space-y-4">
+        <!-- Clone & Start -->
+        <div class="bg-gray-900 rounded-2xl p-6 sm:p-8 text-sm font-mono text-gray-300 overflow-x-auto shadow-xl relative">
+          <div class="flex items-center gap-2 mb-4">
+            <span class="w-3 h-3 rounded-full bg-red-500"></span>
+            <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
+            <span class="w-3 h-3 rounded-full bg-green-500"></span>
+            <span class="ml-3 text-gray-500 text-xs font-sans">Start the plugin server</span>
+          </div>
+          <code id="code-install">
+            <span class="text-green-400">$</span> git clone https://github.com/opentax-org/opentax.git<br />
+            <span class="text-green-400">$</span> cd opentax<br />
+            <span class="text-green-400">$</span> npm install<br />
+            <span class="text-green-400">$</span> npm run server<br />
+            <br />
+            <span class="text-gray-500"># Plugin manifest at http://localhost:7891/.well-known/openclaw.json</span>
+          </code>
+          <button onclick="copyCode('code-install')" class="absolute top-6 right-6 text-gray-500 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/10" title="Copy to clipboard">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+          </button>
+        </div>
+
+        <!-- Register -->
+        <div class="bg-gray-900 rounded-2xl p-6 sm:p-8 text-sm font-mono text-gray-300 overflow-x-auto shadow-xl relative">
+          <div class="flex items-center gap-2 mb-4">
+            <span class="w-3 h-3 rounded-full bg-red-500"></span>
+            <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
+            <span class="w-3 h-3 rounded-full bg-green-500"></span>
+            <span class="ml-3 text-gray-500 text-xs font-sans">Register with your agent</span>
+          </div>
+          <code id="code-register">
+            <span class="text-gray-500"># In your OpenClaw agent config, add the plugin URL:</span><br />
+            <span class="text-purple-400">"plugins"</span>: [<br />
+            &nbsp;&nbsp;{ <span class="text-purple-400">"url"</span>: <span class="text-green-400">"http://localhost:7891"</span> }<br />
+            ]
+          </code>
+          <button onclick="copyCode('code-register')" class="absolute top-6 right-6 text-gray-500 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/10" title="Copy to clipboard">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <p class="text-gray-600 text-sm mt-6">The agent will auto-discover all 16 tax tools from the manifest and make them available in conversation.</p>
+    </div>
+  </section>
+
+  <!-- ───────────────── Agent Tools ───────────────── -->
+  <section class="max-w-4xl mx-auto px-6 py-20 sm:py-28">
+    <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">Agent tools</h2>
+    <p class="text-gray-600 text-lg mb-10 max-w-2xl">The plugin exposes 16 tools organized into four groups. Each tool accepts JSON input and returns structured JSON output.</p>
+
+    <!-- Return Lifecycle -->
+    <div class="mb-12">
+      <h3 class="font-bold text-xl mb-4 flex items-center gap-3">
+        <span class="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center text-sm font-bold">1</span>
+        Return lifecycle
+      </h3>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left">
+          <thead>
+            <tr class="border-b border-gray-200">
+              <th class="py-3 pr-4 font-semibold text-gray-900 whitespace-nowrap">Tool</th>
+              <th class="py-3 font-semibold text-gray-900">Description</th>
+            </tr>
+          </thead>
+          <tbody class="text-gray-600">
+            <tr class="border-b border-gray-100">
+              <td class="py-3 pr-4 font-mono text-xs text-brand whitespace-nowrap">create_return</td>
+              <td class="py-3">Create a new tax return for a given tax year and filing status.</td>
+            </tr>
+            <tr class="border-b border-gray-100">
+              <td class="py-3 pr-4 font-mono text-xs text-brand whitespace-nowrap">get_return</td>
+              <td class="py-3">Retrieve the current state of a return by ID.</td>
+            </tr>
+            <tr class="border-b border-gray-100">
+              <td class="py-3 pr-4 font-mono text-xs text-brand whitespace-nowrap">delete_return</td>
+              <td class="py-3">Delete a return and all associated data.</td>
+            </tr>
+            <tr class="border-b border-gray-100">
+              <td class="py-3 pr-4 font-mono text-xs text-brand whitespace-nowrap">list_returns</td>
+              <td class="py-3">List all returns managed by this plugin instance.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Data Input -->
+    <div class="mb-12">
+      <h3 class="font-bold text-xl mb-4 flex items-center gap-3">
+        <span class="w-8 h-8 bg-green-100 text-green-600 rounded-lg flex items-center justify-center text-sm font-bold">2</span>
+        Data input
+      </h3>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left">
+          <thead>
+            <tr class="border-b border-gray-200">
+              <th class="py-3 pr-4 font-semibold text-gray-900 whitespace-nowrap">Tool</th>
+              <th class="py-3 font-semibold text-gray-900">Description</th>
+            </tr>
+          </thead>
+          <tbody class="text-gray-600">
+            <tr class="border-b border-gray-100">
+              <td class="py-3 pr-4 font-mono text-xs text-brand whitespace-nowrap">set_filing_status</td>
+              <td class="py-3">Set filing status (Single, MFJ, MFS, HoH, QSS).</td>
+            </tr>
+            <tr class="border-b border-gray-100">
+              <td class="py-3 pr-4 font-mono text-xs text-brand whitespace-nowrap">add_w2</td>
+              <td class="py-3">Add W-2 wage data (employer, wages, withholding, etc.).</td>
+            </tr>
+            <tr class="border-b border-gray-100">
+              <td class="py-3 pr-4 font-mono text-xs text-brand whitespace-nowrap">add_1099</td>
+              <td class="py-3">Add 1099 income (INT, DIV, B, R subtypes supported).</td>
+            </tr>
+            <tr class="border-b border-gray-100">
+              <td class="py-3 pr-4 font-mono text-xs text-brand whitespace-nowrap">add_dependent</td>
+              <td class="py-3">Add a dependent (name, SSN, relationship, qualifying tests).</td>
+            </tr>
+            <tr class="border-b border-gray-100">
+              <td class="py-3 pr-4 font-mono text-xs text-brand whitespace-nowrap">set_deductions</td>
+              <td class="py-3">Set itemized deduction amounts or elect standard deduction.</td>
+            </tr>
+            <tr class="border-b border-gray-100">
+              <td class="py-3 pr-4 font-mono text-xs text-brand whitespace-nowrap">set_credits</td>
+              <td class="py-3">Set credit-related data (education expenses, child care, etc.).</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Computation -->
+    <div class="mb-12">
+      <h3 class="font-bold text-xl mb-4 flex items-center gap-3">
+        <span class="w-8 h-8 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center text-sm font-bold">3</span>
+        Computation
+      </h3>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left">
+          <thead>
+            <tr class="border-b border-gray-200">
+              <th class="py-3 pr-4 font-semibold text-gray-900 whitespace-nowrap">Tool</th>
+              <th class="py-3 font-semibold text-gray-900">Description</th>
+            </tr>
+          </thead>
+          <tbody class="text-gray-600">
+            <tr class="border-b border-gray-100">
+              <td class="py-3 pr-4 font-mono text-xs text-brand whitespace-nowrap">compute</td>
+              <td class="py-3">Run the rules engine on the current return data. Returns full Form 1040 + schedules.</td>
+            </tr>
+            <tr class="border-b border-gray-100">
+              <td class="py-3 pr-4 font-mono text-xs text-brand whitespace-nowrap">get_summary</td>
+              <td class="py-3">Get a human-readable summary: AGI, taxable income, total tax, refund/owed.</td>
+            </tr>
+            <tr class="border-b border-gray-100">
+              <td class="py-3 pr-4 font-mono text-xs text-brand whitespace-nowrap">trace_line</td>
+              <td class="py-3">Trace any computed line back to its inputs, IRS citations, and source documents.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Export -->
+    <div>
+      <h3 class="font-bold text-xl mb-4 flex items-center gap-3">
+        <span class="w-8 h-8 bg-orange-100 text-orange-600 rounded-lg flex items-center justify-center text-sm font-bold">4</span>
+        Export
+      </h3>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left">
+          <thead>
+            <tr class="border-b border-gray-200">
+              <th class="py-3 pr-4 font-semibold text-gray-900 whitespace-nowrap">Tool</th>
+              <th class="py-3 font-semibold text-gray-900">Description</th>
+            </tr>
+          </thead>
+          <tbody class="text-gray-600">
+            <tr class="border-b border-gray-100">
+              <td class="py-3 pr-4 font-mono text-xs text-brand whitespace-nowrap">generate_pdf</td>
+              <td class="py-3">Generate IRS-ready PDF forms. Returns a download URL.</td>
+            </tr>
+            <tr class="border-b border-gray-100">
+              <td class="py-3 pr-4 font-mono text-xs text-brand whitespace-nowrap">export_json</td>
+              <td class="py-3">Export the full return as structured JSON for archival or downstream processing.</td>
+            </tr>
+            <tr>
+              <td class="py-3 pr-4 font-mono text-xs text-brand whitespace-nowrap">get_dashboard</td>
+              <td class="py-3">Get a dashboard snapshot: completion progress, warnings, and next suggested action.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────── Example Conversation ───────────────── -->
+  <section class="bg-gray-50 border-y border-gray-200">
+    <div class="max-w-4xl mx-auto px-6 py-20 sm:py-28">
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">Example agent conversation</h2>
+      <p class="text-gray-600 text-lg mb-10">Here's what a typical agent &harr; plugin exchange looks like.</p>
+
+      <div class="space-y-4">
+        <!-- User message -->
+        <div class="flex gap-4">
+          <div class="w-8 h-8 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold">U</div>
+          <div class="bg-white border border-gray-200 rounded-2xl px-5 py-3 text-sm text-gray-700">I made $85,000 from my W-2 and $1,200 in bank interest. I'm filing as single.</div>
+        </div>
+
+        <!-- Agent tool calls -->
+        <div class="flex gap-4">
+          <div class="w-8 h-8 bg-brand text-white rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold">A</div>
+          <div class="space-y-2 flex-1 min-w-0">
+            <div class="bg-gray-900 rounded-xl px-4 py-3 text-xs font-mono text-gray-300 overflow-x-auto">
+              <span class="text-purple-400">tool:</span> create_return <span class="text-gray-500">{ year: 2025, status: "single" }</span><br />
+              <span class="text-purple-400">tool:</span> add_w2 <span class="text-gray-500">{ wages: 85000, fedWithholding: 12750 }</span><br />
+              <span class="text-purple-400">tool:</span> add_1099 <span class="text-gray-500">{ type: "INT", amount: 1200 }</span><br />
+              <span class="text-purple-400">tool:</span> compute<br />
+              <span class="text-purple-400">tool:</span> get_summary
+            </div>
+            <div class="bg-white border border-gray-200 rounded-2xl px-5 py-3 text-sm text-gray-700">
+              Your return is computed. Here's the summary:<br /><br />
+              <span class="font-mono text-xs">
+                Adjusted Gross Income &hellip;&hellip; $86,200<br />
+                Standard Deduction &hellip;&hellip;&hellip; $15,000<br />
+                Taxable Income &hellip;&hellip;&hellip;&hellip; $71,200<br />
+                Total Tax &hellip;&hellip;&hellip;&hellip;&hellip;&hellip; $11,734<br />
+                <span class="text-green-600">Refund &hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip;&hellip; $1,016</span>
+              </span><br /><br />
+              Would you like me to trace how any of these numbers were calculated?
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────── TaxService API ───────────────── -->
+  <section class="max-w-4xl mx-auto px-6 py-20 sm:py-28">
+    <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">TaxService API</h2>
+    <p class="text-gray-600 text-lg mb-10 max-w-2xl">For deeper integrations, import <code class="bg-gray-100 px-2 py-0.5 rounded text-brand text-xs">TaxService</code> directly in Node.js. No HTTP server needed.</p>
+
+    <div class="bg-gray-900 rounded-2xl p-6 sm:p-8 text-sm font-mono text-gray-300 overflow-x-auto shadow-xl relative">
+      <div class="flex items-center gap-2 mb-4">
+        <span class="w-3 h-3 rounded-full bg-red-500"></span>
+        <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
+        <span class="w-3 h-3 rounded-full bg-green-500"></span>
+        <span class="ml-3 text-gray-500 text-xs font-sans">Node.js</span>
+      </div>
+      <code id="code-api">
+<span class="text-purple-400">import</span> { TaxService } <span class="text-purple-400">from</span> <span class="text-green-400">'opentax/services/TaxService'</span>;<br />
+<br />
+<span class="text-gray-500">// Create a return and feed it data</span><br />
+<span class="text-purple-400">const</span> svc = <span class="text-purple-400">new</span> <span class="text-yellow-300">TaxService</span>();<br />
+<span class="text-purple-400">const</span> ret = svc.<span class="text-blue-300">createReturn</span>({ <span class="text-orange-300">year</span>: <span class="text-green-400">2025</span>, <span class="text-orange-300">status</span>: <span class="text-green-400">'single'</span> });<br />
+<br />
+svc.<span class="text-blue-300">addW2</span>(ret.id, { <span class="text-orange-300">wages</span>: <span class="text-green-400">85_000</span>, <span class="text-orange-300">fedWithholding</span>: <span class="text-green-400">12_750</span> });<br />
+svc.<span class="text-blue-300">add1099</span>(ret.id, { <span class="text-orange-300">type</span>: <span class="text-green-400">'INT'</span>, <span class="text-orange-300">amount</span>: <span class="text-green-400">1_200</span> });<br />
+<br />
+<span class="text-gray-500">// Compute and trace</span><br />
+<span class="text-purple-400">const</span> result = svc.<span class="text-blue-300">compute</span>(ret.id);<br />
+<span class="text-purple-400">const</span> trace  = svc.<span class="text-blue-300">traceLine</span>(ret.id, <span class="text-green-400">'form1040.line24'</span>);<br />
+<br />
+console.<span class="text-blue-300">log</span>(result.summary);  <span class="text-gray-500">// { agi, taxableIncome, totalTax, refund }</span><br />
+console.<span class="text-blue-300">log</span>(trace.tree);     <span class="text-gray-500">// Full trace tree with IRS citations</span>
+      </code>
+      <button onclick="copyCode('code-api')" class="absolute top-6 right-6 text-gray-500 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/10" title="Copy to clipboard">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+      </button>
+    </div>
+  </section>
+
+  <!-- ───────────────── SSE Streaming ───────────────── -->
+  <section class="bg-gray-50 border-y border-gray-200">
+    <div class="max-w-4xl mx-auto px-6 py-20 sm:py-28">
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">SSE streaming</h2>
+      <p class="text-gray-600 text-lg mb-10 max-w-2xl">Long-running computations (complex returns with many schedules) stream progress via Server-Sent Events so agents can show real-time status.</p>
+
+      <div class="grid sm:grid-cols-3 gap-6 mb-10">
+        <div class="bg-white border border-gray-200 rounded-2xl p-5">
+          <div class="font-mono text-xs text-brand mb-2">computation:start</div>
+          <p class="text-gray-600 text-sm">Fired when the engine begins processing a return.</p>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-2xl p-5">
+          <div class="font-mono text-xs text-brand mb-2">computation:progress</div>
+          <p class="text-gray-600 text-sm">Emitted per-form as each schedule completes. Includes form name and percent.</p>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-2xl p-5">
+          <div class="font-mono text-xs text-brand mb-2">computation:complete</div>
+          <p class="text-gray-600 text-sm">Final event with the full computed result and trace tree.</p>
+        </div>
+      </div>
+
+      <div class="bg-gray-900 rounded-2xl p-6 sm:p-8 text-sm font-mono text-gray-300 overflow-x-auto shadow-xl">
+        <div class="flex items-center gap-2 mb-4">
+          <span class="w-3 h-3 rounded-full bg-red-500"></span>
+          <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
+          <span class="w-3 h-3 rounded-full bg-green-500"></span>
+          <span class="ml-3 text-gray-500 text-xs font-sans">SSE stream</span>
+        </div>
+<pre class="leading-relaxed">
+<span class="text-green-400">GET</span> /api/returns/{id}/compute/stream
+<span class="text-gray-500">Accept: text/event-stream</span>
+
+<span class="text-purple-400">event:</span> computation:start
+<span class="text-purple-400">data:</span>  { "returnId": "abc-123" }
+
+<span class="text-purple-400">event:</span> computation:progress
+<span class="text-purple-400">data:</span>  { "form": "1040", "percent": 40 }
+
+<span class="text-purple-400">event:</span> computation:progress
+<span class="text-purple-400">data:</span>  { "form": "scheduleD", "percent": 75 }
+
+<span class="text-purple-400">event:</span> computation:complete
+<span class="text-purple-400">data:</span>  { "summary": { "agi": 86200, "totalTax": 11734, ... } }
+</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────── REST Endpoints ───────────────── -->
+  <section class="max-w-4xl mx-auto px-6 py-20 sm:py-28">
+    <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">REST API</h2>
+    <p class="text-gray-600 text-lg mb-10 max-w-2xl">Every agent tool has a corresponding REST endpoint for direct HTTP integration.</p>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left">
+        <thead>
+          <tr class="border-b border-gray-200">
+            <th class="py-3 pr-4 font-semibold text-gray-900">Method</th>
+            <th class="py-3 pr-4 font-semibold text-gray-900">Endpoint</th>
+            <th class="py-3 font-semibold text-gray-900">Description</th>
+          </tr>
+        </thead>
+        <tbody class="text-gray-600 font-mono text-xs">
+          <tr class="border-b border-gray-100">
+            <td class="py-3 pr-4"><span class="text-green-600 font-sans text-sm font-medium">POST</span></td>
+            <td class="py-3 pr-4 text-brand">/api/returns</td>
+            <td class="py-3 font-sans text-sm">Create a new return</td>
+          </tr>
+          <tr class="border-b border-gray-100">
+            <td class="py-3 pr-4"><span class="text-blue-600 font-sans text-sm font-medium">GET</span></td>
+            <td class="py-3 pr-4 text-brand">/api/returns/:id</td>
+            <td class="py-3 font-sans text-sm">Get return by ID</td>
+          </tr>
+          <tr class="border-b border-gray-100">
+            <td class="py-3 pr-4"><span class="text-green-600 font-sans text-sm font-medium">POST</span></td>
+            <td class="py-3 pr-4 text-brand">/api/returns/:id/w2</td>
+            <td class="py-3 font-sans text-sm">Add W-2 data</td>
+          </tr>
+          <tr class="border-b border-gray-100">
+            <td class="py-3 pr-4"><span class="text-green-600 font-sans text-sm font-medium">POST</span></td>
+            <td class="py-3 pr-4 text-brand">/api/returns/:id/1099</td>
+            <td class="py-3 font-sans text-sm">Add 1099 data</td>
+          </tr>
+          <tr class="border-b border-gray-100">
+            <td class="py-3 pr-4"><span class="text-green-600 font-sans text-sm font-medium">POST</span></td>
+            <td class="py-3 pr-4 text-brand">/api/returns/:id/compute</td>
+            <td class="py-3 font-sans text-sm">Run computation</td>
+          </tr>
+          <tr class="border-b border-gray-100">
+            <td class="py-3 pr-4"><span class="text-blue-600 font-sans text-sm font-medium">GET</span></td>
+            <td class="py-3 pr-4 text-brand">/api/returns/:id/trace/:line</td>
+            <td class="py-3 font-sans text-sm">Trace a specific line</td>
+          </tr>
+          <tr>
+            <td class="py-3 pr-4"><span class="text-blue-600 font-sans text-sm font-medium">GET</span></td>
+            <td class="py-3 pr-4 text-brand">/api/returns/:id/pdf</td>
+            <td class="py-3 font-sans text-sm">Download generated PDF</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ───────────────── Next Steps ───────────────── -->
+  <section class="bg-gray-50 border-y border-gray-200">
+    <div class="max-w-4xl mx-auto px-6 py-20 sm:py-28 text-center">
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">Next steps</h2>
+      <p class="text-gray-600 text-lg max-w-2xl mx-auto mb-10">Dive deeper into the engine or try the standalone mode.</p>
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <a href="./architecture.html"
+           class="inline-flex items-center gap-2 bg-brand hover:bg-brand-light text-white font-semibold px-8 py-3.5 rounded-xl transition-colors shadow-lg">
+          Architecture overview
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+        </a>
+        <a href="./standalone-webapp.html"
+           class="inline-flex items-center gap-2 bg-white border border-gray-200 hover:border-blue-200 hover:shadow-lg text-gray-900 font-semibold px-8 py-3.5 rounded-xl transition-all">
+          Standalone quickstart
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────── Footer ───────────────── -->
+  <footer class="max-w-6xl mx-auto px-6 py-10">
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
+      <div class="flex items-center gap-2">
+        <img src="../favicon.svg" alt="OpenTax" class="w-5 h-5" />
+        <span class="font-medium text-gray-700">OpenTax</span>
+        <span class="text-gray-300">|</span>
+        <span>MIT License</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <span>Not affiliated with the IRS</span>
+        <span class="text-gray-300">|</span>
+        <a href="https://github.com/opentax-org/opentax" target="_blank" rel="noopener" class="hover:text-brand transition-colors">GitHub</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    function copyCode(id) {
+      const el = document.getElementById(id);
+      const text = el.textContent.replace(/\$ /g, '').replace(/# .*/g, '').trim();
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = el.parentElement.querySelector('button');
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>';
+        setTimeout(() => { btn.innerHTML = originalHTML; }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>
