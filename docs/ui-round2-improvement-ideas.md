@@ -42,11 +42,13 @@ _Generated: 2026-02-20_
 
 ## What to Implement Now (This Pass)
 
-1. Create `RSUBasisBanner.tsx` (build blocker)
-2. Add vitest setup file with `DOMMatrix` and `matchMedia` stubs
-3. Fix `FormComponents.test.tsx` button text assertion
-4. Make `StateReturnsPage` labels dynamic (remove hardcoded CA assumptions)
-5. Improve "Generate package first" copy on Download page
+1. ~~Create `RSUBasisBanner.tsx` (build blocker)~~ — **DONE** (commit `2d77278`)
+2. ~~Add vitest setup file with `DOMMatrix` and `matchMedia` stubs~~ — **DONE** (commit `2d77278`)
+3. ~~Fix `FormComponents.test.tsx` button text assertion~~ — **DONE** (commit `8dc5138`)
+4. ~~Make `StateReturnsPage` labels dynamic (remove hardcoded CA assumptions)~~ — **DONE** (commit `4295066`)
+5. ~~Improve "Generate package first" copy on Download page~~ — **DONE** (commit `4295066`)
+
+All 5 items implemented. See `docs/ui-round2-implementation-summary.md` for details.
 
 ## What NOT to Change
 

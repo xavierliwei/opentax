@@ -1,6 +1,6 @@
 # UI Round 2 — Implementation Summary
 
-_Completed: 2026-02-20_
+_Completed: 2026-02-20 | Verified: 2026-02-20_
 
 ## Overview
 
@@ -77,3 +77,10 @@ Changed "Generate package first" to "Click 'Download All' above to generate" so 
 | Medium | **Touch target sizing** | Review page `[?]` links are 24px on mobile; should be 32px+ for touch |
 | Low | **State-specific config in registry** | CA tooltip URLs, descriptions, and per-state follow-up options could move to a config object in each state module |
 | Low | **Code splitting** | Vite warns about 1.5MB JS chunk; could lazy-load PDF/intake modules |
+
+## Recommendations
+
+1. **Resolve `audit-high-risk.test.ts` first** — Decide whether the codebase targets TY 2025 (current constants) or TY 2026 (OBBBA provisions). Update either the constants or the test expectations, not both.
+2. **Extract `formatCurrency` + `FILING_STATUS_LABELS`** into `src/lib/format.ts` and `src/lib/constants.ts` — removes 3 duplicate implementations across Review, Download, and StateReview pages.
+3. **Add a second state module** (e.g. NY) to validate the multi-state framework end-to-end before it becomes harder to refactor.
+4. **Lazy-load `pdfjs-dist`** via dynamic `import()` — the 1.5 MB bundle warning is entirely from PDF libraries that most users don't hit on first page load.
