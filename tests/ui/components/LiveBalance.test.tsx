@@ -136,4 +136,41 @@ describe('LiveBalance', () => {
     const caWhyHref = whyLinks[1].getAttribute('href')
     expect(caWhyHref).toBe('/explain/form540.amountOwed')
   })
+
+  describe('mobile responsive', () => {
+    it('uses z-20 so sidebar overlay can cover it', () => {
+      renderLiveBalance()
+      const el = screen.getByTestId('live-balance')
+      expect(el.className).toContain('z-20')
+      expect(el.className).not.toContain('z-40')
+    })
+
+    it('Why? links have touch-friendly padding', () => {
+      useTaxStore.getState().addW2(W2_REFUND)
+      renderLiveBalance()
+      const link = screen.getByText('Why?')
+      expect(link.className).toContain('py-2')
+    })
+
+    it('refund state uses z-20 (not z-40)', () => {
+      useTaxStore.getState().addW2(W2_REFUND)
+      renderLiveBalance()
+      const el = screen.getByTestId('live-balance')
+      expect(el.className).toContain('z-20')
+      expect(el.className).not.toContain('z-40')
+    })
+
+    it('multi-pill layout uses z-20 and flex-wrap for mobile', () => {
+      useTaxStore.getState().addW2({
+        ...W2_REFUND,
+        box15State: 'CA',
+        box17StateIncomeTax: 300000,
+      })
+      useTaxStore.getState().addStateReturn({ stateCode: 'CA', residencyType: 'full-year' })
+      renderLiveBalance()
+      const el = screen.getByTestId('live-balance')
+      expect(el.className).toContain('z-20')
+      expect(el.className).not.toContain('z-40')
+    })
+  })
 })

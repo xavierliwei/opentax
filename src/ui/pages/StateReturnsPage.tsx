@@ -41,7 +41,7 @@ export function StateReturnsPage() {
                     removeStateReturn(code as SupportedStateCode)
                   }
                 }}
-                className="mt-1"
+                className="mt-1 w-5 h-5 sm:w-4 sm:h-4 shrink-0"
               />
               <div>
                 <span className="font-medium text-gray-900 inline-flex items-center">
@@ -63,14 +63,14 @@ export function StateReturnsPage() {
 
             {/* CA-specific follow-up options */}
             {code === 'CA' && isSelected(code) && (
-              <label className="flex items-start gap-3 cursor-pointer mt-3 ml-6">
+              <label className="flex items-start gap-3 cursor-pointer mt-3 ml-4 sm:ml-6">
                 <input
                   type="checkbox"
                   checked={getConfig(code)?.rentPaid ?? false}
                   onChange={(e) =>
                     updateStateReturn(code as SupportedStateCode, { rentPaid: e.target.checked })
                   }
-                  className="mt-1"
+                  className="mt-1 w-5 h-5 sm:w-4 sm:h-4 shrink-0"
                 />
                 <div>
                   <span className="font-medium text-gray-900 inline-flex items-center">

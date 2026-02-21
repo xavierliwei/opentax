@@ -77,7 +77,7 @@ export function Sidebar({ steps }: SidebarProps) {
       </div>
 
       {/* Steps */}
-      <ul className="flex-1 overflow-y-auto py-2 space-y-0.5 px-2">
+      <ul className="flex-1 overflow-y-auto py-2 space-y-1 lg:space-y-0.5 px-2">
         {steps.map((step, index) => {
           const effectiveStatus =
             step.isComplete && step.status === 'current' ? 'completed' : step.status
@@ -89,7 +89,7 @@ export function Sidebar({ steps }: SidebarProps) {
           return (
             <li key={step.id}>
               {showHeader && (
-                <div className="px-3 pt-3 pb-1 first:pt-1">
+                <div className="px-3 pt-4 lg:pt-3 pb-1 first:pt-1">
                   <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
                     {SECTION_LABELS[step.section]}
                   </span>
@@ -98,7 +98,7 @@ export function Sidebar({ steps }: SidebarProps) {
               <NavLink
                 to={step.path}
                 className={({ isActive }) =>
-                  `flex items-center gap-2.5 px-3 py-2.5 text-sm rounded-md transition-colors ${
+                  `flex items-center gap-2.5 px-3 py-3 lg:py-2 text-sm rounded-md transition-colors ${
                     isActive
                       ? 'bg-blue-50 text-blue-700 font-medium'
                       : step.isComplete

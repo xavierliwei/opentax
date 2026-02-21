@@ -119,20 +119,20 @@ export function DownloadPage() {
       <h1 className="text-2xl font-bold text-gray-900">Download Your Return</h1>
 
       {/* Summary card */}
-      <div className="mt-6 border border-gray-200 rounded-lg p-6 flex flex-col gap-3">
+      <div className="mt-6 border border-gray-200 rounded-lg p-4 sm:p-6 flex flex-col gap-3">
         <h2 className="font-semibold text-gray-900">Return Summary</h2>
-        <div className="flex flex-col gap-1 text-sm">
-          <div className="flex justify-between">
-            <span className="text-gray-600">Tax Year:</span>
-            <span className="font-medium">{taxReturn.taxYear}</span>
+        <div className="flex flex-col gap-1.5 sm:gap-1 text-sm">
+          <div className="flex justify-between gap-2">
+            <span className="text-gray-600 shrink-0">Tax Year:</span>
+            <span className="font-medium text-right">{taxReturn.taxYear}</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">Filing Status:</span>
-            <span className="font-medium">{FILING_STATUS_LABELS[taxReturn.filingStatus]}</span>
+          <div className="flex justify-between gap-2">
+            <span className="text-gray-600 shrink-0">Filing Status:</span>
+            <span className="font-medium text-right">{FILING_STATUS_LABELS[taxReturn.filingStatus]}</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">Name:</span>
-            <span className="font-medium">
+          <div className="flex justify-between gap-2">
+            <span className="text-gray-600 shrink-0">Name:</span>
+            <span className="font-medium text-right">
               {taxReturn.taxpayer.firstName} {taxReturn.taxpayer.lastName}
             </span>
           </div>
@@ -170,7 +170,7 @@ export function DownloadPage() {
 
       {/* State return summaries */}
       {stateResults.map(sr => (
-        <div key={sr.stateCode} className="mt-4 border border-gray-200 rounded-lg p-6 flex flex-col gap-1 text-sm">
+        <div key={sr.stateCode} className="mt-4 border border-gray-200 rounded-lg p-4 sm:p-6 flex flex-col gap-1 text-sm">
           <h2 className="font-semibold text-gray-900 mb-2">{sr.formLabel}</h2>
           <div className="flex justify-between">
             <span className="text-gray-600">{sr.stateCode} AGI:</span>
@@ -231,7 +231,7 @@ export function DownloadPage() {
               const pkg = statePackages.find(p => p.stateCode === sr.stateCode)
               const isReady = !!pkg
               return (
-                <div key={sr.stateCode} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                <div key={sr.stateCode} className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3">
                   <button
                     type="button"
                     onClick={() => isReady && handleDownloadState(pkg)}

@@ -17,8 +17,8 @@ function BalancePill({ label, amount, explainNode, accent }: {
   accent: { text: string; dot: string; pill: string }
 }) {
   return (
-    <div className="flex items-center gap-2 min-w-0">
-      <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded-full ${accent.pill}`}>
+    <div className="flex items-center gap-2 sm:gap-2 min-w-0">
+      <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-1 sm:py-0.5 rounded-full ${accent.pill}`}>
         <span className={`w-1.5 h-1.5 rounded-full ${accent.dot}`} />
         {label}
       </span>
@@ -68,7 +68,7 @@ export function LiveBalance() {
     return (
       <div
         data-testid="live-balance"
-        className="sticky top-0 z-40 bg-gray-50 border-b border-gray-200 px-4 sm:px-6 py-3 text-sm text-gray-400 italic"
+        className="sticky top-0 z-20 bg-gray-50 border-b border-gray-200 px-4 sm:px-6 py-3 text-sm text-gray-400 italic"
         aria-live="polite"
       >
         Enter your income to see your balance
@@ -90,12 +90,12 @@ export function LiveBalance() {
     return (
       <div
         data-testid="live-balance"
-        className={`sticky top-0 z-40 ${fedAccent.bg} border-b ${fedAccent.border} px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3`}
+        className={`sticky top-0 z-20 ${fedAccent.bg} border-b ${fedAccent.border} px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3`}
         aria-live="polite"
         aria-label={`${label}: ${formatCurrency(fedAmount)}`}
       >
         <div className="flex items-center gap-3 min-w-0">
-          <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${fedAccent.pill}`}>
+          <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 sm:py-1 rounded-full ${fedAccent.pill}`}>
             <span className={`w-1.5 h-1.5 rounded-full ${fedAccent.dot}`} />
             {label}
           </span>
@@ -145,11 +145,11 @@ export function LiveBalance() {
   return (
     <div
       data-testid="live-balance"
-      className={`sticky top-0 z-40 ${combinedBg} border-b ${combinedBorder} px-4 sm:px-6 py-2 flex items-center justify-between gap-3`}
+      className={`sticky top-0 z-20 ${combinedBg} border-b ${combinedBorder} px-4 sm:px-6 py-2 flex items-center justify-between gap-3`}
       aria-live="polite"
       aria-label={`${fedLabel}: ${formatCurrency(fedAmount)}, ${stateLabels}`}
     >
-      <div className="flex items-center gap-4 min-w-0 flex-wrap">
+      <div className="flex items-center gap-x-3 gap-y-1.5 sm:gap-4 min-w-0 flex-wrap">
         <BalancePill label={fedLabel} amount={fedAmount} explainNode={fedExplainNode} accent={fedAccent} />
         {stateResults.map(sr => {
           const isRefund = sr.overpaid > 0
