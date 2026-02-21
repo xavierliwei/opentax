@@ -1,17 +1,22 @@
 import { test, expect } from '@playwright/test'
 
 test('app loads and navigates core OpenTax workflow pages', async ({ page }) => {
-  await page.goto('/intake')
+  // 1. Welcome / landing page
+  await page.goto('/')
+  await expect(page.getByTestId('page-welcome')).toBeVisible()
+  await expect(page.getByRole('heading', { name: /welcome.*opentax/i })).toBeVisible()
 
-  await expect(page.getByRole('heading', { name: 'OpenTax MVP' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Intake Uploads' })).toBeVisible()
+  // 2. Start the interview → first step (Filing Status)
+  await page.getByRole('button', { name: /let.s start/i }).click()
+  await expect(page.getByRole('heading', { name: /filing status/i })).toBeVisible()
 
-  await page.getByRole('link', { name: /Guided Interview/ }).click()
-  await expect(page.getByRole('heading', { name: 'Guided Interview' })).toBeVisible()
+  // 3. Navigate to Federal Review via sidebar
+  await page.getByRole('link', { name: /federal review/i }).click()
+  await expect(page.getByTestId('page-review')).toBeVisible()
+  await expect(page.getByRole('heading', { name: /review your return/i })).toBeVisible()
 
-  await page.getByRole('link', { name: /Compute \+ Explain/ }).click()
-  await expect(page.getByRole('heading', { name: 'Compute + Explain' })).toBeVisible()
-
-  await page.getByRole('link', { name: /Review \/ Print/ }).click()
-  await expect(page.getByRole('heading', { name: 'Review + Print Checklist' })).toBeVisible()
+  // 4. Navigate to Download via sidebar
+  await page.getByRole('link', { name: /download/i }).first().click()
+  await expect(page.getByTestId('page-download')).toBeVisible()
+  await expect(page.getByRole('heading', { name: /download your return/i })).toBeVisible()
 })
