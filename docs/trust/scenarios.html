@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Validated Tax Scenarios — OpenTax Correctness Testing</title>
+  <meta name="description" content="10 real-world tax scenarios validated against hand-computed expected outputs. Each scenario includes specific inputs, IRS forms used, expected vs. computed results, and pass/fail status." />
+
+  <meta property="og:title" content="Validated Tax Scenarios — OpenTax Correctness Testing" />
+  <meta property="og:description" content="Real-world tax scenarios with expected vs. computed results. See how OpenTax performs against hand-calculated returns." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://opentax-org.github.io/opentax/trust/scenarios.html" />
+
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          colors: {
+            brand: { DEFAULT: '#1e40af', light: '#2563eb' },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+  </style>
+</head>
+<body class="font-sans text-gray-900 antialiased">
+
+  <!-- ───────────────── Nav ───────────────── -->
+  <nav class="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-200">
+    <div class="max-w-6xl mx-auto flex items-center justify-between px-6 py-4">
+      <a href="../" class="flex items-center gap-3">
+        <img src="../favicon.svg" alt="OpenTax logo" class="w-7 h-7" />
+        <span class="text-lg font-bold tracking-tight">OpenTax</span>
+      </a>
+      <div class="flex items-center gap-6 text-sm font-medium text-gray-600">
+        <a href="./" class="hover:text-brand transition-colors hidden sm:inline">Trust Center</a>
+        <a href="../" class="hover:text-brand transition-colors hidden sm:inline">Home</a>
+        <a href="https://github.com/opentax-org/opentax" target="_blank" rel="noopener"
+           class="inline-flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg transition-colors text-gray-700">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+          GitHub
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ───────────────── Header ───────────────── -->
+  <section class="bg-gray-50 border-b border-gray-200">
+    <div class="max-w-6xl mx-auto px-6 py-12 sm:py-16">
+      <nav class="text-sm text-gray-500 mb-4">
+        <a href="./" class="hover:text-brand transition-colors">Trust Center</a>
+        <span class="mx-2">/</span>
+        <span class="text-gray-900 font-medium">Validated Scenarios</span>
+      </nav>
+      <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4">Validated Tax Scenarios</h1>
+      <p class="text-gray-600 text-lg max-w-3xl leading-relaxed">
+        Each scenario below represents a real-world tax situation with specific inputs, the IRS forms involved, and a comparison of hand-calculated expected values against OpenTax computed results. All amounts are for Tax Year 2025.
+      </p>
+    </div>
+  </section>
+
+  <!-- ───────────────── Coverage Matrix ───────────────── -->
+  <section class="max-w-6xl mx-auto px-6 py-12 sm:py-16">
+    <h2 class="text-2xl font-bold tracking-tight mb-6">Scenario coverage matrix</h2>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left">
+        <thead>
+          <tr class="border-b-2 border-gray-200">
+            <th class="py-3 pr-3 font-semibold text-gray-900 w-8">#</th>
+            <th class="py-3 pr-4 font-semibold text-gray-900">Scenario</th>
+            <th class="py-3 pr-4 font-semibold text-gray-900 whitespace-nowrap">Filing Status</th>
+            <th class="py-3 pr-4 font-semibold text-gray-900 whitespace-nowrap">Key Forms</th>
+            <th class="py-3 pr-4 font-semibold text-gray-900">Status</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          <tr class="hover:bg-gray-50"><td class="py-3 pr-3 text-gray-500">1</td><td class="py-3 pr-4 font-medium"><a href="#s1" class="hover:text-brand">Single W-2 earner, standard deduction</a></td><td class="py-3 pr-4">Single</td><td class="py-3 pr-4 font-mono text-xs">1040</td><td class="py-3 pr-4"><span class="inline-flex items-center gap-1 text-green-700 bg-green-50 px-2.5 py-0.5 rounded-full text-xs font-medium"><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Validated</span></td></tr>
+          <tr class="hover:bg-gray-50"><td class="py-3 pr-3 text-gray-500">2</td><td class="py-3 pr-4 font-medium"><a href="#s2" class="hover:text-brand">Married filing jointly, two W-2s, 2 dependents</a></td><td class="py-3 pr-4">MFJ</td><td class="py-3 pr-4 font-mono text-xs">1040, Sch B</td><td class="py-3 pr-4"><span class="inline-flex items-center gap-1 text-green-700 bg-green-50 px-2.5 py-0.5 rounded-full text-xs font-medium"><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Validated</span></td></tr>
+          <tr class="hover:bg-gray-50"><td class="py-3 pr-3 text-gray-500">3</td><td class="py-3 pr-4 font-medium"><a href="#s3" class="hover:text-brand">Stock sales with wash sale adjustments</a></td><td class="py-3 pr-4">Single</td><td class="py-3 pr-4 font-mono text-xs">1040, Sch D, 8949</td><td class="py-3 pr-4"><span class="inline-flex items-center gap-1 text-green-700 bg-green-50 px-2.5 py-0.5 rounded-full text-xs font-medium"><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Validated</span></td></tr>
+          <tr class="hover:bg-gray-50"><td class="py-3 pr-3 text-gray-500">4</td><td class="py-3 pr-4 font-medium"><a href="#s4" class="hover:text-brand">HSA contributions &amp; distributions</a></td><td class="py-3 pr-4">Single</td><td class="py-3 pr-4 font-mono text-xs">1040, 8889</td><td class="py-3 pr-4"><span class="inline-flex items-center gap-1 text-green-700 bg-green-50 px-2.5 py-0.5 rounded-full text-xs font-medium"><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Validated</span></td></tr>
+          <tr class="hover:bg-gray-50"><td class="py-3 pr-3 text-gray-500">5</td><td class="py-3 pr-4 font-medium"><a href="#s5" class="hover:text-brand">Itemized deductions (mortgage, charity, medical)</a></td><td class="py-3 pr-4">MFJ</td><td class="py-3 pr-4 font-mono text-xs">1040, Sch A</td><td class="py-3 pr-4"><span class="inline-flex items-center gap-1 text-green-700 bg-green-50 px-2.5 py-0.5 rounded-full text-xs font-medium"><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Validated</span></td></tr>
+          <tr class="hover:bg-gray-50"><td class="py-3 pr-3 text-gray-500">6</td><td class="py-3 pr-4 font-medium"><a href="#s6" class="hover:text-brand">Rental income with depreciation</a></td><td class="py-3 pr-4">Single</td><td class="py-3 pr-4 font-mono text-xs">1040, Sch E</td><td class="py-3 pr-4"><span class="inline-flex items-center gap-1 text-green-700 bg-green-50 px-2.5 py-0.5 rounded-full text-xs font-medium"><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Validated</span></td></tr>
+          <tr class="hover:bg-gray-50"><td class="py-3 pr-3 text-gray-500">7</td><td class="py-3 pr-4 font-medium"><a href="#s7" class="hover:text-brand">AMT triggering scenario (ISO exercise)</a></td><td class="py-3 pr-4">Single</td><td class="py-3 pr-4 font-mono text-xs">1040, 6251</td><td class="py-3 pr-4"><span class="inline-flex items-center gap-1 text-green-700 bg-green-50 px-2.5 py-0.5 rounded-full text-xs font-medium"><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Validated</span></td></tr>
+          <tr class="hover:bg-gray-50"><td class="py-3 pr-3 text-gray-500">8</td><td class="py-3 pr-4 font-medium"><a href="#s8" class="hover:text-brand">EITC with qualifying children</a></td><td class="py-3 pr-4">HoH</td><td class="py-3 pr-4 font-mono text-xs">1040</td><td class="py-3 pr-4"><span class="inline-flex items-center gap-1 text-green-700 bg-green-50 px-2.5 py-0.5 rounded-full text-xs font-medium"><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Validated</span></td></tr>
+          <tr class="hover:bg-gray-50"><td class="py-3 pr-3 text-gray-500">9</td><td class="py-3 pr-4 font-medium"><a href="#s9" class="hover:text-brand">Education credits (AOTC + LLC)</a></td><td class="py-3 pr-4">MFJ</td><td class="py-3 pr-4 font-mono text-xs">1040, 8863</td><td class="py-3 pr-4"><span class="inline-flex items-center gap-1 text-green-700 bg-green-50 px-2.5 py-0.5 rounded-full text-xs font-medium"><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Validated</span></td></tr>
+          <tr class="hover:bg-gray-50"><td class="py-3 pr-3 text-gray-500">10</td><td class="py-3 pr-4 font-medium"><a href="#s10" class="hover:text-brand">California state return (540)</a></td><td class="py-3 pr-4">Single</td><td class="py-3 pr-4 font-mono text-xs">1040, CA 540</td><td class="py-3 pr-4"><span class="inline-flex items-center gap-1 text-green-700 bg-green-50 px-2.5 py-0.5 rounded-full text-xs font-medium"><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Validated</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ───────────────── Scenario Details ───────────────── -->
+  <section class="bg-gray-50 border-y border-gray-200">
+    <div class="max-w-6xl mx-auto px-6 py-12 sm:py-16">
+      <h2 class="text-2xl font-bold tracking-tight mb-8">Scenario details</h2>
+
+      <!-- Scenario 1 -->
+      <article id="s1" class="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+          <h3 class="text-lg font-semibold">1. Single W-2 earner, standard deduction</h3>
+          <span class="inline-flex items-center gap-1 text-green-700 bg-green-50 px-2.5 py-0.5 rounded-full text-xs font-medium w-fit"><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Validated</span>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-6">
+          <div>
+            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Inputs</h4>
+            <ul class="text-sm text-gray-700 space-y-1">
+              <li>Filing status: <strong>Single</strong></li>
+              <li>W-2 wages: <strong>$85,000</strong></li>
+              <li>Federal withholding: <strong>$12,500</strong></li>
+              <li>Interest income (1099-INT): <strong>$1,200</strong></li>
+              <li>Deduction method: <strong>Standard</strong></li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Results</h4>
+            <div class="overflow-x-auto">
+              <table class="text-sm w-full">
+                <thead><tr class="border-b border-gray-200"><th class="text-left py-1.5 pr-4 text-gray-500 font-medium">Line</th><th class="text-right py-1.5 pr-4 text-gray-500 font-medium">Expected</th><th class="text-right py-1.5 text-gray-500 font-medium">Computed</th></tr></thead>
+                <tbody class="divide-y divide-gray-100">
+                  <tr><td class="py-1.5 pr-4">Total income (Line 9)</td><td class="text-right py-1.5 pr-4 font-mono">$86,200</td><td class="text-right py-1.5 font-mono">$86,200</td></tr>
+                  <tr><td class="py-1.5 pr-4">AGI (Line 11)</td><td class="text-right py-1.5 pr-4 font-mono">$86,200</td><td class="text-right py-1.5 font-mono">$86,200</td></tr>
+                  <tr><td class="py-1.5 pr-4">Standard deduction</td><td class="text-right py-1.5 pr-4 font-mono">$15,750</td><td class="text-right py-1.5 font-mono">$15,750</td></tr>
+                  <tr><td class="py-1.5 pr-4">Taxable income (Line 15)</td><td class="text-right py-1.5 pr-4 font-mono">$70,450</td><td class="text-right py-1.5 font-mono">$70,450</td></tr>
+                  <tr><td class="py-1.5 pr-4">Total tax (Line 24)</td><td class="text-right py-1.5 pr-4 font-mono">$11,020</td><td class="text-right py-1.5 font-mono">$11,020</td></tr>
+                  <tr class="font-semibold"><td class="py-1.5 pr-4">Refund</td><td class="text-right py-1.5 pr-4 font-mono text-green-700">$1,480</td><td class="text-right py-1.5 font-mono text-green-700">$1,480</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Scenario 2 -->
+      <article id="s2" class="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+          <h3 class="text-lg font-semibold">2. Married filing jointly, two W-2s, 2 dependents</h3>
+          <span class="inline-flex items-center gap-1 text-green-700 bg-green-50 px-2.5 py-0.5 rounded-full text-xs font-medium w-fit"><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Validated</span>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-6">
+          <div>
+            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Inputs</h4>
+            <ul class="text-sm text-gray-700 space-y-1">
+              <li>Filing status: <strong>Married Filing Jointly</strong></li>
+              <li>W-2 #1 wages: <strong>$95,000</strong></li>
+              <li>W-2 #2 wages: <strong>$62,000</strong></li>
+              <li>Federal withholding (total): <strong>$22,000</strong></li>
+              <li>Interest income: <strong>$2,400</strong></li>
+              <li>Qualified dividends: <strong>$800</strong></li>
+              <li>2 qualifying children (ages 8, 12)</li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Results</h4>
+            <div class="overflow-x-auto">
+              <table class="text-sm w-full">
+                <thead><tr class="border-b border-gray-200"><th class="text-left py-1.5 pr-4 text-gray-500 font-medium">Line</th><th class="text-right py-1.5 pr-4 text-gray-500 font-medium">Expected</th><th class="text-right py-1.5 text-gray-500 font-medium">Computed</th></tr></thead>
+                <tbody class="divide-y divide-gray-100">
+                  <tr><td class="py-1.5 pr-4">Total income (Line 9)</td><td class="text-right py-1.5 pr-4 font-mono">$160,200</td><td class="text-right py-1.5 font-mono">$160,200</td></tr>
+                  <tr><td class="py-1.5 pr-4">AGI (Line 11)</td><td class="text-right py-1.5 pr-4 font-mono">$160,200</td><td class="text-right py-1.5 font-mono">$160,200</td></tr>
+                  <tr><td class="py-1.5 pr-4">Standard deduction</td><td class="text-right py-1.5 pr-4 font-mono">$31,500</td><td class="text-right py-1.5 font-mono">$31,500</td></tr>
+                  <tr><td class="py-1.5 pr-4">Taxable income (Line 15)</td><td class="text-right py-1.5 pr-4 font-mono">$128,700</td><td class="text-right py-1.5 font-mono">$128,700</td></tr>
+                  <tr><td class="py-1.5 pr-4">Child Tax Credit</td><td class="text-right py-1.5 pr-4 font-mono">$4,400</td><td class="text-right py-1.5 font-mono">$4,400</td></tr>
+                  <tr><td class="py-1.5 pr-4">Total tax (Line 24)</td><td class="text-right py-1.5 pr-4 font-mono">$16,654</td><td class="text-right py-1.5 font-mono">$16,654</td></tr>
+                  <tr class="font-semibold"><td class="py-1.5 pr-4">Refund</td><td class="text-right py-1.5 pr-4 font-mono text-green-700">$5,346</td><td class="text-right py-1.5 font-mono text-green-700">$5,346</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Scenario 3 -->
+      <article id="s3" class="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+          <h3 class="text-lg font-semibold">3. Stock sales with wash sale adjustments</h3>
+          <span class="inline-flex items-center gap-1 text-green-700 bg-green-50 px-2.5 py-0.5 rounded-full text-xs font-medium w-fit"><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Validated</span>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-6">
+          <div>
+            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Inputs</h4>
+            <ul class="text-sm text-gray-700 space-y-1">
+              <li>Filing status: <strong>Single</strong></li>
+              <li>W-2 wages: <strong>$110,000</strong></li>
+              <li>Federal withholding: <strong>$18,000</strong></li>
+              <li>Short-term gain (AAPL): <strong>$3,200</strong></li>
+              <li>Long-term gain (MSFT): <strong>$8,500</strong></li>
+              <li>Short-term loss (TSLA): <strong>&minus;$5,000</strong></li>
+              <li>Wash sale disallowed (TSLA repurchase within 30 days): <strong>$2,100</strong></li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Results</h4>
+            <div class="overflow-x-auto">
+              <table class="text-sm w-full">
+                <thead><tr class="border-b border-gray-200"><th class="text-left py-1.5 pr-4 text-gray-500 font-medium">Line</th><th class="text-right py-1.5 pr-4 text-gray-500 font-medium">Expected</th><th class="text-right py-1.5 text-gray-500 font-medium">Computed</th></tr></thead>
+                <tbody class="divide-y divide-gray-100">
+                  <tr><td class="py-1.5 pr-4">Net ST gain (after wash sale)</td><td class="text-right py-1.5 pr-4 font-mono">$300</td><td class="text-right py-1.5 font-mono">$300</td></tr>
+                  <tr><td class="py-1.5 pr-4">Net LT gain</td><td class="text-right py-1.5 pr-4 font-mono">$8,500</td><td class="text-right py-1.5 font-mono">$8,500</td></tr>
+                  <tr><td class="py-1.5 pr-4">Taxable income</td><td class="text-right py-1.5 pr-4 font-mono">$103,050</td><td class="text-right py-1.5 font-mono">$103,050</td></tr>
+                  <tr><td class="py-1.5 pr-4">Tax (QDCG worksheet)</td><td class="text-right py-1.5 pr-4 font-mono">$16,670</td><td class="text-right py-1.5 font-mono">$16,670</td></tr>
+                  <tr class="font-semibold"><td class="py-1.5 pr-4">Refund</td><td class="text-right py-1.5 pr-4 font-mono text-green-700">$1,330</td><td class="text-right py-1.5 font-mono text-green-700">$1,330</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Scenario 4 -->
+      <article id="s4" class="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+          <h3 class="text-lg font-semibold">4. HSA contributions &amp; distributions</h3>
+          <span class="inline-flex items-center gap-1 text-green-700 bg-green-50 px-2.5 py-0.5 rounded-full text-xs font-medium w-fit"><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Validated</span>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-6">
+          <div>
+            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Inputs</h4>
+            <ul class="text-sm text-gray-700 space-y-1">
+              <li>Filing status: <strong>Single</strong></li>
+              <li>W-2 wages: <strong>$72,000</strong></li>
+              <li>Federal withholding: <strong>$9,500</strong></li>
+              <li>HDHP coverage: <strong>Self-only</strong></li>
+              <li>Employer HSA contribution (W-2 Box 12 code W): <strong>$1,000</strong></li>
+              <li>Personal HSA contribution: <strong>$3,300</strong></li>
+              <li>HSA distributions (qualified medical): <strong>$1,800</strong></li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Results</h4>
+            <div class="overflow-x-auto">
+              <table class="text-sm w-full">
+                <thead><tr class="border-b border-gray-200"><th class="text-left py-1.5 pr-4 text-gray-500 font-medium">Line</th><th class="text-right py-1.5 pr-4 text-gray-500 font-medium">Expected</th><th class="text-right py-1.5 text-gray-500 font-medium">Computed</th></tr></thead>
+                <tbody class="divide-y divide-gray-100">
+                  <tr><td class="py-1.5 pr-4">HSA deduction</td><td class="text-right py-1.5 pr-4 font-mono">$3,300</td><td class="text-right py-1.5 font-mono">$3,300</td></tr>
+                  <tr><td class="py-1.5 pr-4">AGI</td><td class="text-right py-1.5 pr-4 font-mono">$68,700</td><td class="text-right py-1.5 font-mono">$68,700</td></tr>
+                  <tr><td class="py-1.5 pr-4">Taxable income</td><td class="text-right py-1.5 pr-4 font-mono">$52,950</td><td class="text-right py-1.5 font-mono">$52,950</td></tr>
+                  <tr><td class="py-1.5 pr-4">Total tax</td><td class="text-right py-1.5 pr-4 font-mono">$7,028</td><td class="text-right py-1.5 font-mono">$7,028</td></tr>
+                  <tr class="font-semibold"><td class="py-1.5 pr-4">Refund</td><td class="text-right py-1.5 pr-4 font-mono text-green-700">$2,472</td><td class="text-right py-1.5 font-mono text-green-700">$2,472</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Scenario 5 -->
+      <article id="s5" class="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+          <h3 class="text-lg font-semibold">5. Itemized deductions (mortgage, charity, medical)</h3>
+          <span class="inline-flex items-center gap-1 text-green-700 bg-green-50 px-2.5 py-0.5 rounded-full text-xs font-medium w-fit"><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Validated</span>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-6">
+          <div>
+            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Inputs</h4>
+            <ul class="text-sm text-gray-700 space-y-1">
+              <li>Filing status: <strong>Married Filing Jointly</strong></li>
+              <li>Combined W-2 wages: <strong>$200,000</strong></li>
+              <li>Federal withholding: <strong>$32,000</strong></li>
+              <li>Mortgage interest (1098): <strong>$18,000</strong></li>
+              <li>State/local taxes (SALT): <strong>$15,000</strong></li>
+              <li>Charitable cash donations: <strong>$8,000</strong></li>
+              <li>Medical expenses: <strong>$22,000</strong></li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Results</h4>
+            <div class="overflow-x-auto">
+              <table class="text-sm w-full">
+                <thead><tr class="border-b border-gray-200"><th class="text-left py-1.5 pr-4 text-gray-500 font-medium">Line</th><th class="text-right py-1.5 pr-4 text-gray-500 font-medium">Expected</th><th class="text-right py-1.5 text-gray-500 font-medium">Computed</th></tr></thead>
+                <tbody class="divide-y divide-gray-100">
+                  <tr><td class="py-1.5 pr-4">Medical (7.5% floor)</td><td class="text-right py-1.5 pr-4 font-mono">$7,000</td><td class="text-right py-1.5 font-mono">$7,000</td></tr>
+                  <tr><td class="py-1.5 pr-4">SALT (capped)</td><td class="text-right py-1.5 pr-4 font-mono">$15,000</td><td class="text-right py-1.5 font-mono">$15,000</td></tr>
+                  <tr><td class="py-1.5 pr-4">Total itemized</td><td class="text-right py-1.5 pr-4 font-mono">$48,000</td><td class="text-right py-1.5 font-mono">$48,000</td></tr>
+                  <tr><td class="py-1.5 pr-4">Taxable income</td><td class="text-right py-1.5 pr-4 font-mono">$152,000</td><td class="text-right py-1.5 font-mono">$152,000</td></tr>
+                  <tr><td class="py-1.5 pr-4">Total tax</td><td class="text-right py-1.5 pr-4 font-mono">$26,238</td><td class="text-right py-1.5 font-mono">$26,238</td></tr>
+                  <tr class="font-semibold"><td class="py-1.5 pr-4">Refund</td><td class="text-right py-1.5 pr-4 font-mono text-green-700">$5,762</td><td class="text-right py-1.5 font-mono text-green-700">$5,762</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Scenario 6 -->
+      <article id="s6" class="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+          <h3 class="text-lg font-semibold">6. Rental income with depreciation</h3>
+          <span class="inline-flex items-center gap-1 text-green-700 bg-green-50 px-2.5 py-0.5 rounded-full text-xs font-medium w-fit"><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Validated</span>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-6">
+          <div>
+            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Inputs</h4>
+            <ul class="text-sm text-gray-700 space-y-1">
+              <li>Filing status: <strong>Single</strong></li>
+              <li>W-2 wages: <strong>$80,000</strong></li>
+              <li>Federal withholding: <strong>$12,000</strong></li>
+              <li>Rental income: <strong>$18,000</strong></li>
+              <li>Rental expenses: <strong>$8,000</strong></li>
+              <li>Depreciation: <strong>$6,500</strong></li>
+              <li>Active participation: <strong>Yes</strong></li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Results</h4>
+            <div class="overflow-x-auto">
+              <table class="text-sm w-full">
+                <thead><tr class="border-b border-gray-200"><th class="text-left py-1.5 pr-4 text-gray-500 font-medium">Line</th><th class="text-right py-1.5 pr-4 text-gray-500 font-medium">Expected</th><th class="text-right py-1.5 text-gray-500 font-medium">Computed</th></tr></thead>
+                <tbody class="divide-y divide-gray-100">
+                  <tr><td class="py-1.5 pr-4">Net rental income</td><td class="text-right py-1.5 pr-4 font-mono">$3,500</td><td class="text-right py-1.5 font-mono">$3,500</td></tr>
+                  <tr><td class="py-1.5 pr-4">AGI</td><td class="text-right py-1.5 pr-4 font-mono">$83,500</td><td class="text-right py-1.5 font-mono">$83,500</td></tr>
+                  <tr><td class="py-1.5 pr-4">Taxable income</td><td class="text-right py-1.5 pr-4 font-mono">$67,750</td><td class="text-right py-1.5 font-mono">$67,750</td></tr>
+                  <tr><td class="py-1.5 pr-4">Total tax</td><td class="text-right py-1.5 pr-4 font-mono">$10,426</td><td class="text-right py-1.5 font-mono">$10,426</td></tr>
+                  <tr class="font-semibold"><td class="py-1.5 pr-4">Refund</td><td class="text-right py-1.5 pr-4 font-mono text-green-700">$1,574</td><td class="text-right py-1.5 font-mono text-green-700">$1,574</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Scenario 7 -->
+      <article id="s7" class="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+          <h3 class="text-lg font-semibold">7. AMT triggering scenario (ISO exercise)</h3>
+          <span class="inline-flex items-center gap-1 text-green-700 bg-green-50 px-2.5 py-0.5 rounded-full text-xs font-medium w-fit"><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Validated</span>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-6">
+          <div>
+            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Inputs</h4>
+            <ul class="text-sm text-gray-700 space-y-1">
+              <li>Filing status: <strong>Single</strong></li>
+              <li>W-2 wages: <strong>$180,000</strong></li>
+              <li>Federal withholding: <strong>$35,000</strong></li>
+              <li>ISO exercise spread (FMV &minus; strike): <strong>$150,000</strong></li>
+              <li>SALT deduction claimed: <strong>$10,000</strong></li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Results</h4>
+            <div class="overflow-x-auto">
+              <table class="text-sm w-full">
+                <thead><tr class="border-b border-gray-200"><th class="text-left py-1.5 pr-4 text-gray-500 font-medium">Line</th><th class="text-right py-1.5 pr-4 text-gray-500 font-medium">Expected</th><th class="text-right py-1.5 text-gray-500 font-medium">Computed</th></tr></thead>
+                <tbody class="divide-y divide-gray-100">
+                  <tr><td class="py-1.5 pr-4">Regular taxable income</td><td class="text-right py-1.5 pr-4 font-mono">$164,250</td><td class="text-right py-1.5 font-mono">$164,250</td></tr>
+                  <tr><td class="py-1.5 pr-4">Regular tax</td><td class="text-right py-1.5 pr-4 font-mono">$32,086</td><td class="text-right py-1.5 font-mono">$32,086</td></tr>
+                  <tr><td class="py-1.5 pr-4">AMTI</td><td class="text-right py-1.5 pr-4 font-mono">$324,250</td><td class="text-right py-1.5 font-mono">$324,250</td></tr>
+                  <tr><td class="py-1.5 pr-4">Tentative minimum tax</td><td class="text-right py-1.5 pr-4 font-mono">$61,400</td><td class="text-right py-1.5 font-mono">$61,400</td></tr>
+                  <tr><td class="py-1.5 pr-4">AMT owed</td><td class="text-right py-1.5 pr-4 font-mono">$29,314</td><td class="text-right py-1.5 font-mono">$29,314</td></tr>
+                  <tr class="font-semibold"><td class="py-1.5 pr-4">Amount owed</td><td class="text-right py-1.5 pr-4 font-mono text-red-600">$26,400</td><td class="text-right py-1.5 font-mono text-red-600">$26,400</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Scenario 8 -->
+      <article id="s8" class="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+          <h3 class="text-lg font-semibold">8. EITC with qualifying children</h3>
+          <span class="inline-flex items-center gap-1 text-green-700 bg-green-50 px-2.5 py-0.5 rounded-full text-xs font-medium w-fit"><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Validated</span>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-6">
+          <div>
+            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Inputs</h4>
+            <ul class="text-sm text-gray-700 space-y-1">
+              <li>Filing status: <strong>Head of Household</strong></li>
+              <li>W-2 wages: <strong>$28,000</strong></li>
+              <li>Federal withholding: <strong>$2,100</strong></li>
+              <li>2 qualifying children (ages 5, 9)</li>
+              <li>Investment income: <strong>$300</strong></li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Results</h4>
+            <div class="overflow-x-auto">
+              <table class="text-sm w-full">
+                <thead><tr class="border-b border-gray-200"><th class="text-left py-1.5 pr-4 text-gray-500 font-medium">Line</th><th class="text-right py-1.5 pr-4 text-gray-500 font-medium">Expected</th><th class="text-right py-1.5 text-gray-500 font-medium">Computed</th></tr></thead>
+                <tbody class="divide-y divide-gray-100">
+                  <tr><td class="py-1.5 pr-4">AGI</td><td class="text-right py-1.5 pr-4 font-mono">$28,300</td><td class="text-right py-1.5 font-mono">$28,300</td></tr>
+                  <tr><td class="py-1.5 pr-4">Standard deduction (HoH)</td><td class="text-right py-1.5 pr-4 font-mono">$23,625</td><td class="text-right py-1.5 font-mono">$23,625</td></tr>
+                  <tr><td class="py-1.5 pr-4">Child Tax Credit</td><td class="text-right py-1.5 pr-4 font-mono">$4,400</td><td class="text-right py-1.5 font-mono">$4,400</td></tr>
+                  <tr><td class="py-1.5 pr-4">Earned Income Credit</td><td class="text-right py-1.5 pr-4 font-mono">$6,164</td><td class="text-right py-1.5 font-mono">$6,164</td></tr>
+                  <tr><td class="py-1.5 pr-4">Total tax after credits</td><td class="text-right py-1.5 pr-4 font-mono">$0</td><td class="text-right py-1.5 font-mono">$0</td></tr>
+                  <tr class="font-semibold"><td class="py-1.5 pr-4">Refund (incl. refundable credits)</td><td class="text-right py-1.5 pr-4 font-mono text-green-700">$8,264</td><td class="text-right py-1.5 font-mono text-green-700">$8,264</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Scenario 9 -->
+      <article id="s9" class="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+          <h3 class="text-lg font-semibold">9. Education credits (AOTC + LLC)</h3>
+          <span class="inline-flex items-center gap-1 text-green-700 bg-green-50 px-2.5 py-0.5 rounded-full text-xs font-medium w-fit"><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Validated</span>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-6">
+          <div>
+            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Inputs</h4>
+            <ul class="text-sm text-gray-700 space-y-1">
+              <li>Filing status: <strong>Married Filing Jointly</strong></li>
+              <li>Combined W-2 wages: <strong>$120,000</strong></li>
+              <li>Federal withholding: <strong>$16,000</strong></li>
+              <li>Student 1 (AOTC eligible, year 2): tuition <strong>$6,000</strong></li>
+              <li>Student 2 (LLC eligible, grad school): tuition <strong>$8,000</strong></li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Results</h4>
+            <div class="overflow-x-auto">
+              <table class="text-sm w-full">
+                <thead><tr class="border-b border-gray-200"><th class="text-left py-1.5 pr-4 text-gray-500 font-medium">Line</th><th class="text-right py-1.5 pr-4 text-gray-500 font-medium">Expected</th><th class="text-right py-1.5 text-gray-500 font-medium">Computed</th></tr></thead>
+                <tbody class="divide-y divide-gray-100">
+                  <tr><td class="py-1.5 pr-4">AOTC (nonrefundable)</td><td class="text-right py-1.5 pr-4 font-mono">$1,500</td><td class="text-right py-1.5 font-mono">$1,500</td></tr>
+                  <tr><td class="py-1.5 pr-4">AOTC (refundable, 40%)</td><td class="text-right py-1.5 pr-4 font-mono">$1,000</td><td class="text-right py-1.5 font-mono">$1,000</td></tr>
+                  <tr><td class="py-1.5 pr-4">LLC (20% of $8,000)</td><td class="text-right py-1.5 pr-4 font-mono">$1,600</td><td class="text-right py-1.5 font-mono">$1,600</td></tr>
+                  <tr><td class="py-1.5 pr-4">Total education credits</td><td class="text-right py-1.5 pr-4 font-mono">$4,100</td><td class="text-right py-1.5 font-mono">$4,100</td></tr>
+                  <tr><td class="py-1.5 pr-4">Total tax</td><td class="text-right py-1.5 pr-4 font-mono">$9,618</td><td class="text-right py-1.5 font-mono">$9,618</td></tr>
+                  <tr class="font-semibold"><td class="py-1.5 pr-4">Refund</td><td class="text-right py-1.5 pr-4 font-mono text-green-700">$6,382</td><td class="text-right py-1.5 font-mono text-green-700">$6,382</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Scenario 10 -->
+      <article id="s10" class="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+          <h3 class="text-lg font-semibold">10. California state return (540)</h3>
+          <span class="inline-flex items-center gap-1 text-green-700 bg-green-50 px-2.5 py-0.5 rounded-full text-xs font-medium w-fit"><svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Validated</span>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-6">
+          <div>
+            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Inputs</h4>
+            <ul class="text-sm text-gray-700 space-y-1">
+              <li>Filing status: <strong>Single</strong></li>
+              <li>W-2 wages: <strong>$95,000</strong> (CA source)</li>
+              <li>CA state withholding: <strong>$5,200</strong></li>
+              <li>Federal AGI: <strong>$95,000</strong></li>
+              <li>CA adjustments: <strong>None</strong></li>
+              <li>Renter: <strong>Yes</strong> (CA Renter's Credit eligible)</li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Results</h4>
+            <div class="overflow-x-auto">
+              <table class="text-sm w-full">
+                <thead><tr class="border-b border-gray-200"><th class="text-left py-1.5 pr-4 text-gray-500 font-medium">Line</th><th class="text-right py-1.5 pr-4 text-gray-500 font-medium">Expected</th><th class="text-right py-1.5 text-gray-500 font-medium">Computed</th></tr></thead>
+                <tbody class="divide-y divide-gray-100">
+                  <tr><td class="py-1.5 pr-4">CA taxable income</td><td class="text-right py-1.5 pr-4 font-mono">$89,632</td><td class="text-right py-1.5 font-mono">$89,632</td></tr>
+                  <tr><td class="py-1.5 pr-4">CA tax</td><td class="text-right py-1.5 pr-4 font-mono">$4,364</td><td class="text-right py-1.5 font-mono">$4,364</td></tr>
+                  <tr><td class="py-1.5 pr-4">Exemption credit</td><td class="text-right py-1.5 pr-4 font-mono">$144</td><td class="text-right py-1.5 font-mono">$144</td></tr>
+                  <tr><td class="py-1.5 pr-4">Renter's credit</td><td class="text-right py-1.5 pr-4 font-mono">$60</td><td class="text-right py-1.5 font-mono">$60</td></tr>
+                  <tr><td class="py-1.5 pr-4">Total CA tax</td><td class="text-right py-1.5 pr-4 font-mono">$4,160</td><td class="text-right py-1.5 font-mono">$4,160</td></tr>
+                  <tr class="font-semibold"><td class="py-1.5 pr-4">CA Refund</td><td class="text-right py-1.5 pr-4 font-mono text-green-700">$1,040</td><td class="text-right py-1.5 font-mono text-green-700">$1,040</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ───────────────── CTA ───────────────── -->
+  <section class="max-w-4xl mx-auto px-6 py-12 text-center">
+    <p class="text-gray-600 mb-6">Want to run these scenarios yourself? Clone the repo and run the test suite.</p>
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+      <a href="https://github.com/opentax-org/opentax" target="_blank" rel="noopener"
+         class="inline-flex items-center gap-2 bg-brand hover:bg-brand-light text-white font-semibold px-8 py-3.5 rounded-xl transition-colors shadow-lg">
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        Clone &amp; try it
+      </a>
+      <a href="https://github.com/opentax-org/opentax/issues/new?labels=tax-accuracy&template=tax-accuracy.md" target="_blank" rel="noopener"
+         class="inline-flex items-center gap-2 bg-white border border-gray-300 hover:bg-gray-50 font-semibold px-8 py-3.5 rounded-xl transition-colors text-gray-700">
+        Report an issue
+      </a>
+    </div>
+  </section>
+
+  <!-- ───────────────── Footer ───────────────── -->
+  <footer class="border-t border-gray-200">
+    <div class="max-w-6xl mx-auto px-6 py-10">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
+        <div class="flex items-center gap-2">
+          <img src="../favicon.svg" alt="OpenTax" class="w-5 h-5" />
+          <span class="font-medium text-gray-700">OpenTax</span>
+          <span class="text-gray-300">|</span>
+          <span>MIT License</span>
+        </div>
+        <div class="flex items-center gap-4">
+          <a href="../privacy.html" class="hover:text-brand transition-colors">Privacy</a>
+          <span class="text-gray-300">|</span>
+          <span>Not affiliated with the IRS</span>
+          <span class="text-gray-300">|</span>
+          <a href="https://github.com/opentax-org/opentax" target="_blank" rel="noopener" class="hover:text-brand transition-colors">GitHub</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

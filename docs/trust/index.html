@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trust Center — IRS-Validated Tax Computation | OpenTax</title>
+  <meta name="description" content="OpenTax Trust Center: every computation cross-referenced against IRS publications, validated with real-world scenarios, and backed by honest disclosure of known limitations." />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Trust Center — IRS-Validated Tax Computation | OpenTax" />
+  <meta property="og:description" content="Every OpenTax computation traces to an IRS publication. Review our sources, validated scenarios, and known limitations." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://opentax-org.github.io/opentax/trust/" />
+
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          colors: {
+            brand: { DEFAULT: '#1e40af', light: '#2563eb' },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+  </style>
+</head>
+<body class="font-sans text-gray-900 antialiased">
+
+  <!-- ───────────────── Nav ───────────────── -->
+  <nav class="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-200">
+    <div class="max-w-6xl mx-auto flex items-center justify-between px-6 py-4">
+      <a href="../" class="flex items-center gap-3">
+        <img src="../favicon.svg" alt="OpenTax logo" class="w-7 h-7" />
+        <span class="text-lg font-bold tracking-tight">OpenTax</span>
+      </a>
+      <div class="flex items-center gap-6 text-sm font-medium text-gray-600">
+        <a href="./" class="text-brand font-semibold hidden sm:inline">Trust Center</a>
+        <a href="../" class="hover:text-brand transition-colors hidden sm:inline">Home</a>
+        <a href="https://github.com/opentax-org/opentax" target="_blank" rel="noopener"
+           class="inline-flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg transition-colors text-gray-700">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+          GitHub
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ───────────────── Hero ───────────────── -->
+  <section class="relative bg-gradient-to-br from-gray-900 via-brand to-brand-light text-white overflow-hidden">
+    <div class="absolute inset-0 opacity-10">
+      <div class="absolute top-10 left-10 w-72 h-72 bg-white rounded-full blur-3xl"></div>
+      <div class="absolute bottom-10 right-10 w-96 h-96 bg-blue-400 rounded-full blur-3xl"></div>
+    </div>
+
+    <div class="relative max-w-4xl mx-auto text-center px-6 pt-16 pb-20 sm:pt-20 sm:pb-24">
+      <div class="inline-flex items-center gap-2 bg-white/10 backdrop-blur rounded-full px-4 py-1.5 text-sm font-medium mb-6">
+        <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        Trust Center
+      </div>
+      <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight mb-5">
+        Why you can trust<br class="hidden sm:inline" /> the math
+      </h1>
+      <p class="text-lg text-blue-100 max-w-2xl mx-auto leading-relaxed">
+        Every OpenTax computation traces to an authoritative IRS publication. Our rules engine is deterministic, open-source, and tested against real-world tax scenarios.
+      </p>
+    </div>
+  </section>
+
+  <!-- ───────────────── Three Pillars ───────────────── -->
+  <section class="max-w-6xl mx-auto px-6 py-16 sm:py-24">
+    <div class="grid sm:grid-cols-3 gap-8 lg:gap-12">
+
+      <!-- Pillar 1: IRS Sources -->
+      <a href="irs-sources.html" class="group bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-lg hover:border-blue-200 transition-all">
+        <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-4">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+        </div>
+        <h3 class="font-semibold text-lg mb-2 group-hover:text-brand transition-colors">IRS Publications &amp; Citations</h3>
+        <p class="text-gray-600 text-sm leading-relaxed mb-4">Every computation node mapped to its authoritative IRS source &mdash; Rev. Proc. 2024-40, Pub 501, IRC sections, and form instructions.</p>
+        <span class="text-brand text-sm font-medium inline-flex items-center gap-1">
+          View sources
+          <svg class="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+        </span>
+      </a>
+
+      <!-- Pillar 2: Validated Scenarios -->
+      <a href="scenarios.html" class="group bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-lg hover:border-blue-200 transition-all">
+        <div class="w-12 h-12 bg-green-100 text-green-600 rounded-xl flex items-center justify-center mb-4">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <h3 class="font-semibold text-lg mb-2 group-hover:text-brand transition-colors">Validated Tax Scenarios</h3>
+        <p class="text-gray-600 text-sm leading-relaxed mb-4">10 real-world scenarios with specific inputs, expected outputs, and computed results. Each scenario shows the exact dollar amounts and pass/fail status.</p>
+        <span class="text-brand text-sm font-medium inline-flex items-center gap-1">
+          View scenarios
+          <svg class="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+        </span>
+      </a>
+
+      <!-- Pillar 3: Known Limitations -->
+      <a href="limitations.html" class="group bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-lg hover:border-blue-200 transition-all">
+        <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center mb-4">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        </div>
+        <h3 class="font-semibold text-lg mb-2 group-hover:text-brand transition-colors">Known Limitations</h3>
+        <p class="text-gray-600 text-sm leading-relaxed mb-4">Honest disclosure of what OpenTax does and does not cover for Tax Year 2025. We believe transparency builds trust.</p>
+        <span class="text-brand text-sm font-medium inline-flex items-center gap-1">
+          View limitations
+          <svg class="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+        </span>
+      </a>
+
+    </div>
+  </section>
+
+  <!-- ───────────────── Methodology ───────────────── -->
+  <section class="bg-gray-50 border-y border-gray-200">
+    <div class="max-w-6xl mx-auto px-6 py-16 sm:py-24">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">How we ensure correctness</h2>
+        <p class="text-gray-600 text-lg max-w-2xl mx-auto">A deterministic rules engine with full traceability, tested against IRS publications and real-world returns.</p>
+      </div>
+
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <a href="methodology.html#deterministic" class="bg-white border border-gray-200 rounded-2xl p-5 hover:shadow-lg hover:border-blue-200 transition-all">
+          <div class="text-2xl font-bold text-brand mb-2">1</div>
+          <h3 class="font-semibold mb-1.5">Deterministic engine</h3>
+          <p class="text-gray-600 text-sm leading-relaxed">Pure functions with no randomness. Same inputs always produce the same outputs.</p>
+        </a>
+        <a href="methodology.html#traced" class="bg-white border border-gray-200 rounded-2xl p-5 hover:shadow-lg hover:border-blue-200 transition-all">
+          <div class="text-2xl font-bold text-brand mb-2">2</div>
+          <h3 class="font-semibold mb-1.5">Traced values</h3>
+          <p class="text-gray-600 text-sm leading-relaxed">Every computed number carries its source document, IRS citation, and confidence score.</p>
+        </a>
+        <a href="methodology.html#integer" class="bg-white border border-gray-200 rounded-2xl p-5 hover:shadow-lg hover:border-blue-200 transition-all">
+          <div class="text-2xl font-bold text-brand mb-2">3</div>
+          <h3 class="font-semibold mb-1.5">Integer arithmetic</h3>
+          <p class="text-gray-600 text-sm leading-relaxed">All monetary values stored as cents. No floating-point rounding errors.</p>
+        </a>
+        <a href="methodology.html#tested" class="bg-white border border-gray-200 rounded-2xl p-5 hover:shadow-lg hover:border-blue-200 transition-all">
+          <div class="text-2xl font-bold text-brand mb-2">4</div>
+          <h3 class="font-semibold mb-1.5">Extensive test suite</h3>
+          <p class="text-gray-600 text-sm leading-relaxed">900+ unit tests and end-to-end integration scenarios validate every computation path.</p>
+        </a>
+      </div>
+
+      <div class="text-center mt-10">
+        <a href="methodology.html"
+           class="inline-flex items-center gap-2 text-brand font-semibold hover:underline">
+          Read our full methodology
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────── Trust by the Numbers ───────────────── -->
+  <section class="max-w-6xl mx-auto px-6 py-16 sm:py-24">
+    <div class="text-center mb-12">
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">Trust by the numbers</h2>
+    </div>
+
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 text-center">
+      <div class="bg-white border border-gray-200 rounded-2xl p-6">
+        <div class="text-3xl sm:text-4xl font-extrabold text-brand mb-1">20+</div>
+        <div class="text-sm text-gray-600">IRS publications cited</div>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-2xl p-6">
+        <div class="text-3xl sm:text-4xl font-extrabold text-brand mb-1">900+</div>
+        <div class="text-sm text-gray-600">Automated tests</div>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-2xl p-6">
+        <div class="text-3xl sm:text-4xl font-extrabold text-brand mb-1">10</div>
+        <div class="text-sm text-gray-600">Validated scenarios</div>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-2xl p-6">
+        <div class="text-3xl sm:text-4xl font-extrabold text-brand mb-1">0</div>
+        <div class="text-sm text-gray-600">Data transmitted</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────── CTA ───────────────── -->
+  <section class="bg-gray-50 border-y border-gray-200">
+    <div class="max-w-4xl mx-auto px-6 py-16 text-center">
+      <h2 class="text-2xl sm:text-3xl font-bold tracking-tight mb-4">See it for yourself</h2>
+      <p class="text-gray-600 text-lg max-w-2xl mx-auto mb-8">OpenTax is open-source. Review every line of our rules engine, run the test suite, or file a tax-accuracy issue.</p>
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <a href="https://github.com/opentax-org/opentax" target="_blank" rel="noopener"
+           class="inline-flex items-center gap-2 bg-brand hover:bg-brand-light text-white font-semibold px-8 py-3.5 rounded-xl transition-colors shadow-lg">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+          View on GitHub
+        </a>
+        <a href="https://github.com/opentax-org/opentax/issues/new?labels=tax-accuracy&template=tax-accuracy.md" target="_blank" rel="noopener"
+           class="inline-flex items-center gap-2 bg-white border border-gray-300 hover:bg-gray-50 font-semibold px-8 py-3.5 rounded-xl transition-colors text-gray-700">
+          Report an issue
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────── Footer ───────────────── -->
+  <footer class="max-w-6xl mx-auto px-6 py-10">
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
+      <div class="flex items-center gap-2">
+        <img src="../favicon.svg" alt="OpenTax" class="w-5 h-5" />
+        <span class="font-medium text-gray-700">OpenTax</span>
+        <span class="text-gray-300">|</span>
+        <span>MIT License</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <a href="../privacy.html" class="hover:text-brand transition-colors">Privacy</a>
+        <span class="text-gray-300">|</span>
+        <span>Not affiliated with the IRS</span>
+        <span class="text-gray-300">|</span>
+        <a href="https://github.com/opentax-org/opentax" target="_blank" rel="noopener" class="hover:text-brand transition-colors">GitHub</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

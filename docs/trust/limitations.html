@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Known Limitations &amp; Scope — OpenTax</title>
+  <meta name="description" content="Honest disclosure of what OpenTax does and does not support for Tax Year 2025. Unsupported forms, known constraints, and how to report accuracy issues." />
+
+  <meta property="og:title" content="Known Limitations & Scope — OpenTax" />
+  <meta property="og:description" content="What OpenTax covers and what it doesn't. Honest, specific disclosure of scope boundaries for Tax Year 2025." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://opentax-org.github.io/opentax/trust/limitations.html" />
+
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          colors: {
+            brand: { DEFAULT: '#1e40af', light: '#2563eb' },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+  </style>
+</head>
+<body class="font-sans text-gray-900 antialiased">
+
+  <!-- ───────────────── Nav ───────────────── -->
+  <nav class="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-200">
+    <div class="max-w-6xl mx-auto flex items-center justify-between px-6 py-4">
+      <a href="../" class="flex items-center gap-3">
+        <img src="../favicon.svg" alt="OpenTax logo" class="w-7 h-7" />
+        <span class="text-lg font-bold tracking-tight">OpenTax</span>
+      </a>
+      <div class="flex items-center gap-6 text-sm font-medium text-gray-600">
+        <a href="./" class="hover:text-brand transition-colors hidden sm:inline">Trust Center</a>
+        <a href="../" class="hover:text-brand transition-colors hidden sm:inline">Home</a>
+        <a href="https://github.com/opentax-org/opentax" target="_blank" rel="noopener"
+           class="inline-flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg transition-colors text-gray-700">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+          GitHub
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ───────────────── Header ───────────────── -->
+  <section class="bg-gray-50 border-b border-gray-200">
+    <div class="max-w-6xl mx-auto px-6 py-12 sm:py-16">
+      <nav class="text-sm text-gray-500 mb-4">
+        <a href="./" class="hover:text-brand transition-colors">Trust Center</a>
+        <span class="mx-2">/</span>
+        <span class="text-gray-900 font-medium">Known Limitations</span>
+      </nav>
+      <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4">Known Limitations &amp; Scope</h1>
+      <p class="text-gray-600 text-lg max-w-3xl leading-relaxed">
+        We believe trust is built through honesty. This page discloses exactly what OpenTax does and does not cover for Tax Year 2025. If your tax situation includes any item listed below, you should use a different tool or consult a tax professional.
+      </p>
+    </div>
+  </section>
+
+  <!-- ───────────────── Content ───────────────── -->
+  <section class="max-w-4xl mx-auto px-6 py-12 sm:py-16">
+
+    <!-- Disclaimer -->
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-10">
+      <div class="flex gap-3">
+        <svg class="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        <div class="text-sm text-amber-900">
+          <strong>Important disclaimer:</strong> OpenTax is not a substitute for professional tax advice. It is not affiliated with or endorsed by the Internal Revenue Service. Always review your completed return carefully before filing. You are solely responsible for the accuracy of your tax return.
+        </div>
+      </div>
+    </div>
+
+    <!-- Not Supported -->
+    <h2 class="text-2xl font-bold tracking-tight mb-6">Not supported (Tax Year 2025)</h2>
+    <p class="text-gray-600 mb-6">The following forms, schedules, and tax situations are <strong>not</strong> currently handled by OpenTax. If any of these apply to you, you will need to use another tool or file manually.</p>
+
+    <div class="space-y-4 mb-12">
+      <div class="border border-gray-200 rounded-xl p-4">
+        <div class="flex items-start gap-3">
+          <span class="mt-0.5 w-5 h-5 rounded-full bg-red-100 text-red-500 flex items-center justify-center shrink-0">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </span>
+          <div>
+            <div class="font-medium">Schedule C &mdash; Self-employment income</div>
+            <p class="text-sm text-gray-500 mt-0.5">Sole proprietorships, freelance income, gig economy income (1099-NEC). Self-employment tax (Schedule SE) is also not computed.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="border border-gray-200 rounded-xl p-4">
+        <div class="flex items-start gap-3">
+          <span class="mt-0.5 w-5 h-5 rounded-full bg-red-100 text-red-500 flex items-center justify-center shrink-0">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </span>
+          <div>
+            <div class="font-medium">Schedule F &mdash; Farming income</div>
+            <p class="text-sm text-gray-500 mt-0.5">Profit or loss from farming activities.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="border border-gray-200 rounded-xl p-4">
+        <div class="flex items-start gap-3">
+          <span class="mt-0.5 w-5 h-5 rounded-full bg-red-100 text-red-500 flex items-center justify-center shrink-0">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </span>
+          <div>
+            <div class="font-medium">Schedule K-1 &mdash; Partnership, S-corp, estate, and trust income</div>
+            <p class="text-sm text-gray-500 mt-0.5">Flow-through income from partnerships (Form 1065), S-corporations (Form 1120-S), estates, or trusts.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="border border-gray-200 rounded-xl p-4">
+        <div class="flex items-start gap-3">
+          <span class="mt-0.5 w-5 h-5 rounded-full bg-red-100 text-red-500 flex items-center justify-center shrink-0">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </span>
+          <div>
+            <div class="font-medium">Form 8962 &mdash; Premium Tax Credit (ACA marketplace)</div>
+            <p class="text-sm text-gray-500 mt-0.5">Health insurance marketplace subsidies and reconciliation.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="border border-gray-200 rounded-xl p-4">
+        <div class="flex items-start gap-3">
+          <span class="mt-0.5 w-5 h-5 rounded-full bg-red-100 text-red-500 flex items-center justify-center shrink-0">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </span>
+          <div>
+            <div class="font-medium">Foreign income &mdash; Form 2555, FBAR, Form 8938</div>
+            <p class="text-sm text-gray-500 mt-0.5">Foreign earned income exclusion, foreign bank account reporting, and foreign financial asset reporting.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="border border-gray-200 rounded-xl p-4">
+        <div class="flex items-start gap-3">
+          <span class="mt-0.5 w-5 h-5 rounded-full bg-red-100 text-red-500 flex items-center justify-center shrink-0">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </span>
+          <div>
+            <div class="font-medium">Multi-state returns</div>
+            <p class="text-sm text-gray-500 mt-0.5">Only California (Form 540) is currently supported. No other state returns are available.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="border border-gray-200 rounded-xl p-4">
+        <div class="flex items-start gap-3">
+          <span class="mt-0.5 w-5 h-5 rounded-full bg-red-100 text-red-500 flex items-center justify-center shrink-0">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </span>
+          <div>
+            <div class="font-medium">E-filing</div>
+            <p class="text-sm text-gray-500 mt-0.5">OpenTax generates IRS-ready PDF forms for download. To e-file, use <a href="https://www.irs.gov/filing/free-file-do-your-federal-taxes-for-free" target="_blank" rel="noopener" class="text-brand hover:underline">IRS Free File</a> or mail your printed return.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="border border-gray-200 rounded-xl p-4">
+        <div class="flex items-start gap-3">
+          <span class="mt-0.5 w-5 h-5 rounded-full bg-red-100 text-red-500 flex items-center justify-center shrink-0">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </span>
+          <div>
+            <div class="font-medium">Prior-year returns</div>
+            <p class="text-sm text-gray-500 mt-0.5">Only Tax Year 2025 is supported. Prior-year returns (2024, 2023, etc.) cannot be prepared.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="border border-gray-200 rounded-xl p-4">
+        <div class="flex items-start gap-3">
+          <span class="mt-0.5 w-5 h-5 rounded-full bg-red-100 text-red-500 flex items-center justify-center shrink-0">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </span>
+          <div>
+            <div class="font-medium">Business returns &mdash; Forms 1120, 1120-S, 1065</div>
+            <p class="text-sm text-gray-500 mt-0.5">Corporate, S-corp, and partnership returns are not supported. OpenTax is for individual filers only.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="border border-gray-200 rounded-xl p-4">
+        <div class="flex items-start gap-3">
+          <span class="mt-0.5 w-5 h-5 rounded-full bg-red-100 text-red-500 flex items-center justify-center shrink-0">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </span>
+          <div>
+            <div class="font-medium">QBI Deduction &mdash; Forms 8995, 8995-A</div>
+            <p class="text-sm text-gray-500 mt-0.5">Qualified Business Income deduction for pass-through entities is not yet implemented.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Known Constraints -->
+    <h2 class="text-2xl font-bold tracking-tight mb-6">Known constraints</h2>
+    <p class="text-gray-600 mb-6">Features that are supported but have known limitations or edge cases you should be aware of.</p>
+
+    <div class="space-y-4 mb-12">
+      <div class="border border-gray-200 rounded-xl p-4">
+        <div class="flex items-start gap-3">
+          <span class="mt-0.5 w-5 h-5 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01"/></svg>
+          </span>
+          <div>
+            <div class="font-medium">OCR document scanning</div>
+            <p class="text-sm text-gray-500 mt-0.5">OCR accuracy depends on document quality, scan resolution, and formatting. Always review extracted values against your original documents. Manual correction is supported for all fields.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="border border-gray-200 rounded-xl p-4">
+        <div class="flex items-start gap-3">
+          <span class="mt-0.5 w-5 h-5 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01"/></svg>
+          </span>
+          <div>
+            <div class="font-medium">Wash sale detection</div>
+            <p class="text-sm text-gray-500 mt-0.5">Wash sale detection covers single-brokerage scenarios. Cross-broker wash sales (e.g., selling at a loss on Robinhood and repurchasing on Fidelity within 30 days) require manual entry of the adjustment.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="border border-gray-200 rounded-xl p-4">
+        <div class="flex items-start gap-3">
+          <span class="mt-0.5 w-5 h-5 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01"/></svg>
+          </span>
+          <div>
+            <div class="font-medium">Broker support</div>
+            <p class="text-sm text-gray-500 mt-0.5">Automated import is available for Robinhood (CSV) and Fidelity (PDF). Other brokers require manual entry or a generic PDF upload. Vanguard, Schwab, and E*TRADE support is planned.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="border border-gray-200 rounded-xl p-4">
+        <div class="flex items-start gap-3">
+          <span class="mt-0.5 w-5 h-5 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01"/></svg>
+          </span>
+          <div>
+            <div class="font-medium">State return coverage</div>
+            <p class="text-sm text-gray-500 mt-0.5">Only California (Form 540) is currently supported. Additional states are on the roadmap. No part-year or nonresident state returns are available.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="border border-gray-200 rounded-xl p-4">
+        <div class="flex items-start gap-3">
+          <span class="mt-0.5 w-5 h-5 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01"/></svg>
+          </span>
+          <div>
+            <div class="font-medium">Form 2441 &mdash; Dependent care credit</div>
+            <p class="text-sm text-gray-500 mt-0.5">Employer-provided dependent care benefits (W-2 Box 10) are handled. Direct child care expenses are supported but only through the interview flow, not via document import.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="border border-gray-200 rounded-xl p-4">
+        <div class="flex items-start gap-3">
+          <span class="mt-0.5 w-5 h-5 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01"/></svg>
+          </span>
+          <div>
+            <div class="font-medium">Client-side only</div>
+            <p class="text-sm text-gray-500 mt-0.5">All data is stored in your browser's local storage. Clearing your browser data or switching devices will lose your progress. Export your return before clearing data.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- What IS Supported -->
+    <h2 class="text-2xl font-bold tracking-tight mb-6">What is supported</h2>
+    <p class="text-gray-600 mb-6">For a complete picture, here's what OpenTax handles well.</p>
+
+    <div class="grid sm:grid-cols-2 gap-4 mb-12">
+      <div class="border border-green-200 bg-green-50/50 rounded-xl p-4">
+        <div class="flex items-start gap-3">
+          <span class="mt-0.5 w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0">
+            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+          </span>
+          <div class="text-sm"><strong>Form 1040</strong> &mdash; Individual income tax return</div>
+        </div>
+      </div>
+      <div class="border border-green-200 bg-green-50/50 rounded-xl p-4">
+        <div class="flex items-start gap-3">
+          <span class="mt-0.5 w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0">
+            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+          </span>
+          <div class="text-sm"><strong>Schedules A, B, D, E, 1</strong> &mdash; Deductions, income, capital gains, rental</div>
+        </div>
+      </div>
+      <div class="border border-green-200 bg-green-50/50 rounded-xl p-4">
+        <div class="flex items-start gap-3">
+          <span class="mt-0.5 w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0">
+            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+          </span>
+          <div class="text-sm"><strong>Forms 8949, 6251, 8889</strong> &mdash; Capital assets, AMT, HSA</div>
+        </div>
+      </div>
+      <div class="border border-green-200 bg-green-50/50 rounded-xl p-4">
+        <div class="flex items-start gap-3">
+          <span class="mt-0.5 w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0">
+            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+          </span>
+          <div class="text-sm"><strong>Credits</strong> &mdash; Child Tax, EITC, Education, Saver's, Energy, Dependent Care</div>
+        </div>
+      </div>
+      <div class="border border-green-200 bg-green-50/50 rounded-xl p-4">
+        <div class="flex items-start gap-3">
+          <span class="mt-0.5 w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0">
+            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+          </span>
+          <div class="text-sm"><strong>W-2, 1099 series</strong> &mdash; INT, DIV, B, R, MISC, G, SA</div>
+        </div>
+      </div>
+      <div class="border border-green-200 bg-green-50/50 rounded-xl p-4">
+        <div class="flex items-start gap-3">
+          <span class="mt-0.5 w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0">
+            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+          </span>
+          <div class="text-sm"><strong>California 540</strong> &mdash; State return with CA adjustments</div>
+        </div>
+      </div>
+      <div class="border border-green-200 bg-green-50/50 rounded-xl p-4">
+        <div class="flex items-start gap-3">
+          <span class="mt-0.5 w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0">
+            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+          </span>
+          <div class="text-sm"><strong>Wash sale detection</strong> &mdash; Single-broker IRC &sect;1091</div>
+        </div>
+      </div>
+      <div class="border border-green-200 bg-green-50/50 rounded-xl p-4">
+        <div class="flex items-start gap-3">
+          <span class="mt-0.5 w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0">
+            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+          </span>
+          <div class="text-sm"><strong>RSU basis adjustment</strong> &mdash; Corrects double-taxation on stock vests</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Report Issues -->
+    <h2 class="text-2xl font-bold tracking-tight mb-6">Found an issue?</h2>
+    <p class="text-gray-600 mb-6">If you find a calculation that doesn't match what you expect, please report it. We take tax accuracy very seriously.</p>
+
+    <div class="bg-blue-50 border border-blue-200 rounded-xl p-5">
+      <div class="flex gap-3">
+        <svg class="w-5 h-5 text-blue-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <div class="text-sm text-blue-900">
+          <strong>Report a tax-accuracy issue:</strong> Open a
+          <a href="https://github.com/opentax-org/opentax/issues/new?labels=tax-accuracy&template=tax-accuracy.md" target="_blank" rel="noopener" class="text-brand hover:underline font-medium">GitHub Issue</a>
+          with the <code class="bg-blue-100 px-1.5 py-0.5 rounded text-xs">tax-accuracy</code> label. Include the specific line, expected value (with IRS source), and what OpenTax computed. We investigate every report.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────── Navigation ───────────────── -->
+  <section class="bg-gray-50 border-y border-gray-200">
+    <div class="max-w-4xl mx-auto px-6 py-12 text-center">
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <a href="irs-sources.html"
+           class="inline-flex items-center gap-2 bg-brand hover:bg-brand-light text-white font-semibold px-8 py-3.5 rounded-xl transition-colors shadow-lg">
+          View IRS sources
+        </a>
+        <a href="scenarios.html"
+           class="inline-flex items-center gap-2 bg-white border border-gray-300 hover:bg-gray-50 font-semibold px-8 py-3.5 rounded-xl transition-colors text-gray-700">
+          View validated scenarios
+        </a>
+        <a href="./"
+           class="inline-flex items-center gap-2 text-brand font-semibold hover:underline">
+          Back to Trust Center
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────── Footer ───────────────── -->
+  <footer class="max-w-6xl mx-auto px-6 py-10">
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
+      <div class="flex items-center gap-2">
+        <img src="../favicon.svg" alt="OpenTax" class="w-5 h-5" />
+        <span class="font-medium text-gray-700">OpenTax</span>
+        <span class="text-gray-300">|</span>
+        <span>MIT License</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <a href="../privacy.html" class="hover:text-brand transition-colors">Privacy</a>
+        <span class="text-gray-300">|</span>
+        <span>Not affiliated with the IRS</span>
+        <span class="text-gray-300">|</span>
+        <a href="https://github.com/opentax-org/opentax" target="_blank" rel="noopener" class="hover:text-brand transition-colors">GitHub</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

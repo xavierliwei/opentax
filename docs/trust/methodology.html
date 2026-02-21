@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Computation Methodology — OpenTax Trust Center</title>
+  <meta name="description" content="How OpenTax computes your tax return: deterministic rules engine, traced values, integer arithmetic, and extensive testing against IRS publications." />
+
+  <meta property="og:title" content="Computation Methodology — OpenTax Trust Center" />
+  <meta property="og:description" content="A look inside the OpenTax rules engine: deterministic computation, full traceability, and 900+ automated tests." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://opentax-org.github.io/opentax/trust/methodology.html" />
+
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          colors: {
+            brand: { DEFAULT: '#1e40af', light: '#2563eb' },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+  </style>
+</head>
+<body class="font-sans text-gray-900 antialiased">
+
+  <!-- ───────────────── Nav ───────────────── -->
+  <nav class="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-200">
+    <div class="max-w-6xl mx-auto flex items-center justify-between px-6 py-4">
+      <a href="../" class="flex items-center gap-3">
+        <img src="../favicon.svg" alt="OpenTax logo" class="w-7 h-7" />
+        <span class="text-lg font-bold tracking-tight">OpenTax</span>
+      </a>
+      <div class="flex items-center gap-6 text-sm font-medium text-gray-600">
+        <a href="./" class="hover:text-brand transition-colors hidden sm:inline">Trust Center</a>
+        <a href="../" class="hover:text-brand transition-colors hidden sm:inline">Home</a>
+        <a href="https://github.com/opentax-org/opentax" target="_blank" rel="noopener"
+           class="inline-flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg transition-colors text-gray-700">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+          GitHub
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ───────────────── Header ───────────────── -->
+  <section class="bg-gray-50 border-b border-gray-200">
+    <div class="max-w-6xl mx-auto px-6 py-12 sm:py-16">
+      <nav class="text-sm text-gray-500 mb-4">
+        <a href="./" class="hover:text-brand transition-colors">Trust Center</a>
+        <span class="mx-2">/</span>
+        <span class="text-gray-900 font-medium">Methodology</span>
+      </nav>
+      <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4">Computation Methodology</h1>
+      <p class="text-gray-600 text-lg max-w-3xl leading-relaxed">
+        A detailed look at how OpenTax computes tax returns and the engineering decisions that ensure correctness. Every design choice is aimed at producing results you can verify independently.
+      </p>
+    </div>
+  </section>
+
+  <!-- ───────────────── Content ───────────────── -->
+  <section class="max-w-4xl mx-auto px-6 py-12 sm:py-16">
+
+    <!-- Principle 1 -->
+    <article id="deterministic" class="mb-14">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 bg-brand text-white rounded-xl flex items-center justify-center text-lg font-bold shrink-0">1</div>
+        <h2 class="text-2xl font-bold tracking-tight">Deterministic rules engine</h2>
+      </div>
+      <p class="text-gray-600 mb-4 leading-relaxed">
+        The OpenTax rules engine is a collection of <strong>pure TypeScript functions</strong> organized by tax year (e.g., <code class="bg-gray-100 px-1.5 py-0.5 rounded text-xs">src/rules/2025/</code>). Each function takes typed inputs and returns typed outputs with no side effects, no network calls, and no randomness.
+      </p>
+      <p class="text-gray-600 mb-4 leading-relaxed">
+        Given the same inputs, the engine always produces the same outputs. This property is critical for tax computation: you should be able to run the engine today and next month and get identical results. It also makes the engine straightforward to test &mdash; every function can be unit-tested in isolation.
+      </p>
+      <div class="bg-gray-900 rounded-xl p-5 text-sm font-mono text-gray-300 overflow-x-auto">
+        <div class="text-gray-500 mb-2">// Every computation is a pure function</div>
+        <div><span class="text-blue-400">function</span> <span class="text-green-400">computeTaxableIncome</span>(agi: <span class="text-yellow-300">number</span>, deduction: <span class="text-yellow-300">number</span>): <span class="text-yellow-300">number</span> {</div>
+        <div class="ml-4"><span class="text-blue-400">return</span> Math.<span class="text-green-400">max</span>(<span class="text-purple-400">0</span>, agi - deduction);</div>
+        <div>}</div>
+      </div>
+    </article>
+
+    <!-- Principle 2 -->
+    <article id="traced" class="mb-14">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 bg-brand text-white rounded-xl flex items-center justify-center text-lg font-bold shrink-0">2</div>
+        <h2 class="text-2xl font-bold tracking-tight">Traced values</h2>
+      </div>
+      <p class="text-gray-600 mb-4 leading-relaxed">
+        Every number in an OpenTax return is a <strong>TracedValue</strong> &mdash; not just a dollar amount, but a data structure that records where the value came from and how it was computed.
+      </p>
+      <p class="text-gray-600 mb-4 leading-relaxed">
+        Each TracedValue carries:
+      </p>
+      <ul class="space-y-2 mb-6">
+        <li class="flex items-start gap-3">
+          <span class="w-1.5 h-1.5 rounded-full bg-brand mt-2 shrink-0"></span>
+          <span class="text-gray-600"><strong>Amount</strong> &mdash; the dollar value, stored as integer cents</span>
+        </li>
+        <li class="flex items-start gap-3">
+          <span class="w-1.5 h-1.5 rounded-full bg-brand mt-2 shrink-0"></span>
+          <span class="text-gray-600"><strong>Source type</strong> &mdash; whether this came from a document (W-2, 1099), was computed by the engine, or was entered by the user</span>
+        </li>
+        <li class="flex items-start gap-3">
+          <span class="w-1.5 h-1.5 rounded-full bg-brand mt-2 shrink-0"></span>
+          <span class="text-gray-600"><strong>IRS citation</strong> &mdash; the specific IRS publication, IRC section, or form instruction that governs this calculation</span>
+        </li>
+        <li class="flex items-start gap-3">
+          <span class="w-1.5 h-1.5 rounded-full bg-brand mt-2 shrink-0"></span>
+          <span class="text-gray-600"><strong>Confidence score</strong> &mdash; 0 to 1, indicating how confident the engine is in the value (1.0 for user-entered or hand-verified, lower for OCR-extracted)</span>
+        </li>
+        <li class="flex items-start gap-3">
+          <span class="w-1.5 h-1.5 rounded-full bg-brand mt-2 shrink-0"></span>
+          <span class="text-gray-600"><strong>Input references</strong> &mdash; pointers to the TracedValues that were used to compute this value, forming a complete computation graph</span>
+        </li>
+      </ul>
+      <p class="text-gray-600 leading-relaxed">
+        This means you can click any number on your return and trace it back through every intermediate calculation to the original source documents. No black boxes.
+      </p>
+    </article>
+
+    <!-- Principle 3 -->
+    <article id="integer" class="mb-14">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 bg-brand text-white rounded-xl flex items-center justify-center text-lg font-bold shrink-0">3</div>
+        <h2 class="text-2xl font-bold tracking-tight">Integer arithmetic</h2>
+      </div>
+      <p class="text-gray-600 mb-4 leading-relaxed">
+        All monetary values in OpenTax are stored as <strong>integer cents</strong>, not floating-point dollars. This eliminates an entire class of rounding errors that plague financial software.
+      </p>
+      <p class="text-gray-600 mb-4 leading-relaxed">
+        In standard floating-point arithmetic, <code class="bg-gray-100 px-1.5 py-0.5 rounded text-xs">0.1 + 0.2 === 0.30000000000000004</code>. When you're computing someone's tax liability, this kind of imprecision is unacceptable. By using integer cents:
+      </p>
+      <div class="bg-gray-900 rounded-xl p-5 text-sm font-mono text-gray-300 overflow-x-auto mb-4">
+        <div class="text-gray-500">// $85,000.00 is stored as 8500000 cents</div>
+        <div><span class="text-blue-400">const</span> wages = <span class="text-purple-400">8500000</span>; <span class="text-gray-500">// integer cents</span></div>
+        <div><span class="text-blue-400">const</span> deduction = <span class="text-purple-400">1575000</span>; <span class="text-gray-500">// $15,750.00</span></div>
+        <div><span class="text-blue-400">const</span> taxable = wages - deduction; <span class="text-gray-500">// 6925000 = $69,250.00 exactly</span></div>
+      </div>
+      <p class="text-gray-600 leading-relaxed">
+        Values are only converted to dollars for display. All intermediate calculations use exact integer math.
+      </p>
+    </article>
+
+    <!-- Principle 4 -->
+    <article id="tested" class="mb-14">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 bg-brand text-white rounded-xl flex items-center justify-center text-lg font-bold shrink-0">4</div>
+        <h2 class="text-2xl font-bold tracking-tight">Extensive test suite</h2>
+      </div>
+      <p class="text-gray-600 mb-4 leading-relaxed">
+        The OpenTax rules engine has <strong>900+ automated tests</strong> across multiple layers:
+      </p>
+
+      <div class="space-y-4 mb-6">
+        <div class="border border-gray-200 rounded-xl p-4">
+          <h4 class="font-semibold mb-1">Unit tests</h4>
+          <p class="text-sm text-gray-600">Each rules file (e.g., <code class="bg-gray-100 px-1.5 py-0.5 rounded text-xs">taxComputation.ts</code>, <code class="bg-gray-100 px-1.5 py-0.5 rounded text-xs">childTaxCredit.ts</code>) has its own test file with hand-calculated expected values cross-referenced against IRS worksheets.</p>
+        </div>
+        <div class="border border-gray-200 rounded-xl p-4">
+          <h4 class="font-semibold mb-1">Integration tests</h4>
+          <p class="text-sm text-gray-600">End-to-end scenarios that feed complete tax situations through the engine and verify every line of Form 1040. These test the full dependency graph, not just individual functions.</p>
+        </div>
+        <div class="border border-gray-200 rounded-xl p-4">
+          <h4 class="font-semibold mb-1">Boundary tests</h4>
+          <p class="text-sm text-gray-600">Phase-out thresholds, bracket boundaries, credit caps, and edge cases (e.g., zero income, maximum values) are tested to ensure correct behavior at every transition point.</p>
+        </div>
+        <div class="border border-gray-200 rounded-xl p-4">
+          <h4 class="font-semibold mb-1">Regression tests</h4>
+          <p class="text-sm text-gray-600">Every tax-accuracy bug report is converted into a permanent test case, preventing the same issue from recurring.</p>
+        </div>
+      </div>
+
+      <p class="text-gray-600 leading-relaxed">
+        You can run the entire test suite yourself with <code class="bg-gray-100 px-1.5 py-0.5 rounded text-xs">npm test</code> after cloning the repository.
+      </p>
+    </article>
+
+    <!-- Principle 5 -->
+    <article class="mb-14">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 bg-brand text-white rounded-xl flex items-center justify-center text-lg font-bold shrink-0">5</div>
+        <h2 class="text-2xl font-bold tracking-tight">Client-side computation</h2>
+      </div>
+      <p class="text-gray-600 mb-4 leading-relaxed">
+        All tax computation runs <strong>entirely in your browser</strong>. Your W-2s, 1099s, and personal information never leave your device. There is no server-side processing, no account creation, and no data transmission.
+      </p>
+      <p class="text-gray-600 mb-4 leading-relaxed">
+        This architecture means:
+      </p>
+      <ul class="space-y-2 mb-4">
+        <li class="flex items-start gap-3">
+          <span class="w-1.5 h-1.5 rounded-full bg-brand mt-2 shrink-0"></span>
+          <span class="text-gray-600">No risk of data breach from a server compromise</span>
+        </li>
+        <li class="flex items-start gap-3">
+          <span class="w-1.5 h-1.5 rounded-full bg-brand mt-2 shrink-0"></span>
+          <span class="text-gray-600">Works offline after initial page load</span>
+        </li>
+        <li class="flex items-start gap-3">
+          <span class="w-1.5 h-1.5 rounded-full bg-brand mt-2 shrink-0"></span>
+          <span class="text-gray-600">No third-party analytics tracking your tax data</span>
+        </li>
+        <li class="flex items-start gap-3">
+          <span class="w-1.5 h-1.5 rounded-full bg-brand mt-2 shrink-0"></span>
+          <span class="text-gray-600">You can verify this claim by inspecting network traffic in your browser's developer tools</span>
+        </li>
+      </ul>
+      <p class="text-gray-600 leading-relaxed">
+        For more details, see our <a href="../privacy.html" class="text-brand hover:underline font-medium">Privacy Policy</a>.
+      </p>
+    </article>
+
+    <!-- Computation Flow -->
+    <article class="mb-14">
+      <h2 class="text-2xl font-bold tracking-tight mb-6">Computation flow</h2>
+      <p class="text-gray-600 mb-6 leading-relaxed">
+        When you prepare a return with OpenTax, data flows through these stages:
+      </p>
+
+      <div class="space-y-4">
+        <div class="flex gap-4">
+          <div class="flex flex-col items-center">
+            <div class="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs font-bold">A</div>
+            <div class="w-0.5 h-full bg-gray-200 mt-1"></div>
+          </div>
+          <div class="pb-6">
+            <h4 class="font-semibold mb-1">Document intake</h4>
+            <p class="text-sm text-gray-600">Upload W-2s, 1099s, and other documents. OCR (Tesseract.js, running locally) extracts values. Every extracted value gets a confidence score. You review and correct any misreads.</p>
+          </div>
+        </div>
+        <div class="flex gap-4">
+          <div class="flex flex-col items-center">
+            <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">B</div>
+            <div class="w-0.5 h-full bg-gray-200 mt-1"></div>
+          </div>
+          <div class="pb-6">
+            <h4 class="font-semibold mb-1">Guided interview</h4>
+            <p class="text-sm text-gray-600">A 39-step interview collects additional information: filing status, dependents, deduction preferences, and situations not captured by documents. Tooltips cite the relevant IRS publication for each question.</p>
+          </div>
+        </div>
+        <div class="flex gap-4">
+          <div class="flex flex-col items-center">
+            <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">C</div>
+            <div class="w-0.5 h-full bg-gray-200 mt-1"></div>
+          </div>
+          <div class="pb-6">
+            <h4 class="font-semibold mb-1">Rules engine execution</h4>
+            <p class="text-sm text-gray-600">The engine resolves a dependency graph of computation nodes: income aggregation, AGI calculation, deductions, tax computation (ordinary + QDCG), credits, other taxes (AMT, NIIT, Additional Medicare), and final balance due or refund.</p>
+          </div>
+        </div>
+        <div class="flex gap-4">
+          <div class="flex flex-col items-center">
+            <div class="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-xs font-bold">D</div>
+          </div>
+          <div>
+            <h4 class="font-semibold mb-1">Review &amp; output</h4>
+            <p class="text-sm text-gray-600">You review the completed return with full traceability. Click any number to see the computation chain back to source documents. Download IRS-ready PDF forms for filing.</p>
+          </div>
+        </div>
+      </div>
+    </article>
+
+  </section>
+
+  <!-- ───────────────── CTA ───────────────── -->
+  <section class="bg-gray-50 border-y border-gray-200">
+    <div class="max-w-4xl mx-auto px-6 py-12 text-center">
+      <p class="text-gray-600 mb-6">Review the rules engine source code yourself.</p>
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <a href="https://github.com/opentax-org/opentax/tree/main/src/rules/2025" target="_blank" rel="noopener"
+           class="inline-flex items-center gap-2 bg-brand hover:bg-brand-light text-white font-semibold px-8 py-3.5 rounded-xl transition-colors shadow-lg">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+          Browse source code
+        </a>
+        <a href="irs-sources.html"
+           class="inline-flex items-center gap-2 bg-white border border-gray-300 hover:bg-gray-50 font-semibold px-8 py-3.5 rounded-xl transition-colors text-gray-700">
+          View IRS citations
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────── Footer ───────────────── -->
+  <footer class="max-w-6xl mx-auto px-6 py-10">
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
+      <div class="flex items-center gap-2">
+        <img src="../favicon.svg" alt="OpenTax" class="w-5 h-5" />
+        <span class="font-medium text-gray-700">OpenTax</span>
+        <span class="text-gray-300">|</span>
+        <span>MIT License</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <a href="../privacy.html" class="hover:text-brand transition-colors">Privacy</a>
+        <span class="text-gray-300">|</span>
+        <span>Not affiliated with the IRS</span>
+        <span class="text-gray-300">|</span>
+        <a href="https://github.com/opentax-org/opentax" target="_blank" rel="noopener" class="hover:text-brand transition-colors">GitHub</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

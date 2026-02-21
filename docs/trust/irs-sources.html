@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IRS Publications &amp; Citations — OpenTax Trust Center</title>
+  <meta name="description" content="Every OpenTax computation node mapped to its authoritative IRS source. Cross-references Rev. Proc. 2024-40, Pub 501, IRC sections, and official form instructions." />
+
+  <meta property="og:title" content="IRS Publications & Citations — OpenTax Trust Center" />
+  <meta property="og:description" content="Every OpenTax computation mapped to its authoritative IRS source. Rev. Proc. 2024-40, Pub 501, IRC sections, and form instructions." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://opentax-org.github.io/opentax/trust/irs-sources.html" />
+
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          colors: {
+            brand: { DEFAULT: '#1e40af', light: '#2563eb' },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+  </style>
+</head>
+<body class="font-sans text-gray-900 antialiased">
+
+  <!-- ───────────────── Nav ───────────────── -->
+  <nav class="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-200">
+    <div class="max-w-6xl mx-auto flex items-center justify-between px-6 py-4">
+      <a href="../" class="flex items-center gap-3">
+        <img src="../favicon.svg" alt="OpenTax logo" class="w-7 h-7" />
+        <span class="text-lg font-bold tracking-tight">OpenTax</span>
+      </a>
+      <div class="flex items-center gap-6 text-sm font-medium text-gray-600">
+        <a href="./" class="hover:text-brand transition-colors hidden sm:inline">Trust Center</a>
+        <a href="../" class="hover:text-brand transition-colors hidden sm:inline">Home</a>
+        <a href="https://github.com/opentax-org/opentax" target="_blank" rel="noopener"
+           class="inline-flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg transition-colors text-gray-700">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+          GitHub
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ───────────────── Header ───────────────── -->
+  <section class="bg-gray-50 border-b border-gray-200">
+    <div class="max-w-6xl mx-auto px-6 py-12 sm:py-16">
+      <nav class="text-sm text-gray-500 mb-4">
+        <a href="./" class="hover:text-brand transition-colors">Trust Center</a>
+        <span class="mx-2">/</span>
+        <span class="text-gray-900 font-medium">IRS Sources</span>
+      </nav>
+      <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4">IRS Publications &amp; Citations</h1>
+      <p class="text-gray-600 text-lg max-w-3xl leading-relaxed">
+        Every computation in the OpenTax rules engine maps to an authoritative IRS source. The table below shows which publications, revenue procedures, and IRC sections govern each category of calculations, along with the source files you can audit on GitHub.
+      </p>
+    </div>
+  </section>
+
+  <!-- ───────────────── Sources Table ───────────────── -->
+  <section class="max-w-6xl mx-auto px-6 py-12 sm:py-16">
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left">
+        <thead>
+          <tr class="border-b-2 border-gray-200">
+            <th class="py-3 pr-4 font-semibold text-gray-900 whitespace-nowrap">Category</th>
+            <th class="py-3 pr-4 font-semibold text-gray-900">IRS Sources Cited</th>
+            <th class="py-3 pr-4 font-semibold text-gray-900 whitespace-nowrap">Engine Files</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          <!-- Row 1 -->
+          <tr class="hover:bg-gray-50 transition-colors">
+            <td class="py-4 pr-4 font-medium text-gray-900 align-top whitespace-nowrap">Filing status &amp; standard deduction</td>
+            <td class="py-4 pr-4 text-gray-600 align-top">
+              <a href="https://www.irs.gov/irb/2024-44_IRB#REV-PROC-2024-40" target="_blank" rel="noopener" class="text-brand hover:underline">Rev. Proc. 2024-40</a> &sect;3.01 (standard deduction amounts)<br>
+              <a href="https://www.irs.gov/publications/p501" target="_blank" rel="noopener" class="text-brand hover:underline">Publication 501</a> (dependents, standard deduction, filing info)<br>
+              One Big Beautiful Bill Act (OBBBA) &sect;70102 (2025 increase)
+            </td>
+            <td class="py-4 pr-4 align-top">
+              <a href="https://github.com/opentax-org/opentax/blob/main/src/rules/2025/constants.ts" target="_blank" rel="noopener" class="text-brand hover:underline font-mono text-xs">constants.ts</a><br>
+              <a href="https://github.com/opentax-org/opentax/blob/main/src/rules/2025/form1040.ts" target="_blank" rel="noopener" class="text-brand hover:underline font-mono text-xs">form1040.ts</a>
+            </td>
+          </tr>
+          <!-- Row 2 -->
+          <tr class="hover:bg-gray-50 transition-colors">
+            <td class="py-4 pr-4 font-medium text-gray-900 align-top whitespace-nowrap">Tax brackets &amp; rates</td>
+            <td class="py-4 pr-4 text-gray-600 align-top">
+              <a href="https://www.irs.gov/irb/2024-44_IRB#REV-PROC-2024-40" target="_blank" rel="noopener" class="text-brand hover:underline">Rev. Proc. 2024-40</a> &sect;3 (rate tables)<br>
+              2025 Form 1040 Instructions (Tax Computation Worksheet)
+            </td>
+            <td class="py-4 pr-4 align-top">
+              <a href="https://github.com/opentax-org/opentax/blob/main/src/rules/2025/taxComputation.ts" target="_blank" rel="noopener" class="text-brand hover:underline font-mono text-xs">taxComputation.ts</a><br>
+              <a href="https://github.com/opentax-org/opentax/blob/main/src/rules/2025/constants.ts" target="_blank" rel="noopener" class="text-brand hover:underline font-mono text-xs">constants.ts</a>
+            </td>
+          </tr>
+          <!-- Row 3 -->
+          <tr class="hover:bg-gray-50 transition-colors">
+            <td class="py-4 pr-4 font-medium text-gray-900 align-top whitespace-nowrap">Child Tax Credit</td>
+            <td class="py-4 pr-4 text-gray-600 align-top">
+              <a href="https://www.law.cornell.edu/uscode/text/26/24" target="_blank" rel="noopener" class="text-brand hover:underline">IRC &sect;24</a> (credit amount, qualifying child definition)<br>
+              <a href="https://www.irs.gov/publications/p972" target="_blank" rel="noopener" class="text-brand hover:underline">Publication 972</a> (Child Tax Credit worksheet)<br>
+              OBBBA &sect;70101 (2025 increase to $2,200)
+            </td>
+            <td class="py-4 pr-4 align-top">
+              <a href="https://github.com/opentax-org/opentax/blob/main/src/rules/2025/childTaxCredit.ts" target="_blank" rel="noopener" class="text-brand hover:underline font-mono text-xs">childTaxCredit.ts</a>
+            </td>
+          </tr>
+          <!-- Row 4 -->
+          <tr class="hover:bg-gray-50 transition-colors">
+            <td class="py-4 pr-4 font-medium text-gray-900 align-top whitespace-nowrap">Earned Income Credit</td>
+            <td class="py-4 pr-4 text-gray-600 align-top">
+              <a href="https://www.law.cornell.edu/uscode/text/26/32" target="_blank" rel="noopener" class="text-brand hover:underline">IRC &sect;32</a> (earned income credit rules)<br>
+              <a href="https://www.irs.gov/publications/p596" target="_blank" rel="noopener" class="text-brand hover:underline">Publication 596</a> (EITC eligibility &amp; worksheet)<br>
+              <a href="https://www.irs.gov/irb/2024-44_IRB#REV-PROC-2024-40" target="_blank" rel="noopener" class="text-brand hover:underline">Rev. Proc. 2024-40</a> &sect;3.10 (2025 thresholds)
+            </td>
+            <td class="py-4 pr-4 align-top">
+              <a href="https://github.com/opentax-org/opentax/blob/main/src/rules/2025/earnedIncomeCredit.ts" target="_blank" rel="noopener" class="text-brand hover:underline font-mono text-xs">earnedIncomeCredit.ts</a>
+            </td>
+          </tr>
+          <!-- Row 5 -->
+          <tr class="hover:bg-gray-50 transition-colors">
+            <td class="py-4 pr-4 font-medium text-gray-900 align-top whitespace-nowrap">Capital gains &amp; losses</td>
+            <td class="py-4 pr-4 text-gray-600 align-top">
+              <a href="https://www.law.cornell.edu/uscode/text/26/1" target="_blank" rel="noopener" class="text-brand hover:underline">IRC &sect;1(h)</a> (capital gains rate structure)<br>
+              <a href="https://www.irs.gov/publications/p550" target="_blank" rel="noopener" class="text-brand hover:underline">Publication 550</a> (investment income &amp; expenses)<br>
+              2025 Schedule D &amp; Form 8949 Instructions
+            </td>
+            <td class="py-4 pr-4 align-top">
+              <a href="https://github.com/opentax-org/opentax/blob/main/src/rules/2025/scheduleD.ts" target="_blank" rel="noopener" class="text-brand hover:underline font-mono text-xs">scheduleD.ts</a><br>
+              <a href="https://github.com/opentax-org/opentax/blob/main/src/rules/2025/form8949.ts" target="_blank" rel="noopener" class="text-brand hover:underline font-mono text-xs">form8949.ts</a>
+            </td>
+          </tr>
+          <!-- Row 6 -->
+          <tr class="hover:bg-gray-50 transition-colors">
+            <td class="py-4 pr-4 font-medium text-gray-900 align-top whitespace-nowrap">Wash sale rules</td>
+            <td class="py-4 pr-4 text-gray-600 align-top">
+              <a href="https://www.law.cornell.edu/uscode/text/26/1091" target="_blank" rel="noopener" class="text-brand hover:underline">IRC &sect;1091</a> (loss disallowance on substantially identical securities)<br>
+              <a href="https://www.irs.gov/publications/p550" target="_blank" rel="noopener" class="text-brand hover:underline">Publication 550</a>, Chapter 4 (wash sale guidance)
+            </td>
+            <td class="py-4 pr-4 align-top">
+              <a href="https://github.com/opentax-org/opentax/blob/main/src/rules/2025/washSale.ts" target="_blank" rel="noopener" class="text-brand hover:underline font-mono text-xs">washSale.ts</a>
+            </td>
+          </tr>
+          <!-- Row 7 -->
+          <tr class="hover:bg-gray-50 transition-colors">
+            <td class="py-4 pr-4 font-medium text-gray-900 align-top whitespace-nowrap">Itemized deductions</td>
+            <td class="py-4 pr-4 text-gray-600 align-top">
+              <a href="https://www.law.cornell.edu/uscode/text/26/63" target="_blank" rel="noopener" class="text-brand hover:underline">IRC &sect;63</a> (taxable income defined),
+              <a href="https://www.law.cornell.edu/uscode/text/26/170" target="_blank" rel="noopener" class="text-brand hover:underline">IRC &sect;170</a> (charitable),
+              <a href="https://www.law.cornell.edu/uscode/text/26/213" target="_blank" rel="noopener" class="text-brand hover:underline">IRC &sect;213</a> (medical)<br>
+              <a href="https://www.irs.gov/publications/p502" target="_blank" rel="noopener" class="text-brand hover:underline">Publication 502</a> (medical expenses),
+              <a href="https://www.irs.gov/publications/p526" target="_blank" rel="noopener" class="text-brand hover:underline">Publication 526</a> (charitable contributions)<br>
+              2025 Schedule A Instructions; OBBBA &sect;&sect; (SALT cap adjustments)
+            </td>
+            <td class="py-4 pr-4 align-top">
+              <a href="https://github.com/opentax-org/opentax/blob/main/src/rules/2025/scheduleA.ts" target="_blank" rel="noopener" class="text-brand hover:underline font-mono text-xs">scheduleA.ts</a>
+            </td>
+          </tr>
+          <!-- Row 8 -->
+          <tr class="hover:bg-gray-50 transition-colors">
+            <td class="py-4 pr-4 font-medium text-gray-900 align-top whitespace-nowrap">HSA deductions</td>
+            <td class="py-4 pr-4 text-gray-600 align-top">
+              <a href="https://www.law.cornell.edu/uscode/text/26/223" target="_blank" rel="noopener" class="text-brand hover:underline">IRC &sect;223</a> (HSA eligibility, limits, distributions)<br>
+              <a href="https://www.irs.gov/publications/p969" target="_blank" rel="noopener" class="text-brand hover:underline">Publication 969</a> (HSA and HDHP guide)<br>
+              <a href="https://www.irs.gov/irb/2024-22_IRB#REV-PROC-2024-25" target="_blank" rel="noopener" class="text-brand hover:underline">Rev. Proc. 2024-25</a> (2025 HSA contribution limits)
+            </td>
+            <td class="py-4 pr-4 align-top">
+              <a href="https://github.com/opentax-org/opentax/blob/main/src/rules/2025/hsaDeduction.ts" target="_blank" rel="noopener" class="text-brand hover:underline font-mono text-xs">hsaDeduction.ts</a>
+            </td>
+          </tr>
+          <!-- Row 9 -->
+          <tr class="hover:bg-gray-50 transition-colors">
+            <td class="py-4 pr-4 font-medium text-gray-900 align-top">Alternative Minimum Tax (AMT)</td>
+            <td class="py-4 pr-4 text-gray-600 align-top">
+              <a href="https://www.law.cornell.edu/uscode/text/26/55" target="_blank" rel="noopener" class="text-brand hover:underline">IRC &sect;&sect;55&ndash;59</a> (AMT rules &amp; exemptions)<br>
+              2025 Form 6251 Instructions (computation worksheet)
+            </td>
+            <td class="py-4 pr-4 align-top">
+              <a href="https://github.com/opentax-org/opentax/blob/main/src/rules/2025/amt.ts" target="_blank" rel="noopener" class="text-brand hover:underline font-mono text-xs">amt.ts</a>
+            </td>
+          </tr>
+          <!-- Row 10 -->
+          <tr class="hover:bg-gray-50 transition-colors">
+            <td class="py-4 pr-4 font-medium text-gray-900 align-top whitespace-nowrap">Education credits</td>
+            <td class="py-4 pr-4 text-gray-600 align-top">
+              <a href="https://www.law.cornell.edu/uscode/text/26/25A" target="_blank" rel="noopener" class="text-brand hover:underline">IRC &sect;25A</a> (AOTC &amp; Lifetime Learning Credit)<br>
+              <a href="https://www.irs.gov/publications/p970" target="_blank" rel="noopener" class="text-brand hover:underline">Publication 970</a> (tax benefits for education)<br>
+              2025 Form 8863 Instructions
+            </td>
+            <td class="py-4 pr-4 align-top">
+              <a href="https://github.com/opentax-org/opentax/blob/main/src/rules/2025/educationCredit.ts" target="_blank" rel="noopener" class="text-brand hover:underline font-mono text-xs">educationCredit.ts</a>
+            </td>
+          </tr>
+          <!-- Row 11 -->
+          <tr class="hover:bg-gray-50 transition-colors">
+            <td class="py-4 pr-4 font-medium text-gray-900 align-top whitespace-nowrap">Saver's Credit</td>
+            <td class="py-4 pr-4 text-gray-600 align-top">
+              <a href="https://www.law.cornell.edu/uscode/text/26/25B" target="_blank" rel="noopener" class="text-brand hover:underline">IRC &sect;25B</a> (retirement savings contribution credit)<br>
+              2025 Form 8880 Instructions
+            </td>
+            <td class="py-4 pr-4 align-top">
+              <a href="https://github.com/opentax-org/opentax/blob/main/src/rules/2025/saversCredit.ts" target="_blank" rel="noopener" class="text-brand hover:underline font-mono text-xs">saversCredit.ts</a>
+            </td>
+          </tr>
+          <!-- Row 12 -->
+          <tr class="hover:bg-gray-50 transition-colors">
+            <td class="py-4 pr-4 font-medium text-gray-900 align-top whitespace-nowrap">Dependent care credit</td>
+            <td class="py-4 pr-4 text-gray-600 align-top">
+              <a href="https://www.law.cornell.edu/uscode/text/26/21" target="_blank" rel="noopener" class="text-brand hover:underline">IRC &sect;21</a> (expenses for household and dependent care services)<br>
+              2025 Form 2441 Instructions
+            </td>
+            <td class="py-4 pr-4 align-top">
+              <a href="https://github.com/opentax-org/opentax/blob/main/src/rules/2025/dependentCareCredit.ts" target="_blank" rel="noopener" class="text-brand hover:underline font-mono text-xs">dependentCareCredit.ts</a>
+            </td>
+          </tr>
+          <!-- Row 13 -->
+          <tr class="hover:bg-gray-50 transition-colors">
+            <td class="py-4 pr-4 font-medium text-gray-900 align-top whitespace-nowrap">Energy credits</td>
+            <td class="py-4 pr-4 text-gray-600 align-top">
+              IRC &sect;25C (energy-efficient home improvement credit)<br>
+              IRC &sect;25D (residential clean energy credit)<br>
+              2025 Form 5695 Instructions
+            </td>
+            <td class="py-4 pr-4 align-top">
+              <a href="https://github.com/opentax-org/opentax/blob/main/src/rules/2025/energyCredit.ts" target="_blank" rel="noopener" class="text-brand hover:underline font-mono text-xs">energyCredit.ts</a>
+            </td>
+          </tr>
+          <!-- Row 14 -->
+          <tr class="hover:bg-gray-50 transition-colors">
+            <td class="py-4 pr-4 font-medium text-gray-900 align-top whitespace-nowrap">IRA deductions</td>
+            <td class="py-4 pr-4 text-gray-600 align-top">
+              <a href="https://www.law.cornell.edu/uscode/text/26/219" target="_blank" rel="noopener" class="text-brand hover:underline">IRC &sect;219</a> (retirement savings deduction)<br>
+              <a href="https://www.irs.gov/publications/p590a" target="_blank" rel="noopener" class="text-brand hover:underline">Publication 590-A</a> (contributions to IRAs)
+            </td>
+            <td class="py-4 pr-4 align-top">
+              <a href="https://github.com/opentax-org/opentax/blob/main/src/rules/2025/iraDeduction.ts" target="_blank" rel="noopener" class="text-brand hover:underline font-mono text-xs">iraDeduction.ts</a>
+            </td>
+          </tr>
+          <!-- Row 15 -->
+          <tr class="hover:bg-gray-50 transition-colors">
+            <td class="py-4 pr-4 font-medium text-gray-900 align-top whitespace-nowrap">Student loan interest</td>
+            <td class="py-4 pr-4 text-gray-600 align-top">
+              <a href="https://www.law.cornell.edu/uscode/text/26/221" target="_blank" rel="noopener" class="text-brand hover:underline">IRC &sect;221</a> (interest on education loans)<br>
+              <a href="https://www.irs.gov/publications/p970" target="_blank" rel="noopener" class="text-brand hover:underline">Publication 970</a>, Chapter 4
+            </td>
+            <td class="py-4 pr-4 align-top">
+              <a href="https://github.com/opentax-org/opentax/blob/main/src/rules/2025/studentLoanDeduction.ts" target="_blank" rel="noopener" class="text-brand hover:underline font-mono text-xs">studentLoanDeduction.ts</a>
+            </td>
+          </tr>
+          <!-- Row 16 -->
+          <tr class="hover:bg-gray-50 transition-colors">
+            <td class="py-4 pr-4 font-medium text-gray-900 align-top whitespace-nowrap">RSU basis adjustment</td>
+            <td class="py-4 pr-4 text-gray-600 align-top">
+              <a href="https://www.irs.gov/publications/p525" target="_blank" rel="noopener" class="text-brand hover:underline">Publication 525</a> (taxable and nontaxable income)<br>
+              Form 8949 Instructions (Code B adjustment for incorrect basis)
+            </td>
+            <td class="py-4 pr-4 align-top">
+              <a href="https://github.com/opentax-org/opentax/blob/main/src/rules/2025/rsuAdjustment.ts" target="_blank" rel="noopener" class="text-brand hover:underline font-mono text-xs">rsuAdjustment.ts</a>
+            </td>
+          </tr>
+          <!-- Row 17 -->
+          <tr class="hover:bg-gray-50 transition-colors">
+            <td class="py-4 pr-4 font-medium text-gray-900 align-top whitespace-nowrap">Interest &amp; dividends</td>
+            <td class="py-4 pr-4 text-gray-600 align-top">
+              2025 Schedule B Instructions (interest &amp; ordinary dividends reporting threshold)
+            </td>
+            <td class="py-4 pr-4 align-top">
+              <a href="https://github.com/opentax-org/opentax/blob/main/src/rules/2025/scheduleB.ts" target="_blank" rel="noopener" class="text-brand hover:underline font-mono text-xs">scheduleB.ts</a>
+            </td>
+          </tr>
+          <!-- Row 18 -->
+          <tr class="hover:bg-gray-50 transition-colors">
+            <td class="py-4 pr-4 font-medium text-gray-900 align-top whitespace-nowrap">Rental income</td>
+            <td class="py-4 pr-4 text-gray-600 align-top">
+              <a href="https://www.law.cornell.edu/uscode/text/26/469" target="_blank" rel="noopener" class="text-brand hover:underline">IRC &sect;469(i)</a> (passive activity loss rules &amp; $25K allowance)<br>
+              <a href="https://www.irs.gov/publications/p527" target="_blank" rel="noopener" class="text-brand hover:underline">Publication 527</a> (residential rental property)<br>
+              2025 Schedule E Instructions (Part I)
+            </td>
+            <td class="py-4 pr-4 align-top">
+              <a href="https://github.com/opentax-org/opentax/blob/main/src/rules/2025/scheduleE.ts" target="_blank" rel="noopener" class="text-brand hover:underline font-mono text-xs">scheduleE.ts</a>
+            </td>
+          </tr>
+          <!-- Row 19 -->
+          <tr class="hover:bg-gray-50 transition-colors">
+            <td class="py-4 pr-4 font-medium text-gray-900 align-top whitespace-nowrap">Additional income &amp; adjustments</td>
+            <td class="py-4 pr-4 text-gray-600 align-top">
+              2025 Schedule 1 Instructions (additional income and adjustments to income)
+            </td>
+            <td class="py-4 pr-4 align-top">
+              <a href="https://github.com/opentax-org/opentax/blob/main/src/rules/2025/schedule1.ts" target="_blank" rel="noopener" class="text-brand hover:underline font-mono text-xs">schedule1.ts</a>
+            </td>
+          </tr>
+          <!-- Row 20 -->
+          <tr class="hover:bg-gray-50 transition-colors">
+            <td class="py-4 pr-4 font-medium text-gray-900 align-top whitespace-nowrap">California 540</td>
+            <td class="py-4 pr-4 text-gray-600 align-top">
+              <a href="https://www.ftb.ca.gov/forms/2025/2025-540-booklet.html" target="_blank" rel="noopener" class="text-brand hover:underline">FTB Publication 1001</a> (supplemental guidelines to CA adjustments)<br>
+              CA Revenue &amp; Taxation Code (tax rates, exemption credits, mental health tax)
+            </td>
+            <td class="py-4 pr-4 align-top">
+              <span class="font-mono text-xs text-gray-500">ca/form540.ts</span><br>
+              <span class="font-mono text-xs text-gray-500">ca/constants.ts</span>
+            </td>
+          </tr>
+          <!-- Row 21 -->
+          <tr class="hover:bg-gray-50 transition-colors">
+            <td class="py-4 pr-4 font-medium text-gray-900 align-top whitespace-nowrap">Form 1040 (master return)</td>
+            <td class="py-4 pr-4 text-gray-600 align-top">
+              2025 Form 1040 Instructions (line-by-line computation guide)<br>
+              QDCG Tax Worksheet (qualified dividends and capital gain tax)
+            </td>
+            <td class="py-4 pr-4 align-top">
+              <a href="https://github.com/opentax-org/opentax/blob/main/src/rules/2025/form1040.ts" target="_blank" rel="noopener" class="text-brand hover:underline font-mono text-xs">form1040.ts</a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Note -->
+    <div class="mt-10 bg-blue-50 border border-blue-200 rounded-xl p-5 text-sm text-blue-900">
+      <div class="flex gap-3">
+        <svg class="w-5 h-5 text-blue-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <div>
+          <strong>How to read this table:</strong> Each row represents a category of tax computation. The &ldquo;IRS Sources Cited&rdquo; column links to the official IRS publication or code section that governs the calculation. The &ldquo;Engine Files&rdquo; column links to the TypeScript source file on GitHub where the computation is implemented. You can verify every calculation by cross-referencing these two sources.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────── Navigation ───────────────── -->
+  <section class="bg-gray-50 border-y border-gray-200">
+    <div class="max-w-4xl mx-auto px-6 py-12 text-center">
+      <p class="text-gray-600 mb-6">Next: see how these rules perform against real-world tax scenarios.</p>
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <a href="scenarios.html"
+           class="inline-flex items-center gap-2 bg-brand hover:bg-brand-light text-white font-semibold px-8 py-3.5 rounded-xl transition-colors shadow-lg">
+          View validated scenarios
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+        </a>
+        <a href="./"
+           class="inline-flex items-center gap-2 bg-white border border-gray-300 hover:bg-gray-50 font-semibold px-8 py-3.5 rounded-xl transition-colors text-gray-700">
+          Back to Trust Center
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────── Footer ───────────────── -->
+  <footer class="max-w-6xl mx-auto px-6 py-10">
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
+      <div class="flex items-center gap-2">
+        <img src="../favicon.svg" alt="OpenTax" class="w-5 h-5" />
+        <span class="font-medium text-gray-700">OpenTax</span>
+        <span class="text-gray-300">|</span>
+        <span>MIT License</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <a href="../privacy.html" class="hover:text-brand transition-colors">Privacy</a>
+        <span class="text-gray-300">|</span>
+        <span>Not affiliated with the IRS</span>
+        <span class="text-gray-300">|</span>
+        <a href="https://github.com/opentax-org/opentax" target="_blank" rel="noopener" class="hover:text-brand transition-colors">GitHub</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
