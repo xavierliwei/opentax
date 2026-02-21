@@ -13,6 +13,12 @@ vi.mock('idb', () => ({
   ),
 }))
 
+// Mock pdfjs-dist to avoid DOMMatrix not defined in test environment
+vi.mock('pdfjs-dist', () => ({
+  getDocument: vi.fn(),
+  GlobalWorkerOptions: { workerSrc: '' },
+}))
+
 const { useTaxStore } = await import('../../../src/store/taxStore.ts')
 import { RSUIncomePage } from '../../../src/ui/pages/RSUIncomePage.tsx'
 import { DeductionsPage } from '../../../src/ui/pages/DeductionsPage.tsx'
@@ -183,6 +189,65 @@ describe('ReviewPage', () => {
     const explainLinks = screen.getAllByText('?')
     expect(explainLinks.length).toBeGreaterThan(0)
   })
+
+  it('shows state card with refund status when CA has overpaid', () => {
+    useTaxStore.getState().addW2({
+      id: 'w2-1',
+      employerEin: '12-3456789', employerName: 'Test Corp',
+      box1: 5000000, box2: 1500000, // $50k wages, $15k withheld
+      box3: 5000000, box4: 310000, box5: 5000000, box6: 72500,
+      box7: 0, box8: 0, box10: 0, box11: 0,
+      box12: [], box13StatutoryEmployee: false, box13RetirementPlan: false, box13ThirdPartySickPay: false,
+      box14: '',
+      box15State: 'CA',
+      box17StateIncomeTax: 300000, // $3,000 CA withholding
+    })
+    useTaxStore.getState().addStateReturn({ stateCode: 'CA', residencyType: 'full-year' })
+
+    renderWithRouter(<ReviewPage />, { route: '/review' })
+    const stateCard = screen.getByTestId('state-card-CA')
+    expect(stateCard).toBeDefined()
+    // Should show refund or owed status
+    const statusEl = screen.getByTestId('state-status-CA')
+    expect(statusEl.textContent).toMatch(/^(Refund|Amount Owed|Balanced)/)
+  })
+
+  it('shows state card with amount owed when CA has underpaid', () => {
+    useTaxStore.getState().addW2({
+      id: 'w2-1',
+      employerEin: '12-3456789', employerName: 'Test Corp',
+      box1: 10000000, box2: 100000, // $100k wages, $1k withheld
+      box3: 10000000, box4: 620000, box5: 10000000, box6: 145000,
+      box7: 0, box8: 0, box10: 0, box11: 0,
+      box12: [], box13StatutoryEmployee: false, box13RetirementPlan: false, box13ThirdPartySickPay: false,
+      box14: '',
+      box15State: 'CA',
+      box17StateIncomeTax: 10000, // $100 CA withholding — way too little
+    })
+    useTaxStore.getState().addStateReturn({ stateCode: 'CA', residencyType: 'full-year' })
+
+    renderWithRouter(<ReviewPage />, { route: '/review' })
+    const statusEl = screen.getByTestId('state-status-CA')
+    expect(statusEl.textContent).toMatch(/^Amount Owed/)
+  })
+
+  it('shows View CA Return link in state card', () => {
+    useTaxStore.getState().addW2({
+      id: 'w2-1',
+      employerEin: '', employerName: '',
+      box1: 5000000, box2: 600000,
+      box3: 0, box4: 0, box5: 0, box6: 0, box7: 0, box8: 0, box10: 0, box11: 0,
+      box12: [], box13StatutoryEmployee: false, box13RetirementPlan: false, box13ThirdPartySickPay: false,
+      box14: '',
+      box15State: 'CA',
+      box17StateIncomeTax: 100000,
+    })
+    useTaxStore.getState().addStateReturn({ stateCode: 'CA', residencyType: 'full-year' })
+
+    renderWithRouter(<ReviewPage />, { route: '/review' })
+    const link = screen.getByText('View CA Return')
+    expect(link.getAttribute('href')).toBe('/interview/state-review-CA')
+  })
 })
 
 // ── Download Page ───────────────────────────────────────────────
@@ -217,6 +282,52 @@ describe('DownloadPage', () => {
     expect(
       screen.getByText(/This PDF is for review only/),
     ).toBeDefined()
+  })
+
+  it('shows disabled state download button before generation when state return exists', () => {
+    useTaxStore.getState().addW2({
+      id: 'w2-1',
+      employerEin: '', employerName: '',
+      box1: 5000000, box2: 600000,
+      box3: 0, box4: 0, box5: 0, box6: 0, box7: 0, box8: 0, box10: 0, box11: 0,
+      box12: [], box13StatutoryEmployee: false, box13RetirementPlan: false, box13ThirdPartySickPay: false,
+      box14: '',
+      box15State: 'CA',
+      box17StateIncomeTax: 100000,
+    })
+    useTaxStore.getState().addStateReturn({ stateCode: 'CA', residencyType: 'full-year' })
+
+    renderWithRouter(<DownloadPage />, { route: '/download' })
+    // State download section should be visible
+    expect(screen.getByTestId('state-download-section')).toBeDefined()
+    // State download button should exist but be disabled
+    const btn = screen.getByTestId('download-state-CA')
+    expect(btn).toBeDefined()
+    expect(btn.hasAttribute('disabled')).toBe(true)
+    // Helper text should be visible
+    expect(screen.getByText('Generate package first')).toBeDefined()
+  })
+
+  it('does not show state download section when no state returns', () => {
+    renderWithRouter(<DownloadPage />, { route: '/download' })
+    expect(screen.queryByTestId('state-download-section')).toBeNull()
+  })
+
+  it('shows Download All button label when state return exists', () => {
+    useTaxStore.getState().addW2({
+      id: 'w2-1',
+      employerEin: '', employerName: '',
+      box1: 5000000, box2: 600000,
+      box3: 0, box4: 0, box5: 0, box6: 0, box7: 0, box8: 0, box10: 0, box11: 0,
+      box12: [], box13StatutoryEmployee: false, box13RetirementPlan: false, box13ThirdPartySickPay: false,
+      box14: '',
+      box15State: 'CA',
+      box17StateIncomeTax: 100000,
+    })
+    useTaxStore.getState().addStateReturn({ stateCode: 'CA', residencyType: 'full-year' })
+
+    renderWithRouter(<DownloadPage />, { route: '/download' })
+    expect(screen.getByText('Download All (Federal + State)')).toBeDefined()
   })
 })
 
