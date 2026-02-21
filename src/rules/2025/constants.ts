@@ -23,11 +23,11 @@ function c(dollars: number): number {
 // Source: Rev. Proc. 2024-40, §3.01
 
 export const STANDARD_DEDUCTION: Record<FilingStatus, number> = {
-  single: c(15000),
-  mfj:    c(30000),
-  mfs:    c(15000),
-  hoh:    c(22500),
-  qw:     c(30000),
+  single: c(15750),
+  mfj:    c(31500),
+  mfs:    c(15750),
+  hoh:    c(23625),
+  qw:     c(31500),
 }
 
 // Additional standard deduction for age 65+ or blind (per person, per condition)
@@ -245,7 +245,7 @@ export const CAPITAL_LOSS_LIMIT: Record<FilingStatus, number> = {
 // Source: IRC §24, as modified by Tax Cuts and Jobs Act (2017)
 // One Big Beautiful Bill Act extended CTC provisions through 2028
 
-export const CTC_PER_QUALIFYING_CHILD    = c(2000)   // $2,000 per child under 17
+export const CTC_PER_QUALIFYING_CHILD    = c(2200)   // $2,200 per child under 17 (OBBBA §70101)
 export const CTC_PER_OTHER_DEPENDENT     = c(500)    // $500 per other dependent
 export const CTC_REFUNDABLE_MAX_PER_CHILD = c(1700)  // Max refundable per child (Form 8812)
 export const CTC_EARNED_INCOME_THRESHOLD = c(2500)   // Earned income floor for refundable calc
@@ -309,11 +309,11 @@ export interface SaversCreditThreshold {
 }
 
 export const SAVERS_CREDIT_THRESHOLDS: Record<FilingStatus, SaversCreditThreshold> = {
-  single: { rate50: c(23750),  rate20: c(25500),  rate10: c(39000) },
-  mfs:    { rate50: c(23750),  rate20: c(25500),  rate10: c(39000) },
-  hoh:    { rate50: c(35625),  rate20: c(38250),  rate10: c(58500) },
-  mfj:    { rate50: c(47500),  rate20: c(51000),  rate10: c(78000) },
-  qw:     { rate50: c(47500),  rate20: c(51000),  rate10: c(78000) },
+  single: { rate50: c(23750),  rate20: c(25500),  rate10: c(39500) },
+  mfs:    { rate50: c(23750),  rate20: c(25500),  rate10: c(39500) },
+  hoh:    { rate50: c(35625),  rate20: c(38250),  rate10: c(59250) },
+  mfj:    { rate50: c(47500),  rate20: c(51000),  rate10: c(79000) },
+  qw:     { rate50: c(47500),  rate20: c(51000),  rate10: c(79000) },
 }
 
 export const SAVERS_CREDIT_MAX_CONTRIBUTION = c(2000)  // per person
@@ -371,11 +371,11 @@ export const AMT_PHASEOUT_THRESHOLD: Record<FilingStatus, number> = {
 export const AMT_PHASEOUT_RATE = 0.25  // exemption reduced by 25¢ per $1 over threshold
 
 export const AMT_28_PERCENT_THRESHOLD: Record<FilingStatus, number> = {
-  single: c(248300),
-  mfj:    c(248300),
-  mfs:    c(124150),
-  hoh:    c(248300),
-  qw:     c(248300),
+  single: c(239100),
+  mfj:    c(239100),
+  mfs:    c(119550),
+  hoh:    c(239100),
+  qw:     c(239100),
 }
 
 // ── IRA Deduction (Schedule 1, Line 20) ────────────────────────
