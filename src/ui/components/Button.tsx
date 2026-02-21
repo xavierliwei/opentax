@@ -15,10 +15,10 @@ const buttonVariants = cva(
         link:        'text-tax-blue underline-offset-4 hover:underline focus-visible:ring-tax-blue',
       },
       size: {
-        sm:   'h-7 px-2.5 text-xs',
-        md:   'h-9 px-4',
-        lg:   'h-10 px-6',
-        icon: 'h-7 w-7 p-0',
+        sm:   'h-9 sm:h-7 px-2.5 text-xs',
+        md:   'h-11 sm:h-9 px-4',
+        lg:   'h-12 sm:h-10 px-6',
+        icon: 'h-9 w-9 sm:h-7 sm:w-7 p-0',
       },
     },
     defaultVariants: {

@@ -98,7 +98,7 @@ export function Sidebar({ steps }: SidebarProps) {
               <NavLink
                 to={step.path}
                 className={({ isActive }) =>
-                  `flex items-center gap-2.5 px-3 py-2 text-sm rounded-md transition-colors ${
+                  `flex items-center gap-2.5 px-3 py-2.5 text-sm rounded-md transition-colors ${
                     isActive
                       ? 'bg-blue-50 text-blue-700 font-medium'
                       : step.isComplete
@@ -143,7 +143,7 @@ export function Sidebar({ steps }: SidebarProps) {
         <NavLink
           to="/dashboard"
           className={({ isActive }) =>
-            `flex items-center gap-2 px-3 py-2 rounded-md text-xs font-medium transition-colors ${
+            `flex items-center gap-2 px-3 py-2.5 rounded-md text-xs font-medium transition-colors ${
               isActive
                 ? 'bg-gray-100 text-gray-700'
                 : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'

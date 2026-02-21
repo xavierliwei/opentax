@@ -27,7 +27,7 @@ function BalancePill({ label, amount, explainNode, accent }: {
       </span>
       <Link
         to={`/explain/${explainNode}`}
-        className="text-xs font-medium text-brand hover:text-blue-700 underline underline-offset-2 decoration-brand/40 hover:decoration-brand transition-colors"
+        className="text-xs font-medium text-brand hover:text-blue-700 underline underline-offset-2 decoration-brand/40 hover:decoration-brand transition-colors py-2 -my-2 px-1 sm:py-0 sm:-my-0 sm:px-0"
       >
         Why?
       </Link>
@@ -117,7 +117,7 @@ export function LiveBalance() {
           </div>
           <Link
             to={`/explain/${fedExplainNode}`}
-            className="ml-2 text-xs font-medium text-brand hover:text-blue-700 underline underline-offset-2 decoration-brand/40 hover:decoration-brand transition-colors"
+            className="ml-2 text-xs font-medium text-brand hover:text-blue-700 underline underline-offset-2 decoration-brand/40 hover:decoration-brand transition-colors py-2 -my-2 px-1 sm:py-0 sm:-my-0 sm:px-0"
           >
             Why?
           </Link>

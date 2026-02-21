@@ -56,7 +56,7 @@ export function AppShell() {
         <header className="flex items-center gap-3 px-4 py-3 border-b border-gray-200 bg-white lg:hidden">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="p-1 -ml-1 text-gray-500 hover:text-gray-900"
+            className="flex items-center justify-center h-11 w-11 -ml-2 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 active:bg-gray-200 transition-colors"
             aria-label="Open sidebar"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -73,7 +73,7 @@ export function AppShell() {
         <LiveBalance />
 
         {/* Page content */}
-        <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto p-4 sm:p-6">
+        <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto p-4 sm:p-6 pb-20 sm:pb-6">
           <Outlet />
         </main>
       </div>

@@ -42,7 +42,7 @@ export function InfoTooltip({ explanation, pubName, pubUrl }: {
         onFocus={show}
         onBlur={hide}
         onClick={toggle}
-        className="text-gray-400 hover:text-blue-500 transition-colors focus:outline-none p-1 -m-1"
+        className="text-gray-400 hover:text-blue-500 transition-colors focus:outline-none p-3 -m-3 sm:p-1 sm:-m-1"
         aria-label="More information"
       >
         <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">

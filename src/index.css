@@ -9,3 +9,15 @@
   --color-sidebar: #f8fafc;
   --font-sans: "Inter", system-ui, sans-serif;
 }
+
+/* Mobile touch-target sizing: ensure form controls meet 44px minimum on touch devices */
+@media (max-width: 639px) {
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  input[type="email"],
+  input[type="tel"],
+  select {
+    min-height: 44px;
+  }
+}
