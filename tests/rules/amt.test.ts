@@ -144,7 +144,7 @@ describe('computeAMT — ISO exercises', () => {
     expect(result.line9_reducedExemption).toBe(AMT_EXEMPTION.single)
     // AMTI after exemption = $285K - $88,100 = $196,900
     expect(result.line10_amtiAfterExemption).toBe(cents(196900))
-    // TMT at 26% (below $248,300 threshold)
+    // TMT at 26% (below $239,100 threshold)
     expect(result.tentativeMinimumTax).toBe(Math.round(cents(196900) * 0.26))
     // AMT = TMT - regular tax
     expect(result.amt).toBe(Math.max(0, result.tentativeMinimumTax - regTax))
@@ -277,7 +277,7 @@ describe('computeAMT — MFS filing status', () => {
   })
 
   it('MFS 28% bracket threshold is halved', () => {
-    // MFS 28% threshold = $124,150
+    // MFS 28% threshold = $119,550
     const taxableIncome = cents(400000)
     const regTax = regularTax(taxableIncome, 'mfs')
     const result = computeAMT(
@@ -385,12 +385,12 @@ describe('computeAMT — combined preference items', () => {
 
 describe('computeAMT — bracket boundary', () => {
   it('AMTI after exemption exactly at 28% threshold: all taxed at 26%', () => {
-    // Single: 28% threshold = $248,300
-    // We need AMTI after exemption = $248,300
+    // Single: 28% threshold = $239,100
+    // We need AMTI after exemption = $239,100
     // AMTI after exemption = max(0, AMTI - reducedExemption)
     // If AMTI < phase-out threshold, reducedExemption = $88,100
-    // So AMTI = $248,300 + $88,100 = $336,400
-    const amti = cents(336400)
+    // So AMTI = $239,100 + $88,100 = $327,200
+    const amti = cents(327200)
     const result = computeAMT(
       amti, 0, 'single',
       0, [], 0, 0, 0,
@@ -401,7 +401,7 @@ describe('computeAMT — bracket boundary', () => {
   })
 
   it('AMTI after exemption $1 above 28% threshold', () => {
-    const amti = cents(336400) + 1 // 1 cent above
+    const amti = cents(327200) + 1 // 1 cent above
     const result = computeAMT(
       amti, 0, 'single',
       0, [], 0, 0, 0,

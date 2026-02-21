@@ -177,7 +177,7 @@ describe('isOtherDependent', () => {
 // ── computeChildTaxCredit ──────────────────────────────────────
 
 describe('computeChildTaxCredit', () => {
-  it('two children below threshold: $4,000 credit, fully non-refundable', () => {
+  it('two children below threshold: $4,400 credit, fully non-refundable', () => {
     // AGI $120K, MFJ threshold $400K → no phase-out
     // Tax liability high enough to absorb full credit
     const deps = [
@@ -188,40 +188,40 @@ describe('computeChildTaxCredit', () => {
 
     expect(result.numQualifyingChildren).toBe(2)
     expect(result.numOtherDependents).toBe(0)
-    expect(result.initialCredit).toBe(cents(4000))
+    expect(result.initialCredit).toBe(cents(4400))
     expect(result.phaseOutReduction).toBe(0)
-    expect(result.creditAfterPhaseOut).toBe(cents(4000))
-    expect(result.nonRefundableCredit).toBe(cents(4000))
+    expect(result.creditAfterPhaseOut).toBe(cents(4400))
+    expect(result.nonRefundableCredit).toBe(cents(4400))
     expect(result.additionalCTC).toBe(0)
   })
 
   it('AGI phase-out: single $250K, 1 child → fully phased out', () => {
     // Excess = $250K - $200K = $50K → 50 × $50 = $2,500 reduction
-    // Initial = $2,000 → after phase-out = max(0, 2000 - 2500) = $0
+    // Initial = $2,200 → after phase-out = max(0, 2200 - 2500) = $0
     const deps = [
       makeDependent({ firstName: 'C', dateOfBirth: '2012-06-01', relationship: 'son' }),
     ]
     const result = computeChildTaxCredit(deps, 'single', cents(250000), cents(30000), cents(250000))
 
-    expect(result.initialCredit).toBe(cents(2000))
-    expect(result.phaseOutReduction).toBe(cents(2000)) // capped at initial
+    expect(result.initialCredit).toBe(cents(2200))
+    expect(result.phaseOutReduction).toBe(cents(2200)) // capped at initial
     expect(result.creditAfterPhaseOut).toBe(0)
     expect(result.nonRefundableCredit).toBe(0)
     expect(result.additionalCTC).toBe(0)
   })
 
   it('tax liability < CTC → Additional CTC kicks in', () => {
-    // Low income: tax = $800, credit = $2,000, earned income = $20,000
-    // Non-refundable = min($2,000, $800) = $800
+    // Low income: tax = $800, credit = $2,200, earned income = $20,000
+    // Non-refundable = min($2,200, $800) = $800
     // Refundable: min($1,700, (20000 - 2500) × 15% = $2,625) = $1,700
-    // Capped at unused: min($1,700, $2,000 - $800) = $1,200
+    // Capped at unused: min($1,700, $2,200 - $800) = $1,400
     const deps = [
       makeDependent({ firstName: 'D', dateOfBirth: '2016-01-15', relationship: 'daughter' }),
     ]
     const result = computeChildTaxCredit(deps, 'single', cents(20000), cents(800), cents(20000))
 
     expect(result.nonRefundableCredit).toBe(cents(800))
-    expect(result.additionalCTC).toBe(cents(1200))
+    expect(result.additionalCTC).toBe(cents(1400))
   })
 
   it('dependent over 17 → $500 ODC', () => {
@@ -244,7 +244,7 @@ describe('computeChildTaxCredit', () => {
     const result = computeChildTaxCredit(deps, 'mfj', cents(400000), cents(50000), cents(400000))
 
     expect(result.phaseOutReduction).toBe(0)
-    expect(result.creditAfterPhaseOut).toBe(cents(2000))
+    expect(result.creditAfterPhaseOut).toBe(cents(2200))
   })
 
   it('MFJ $401K: $1K over threshold → $50 reduction', () => {
@@ -254,25 +254,26 @@ describe('computeChildTaxCredit', () => {
     const result = computeChildTaxCredit(deps, 'mfj', cents(401000), cents(50000), cents(401000))
 
     expect(result.phaseOutReduction).toBe(cents(50))
-    expect(result.creditAfterPhaseOut).toBe(cents(1950))
+    expect(result.creditAfterPhaseOut).toBe(cents(2150))
   })
 
-  it('fully phased out at high AGI', () => {
-    // Single, $240K AGI, 1 child: excess = $40K → 40 × $50 = $2,000 = full credit
+  it('partially phased out at $240K AGI', () => {
+    // Single, $240K AGI, 1 child: excess = $40K → 40 × $50 = $2,000 reduction
+    // Initial = $2,200, after phase-out = $2,200 - $2,000 = $200
     const deps = [
       makeDependent({ firstName: 'H', dateOfBirth: '2016-01-01', relationship: 'son' }),
     ]
     const result = computeChildTaxCredit(deps, 'single', cents(240000), cents(30000), cents(240000))
 
     expect(result.phaseOutReduction).toBe(cents(2000))
-    expect(result.creditAfterPhaseOut).toBe(0)
+    expect(result.creditAfterPhaseOut).toBe(cents(200))
   })
 
   it('low earned income limits refundable ACTC', () => {
     // Earned income = $5,000, tax liability = $0, 1 child
     // Refundable: min($1,700, ($5,000 - $2,500) × 15%) = min($1,700, $375) = $375
-    // Unused portion = $2,000 - $0 = $2,000
-    // ACTC = min($375, $2,000) = $375
+    // Unused portion = $2,200 - $0 = $2,200
+    // ACTC = min($375, $2,200) = $375
     const deps = [
       makeDependent({ firstName: 'I', dateOfBirth: '2016-01-01', relationship: 'son' }),
     ]
@@ -302,8 +303,8 @@ describe('computeChildTaxCredit', () => {
 
     expect(result.numQualifyingChildren).toBe(1)
     expect(result.numOtherDependents).toBe(1)
-    expect(result.initialCredit).toBe(cents(2500)) // $2,000 + $500
-    expect(result.nonRefundableCredit).toBe(cents(2500))
+    expect(result.initialCredit).toBe(cents(2700)) // $2,200 + $500
+    expect(result.nonRefundableCredit).toBe(cents(2700))
     expect(result.additionalCTC).toBe(0) // all fits in non-refundable
   })
 
@@ -326,13 +327,13 @@ describe('Form 1040 with Child Tax Credit', () => {
     const result = computeForm1040(tr)
 
     // AGI = $120,000, MFJ → no phase-out
-    // 2 qualifying children → $4,000 credit
+    // 2 qualifying children → $4,400 credit
     expect(result.childTaxCredit).not.toBeNull()
     expect(result.childTaxCredit!.numQualifyingChildren).toBe(2)
-    expect(result.childTaxCredit!.initialCredit).toBe(cents(4000))
+    expect(result.childTaxCredit!.initialCredit).toBe(cents(4400))
 
-    // Line 19 should be $4,000 (tax is well above $4K)
-    expect(result.line19.amount).toBe(cents(4000))
+    // Line 19 should be $4,400 (tax is well above $4.4K)
+    expect(result.line19.amount).toBe(cents(4400))
 
     // Line 28 should be $0 (all credit used non-refundably)
     expect(result.line28.amount).toBe(0)
@@ -347,7 +348,7 @@ describe('Form 1040 with Child Tax Credit', () => {
     const tr = highIncomeWithChildReturn()
     const result = computeForm1040(tr)
 
-    // $250K single, 1 child: $50K over → $2,500 phase-out > $2,000 credit
+    // $250K single, 1 child: $50K over → $2,500 phase-out > $2,200 credit
     expect(result.childTaxCredit!.creditAfterPhaseOut).toBe(0)
     expect(result.line19.amount).toBe(0)
     expect(result.line28.amount).toBe(0)

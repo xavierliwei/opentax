@@ -66,23 +66,23 @@ describe('Scenario A — Simple W-2', () => {
     expect(f.line9.amount).toBe(7_500_000)
     expect(f.line10.amount).toBe(0)
     expect(f.line11.amount).toBe(7_500_000)
-    expect(f.line12.amount).toBe(1_500_000)
+    expect(f.line12.amount).toBe(1_575_000)
     expect(f.line13.amount).toBe(0)
-    expect(f.line14.amount).toBe(1_500_000)
-    expect(f.line15.amount).toBe(6_000_000)
-    expect(f.line16.amount).toBe(811_400)
-    expect(f.line24.amount).toBe(811_400)
+    expect(f.line14.amount).toBe(1_575_000)
+    expect(f.line15.amount).toBe(5_925_000)
+    expect(f.line16.amount).toBe(794_900)
+    expect(f.line24.amount).toBe(794_900)
     expect(f.line25.amount).toBe(800_000)
     expect(f.line33.amount).toBe(800_000)
-    expect(f.line34.amount).toBe(0)
-    expect(f.line37.amount).toBe(11_400)
+    expect(f.line34.amount).toBe(5_100)
+    expect(f.line37.amount).toBe(0)
   })
 
   it('uses ordinary tax brackets (no QDCG)', () => {
     const result = computeAll(simpleW2Return())
     // No qualified dividends or capital gains → ordinary brackets
-    // 10% × $11,925 + 12% × $36,550 + 22% × $11,525 = $8,114
-    expect(result.form1040.line16.amount).toBe(811_400)
+    // 10% × $11,925 + 12% × $36,550 + 22% × $10,775 = $7,949
+    expect(result.form1040.line16.amount).toBe(794_900)
     expect(result.form1040.scheduleD).toBeNull()
   })
 
@@ -123,18 +123,18 @@ describe('Scenario B — W-2 + Investments', () => {
     expect(f.line7.amount).toBe(50_000)
     expect(f.line9.amount).toBe(9_680_000)
     expect(f.line11.amount).toBe(9_680_000)
-    expect(f.line12.amount).toBe(1_500_000)
-    expect(f.line15.amount).toBe(8_180_000)
+    expect(f.line12.amount).toBe(1_575_000)
+    expect(f.line15.amount).toBe(8_105_000)
     expect(f.line25.amount).toBe(1_200_000)
     expect(f.line33.amount).toBe(1_200_000)
     expect(f.line34.amount).toBe(0)
-    expect(f.line37.amount).toBe(77_000)
+    expect(f.line37.amount).toBe(60_500)
   })
 
   it('applies QDCG worksheet for qualified dividends', () => {
     const result = computeAll(w2WithInvestmentsReturn())
-    // QDCG: ordinary on $79,800 + 15% on $2,000 = 1,247,000 + 30,000 = 1,277,000
-    expect(result.form1040.line16.amount).toBe(1_277_000)
+    // QDCG: ordinary on $79,050 + 15% on $2,000 = 1,230,500 + 30,000 = 1,260,500
+    expect(result.form1040.line16.amount).toBe(1_260_500)
   })
 
   it('Schedule B is required and correct', () => {
@@ -220,13 +220,13 @@ describe('Scenario C — RSU Double-Tax Trap', () => {
     expect(f.line7.amount).toBe(325_000)
     expect(f.line9.amount).toBe(15_325_000)
     expect(f.line11.amount).toBe(15_325_000)
-    expect(f.line12.amount).toBe(1_500_000)
-    expect(f.line15.amount).toBe(13_825_000)
-    expect(f.line16.amount).toBe(2_573_450)
-    expect(f.line24.amount).toBe(2_573_450)
+    expect(f.line12.amount).toBe(1_575_000)
+    expect(f.line15.amount).toBe(13_750_000)
+    expect(f.line16.amount).toBe(2_555_450)
+    expect(f.line24.amount).toBe(2_555_450)
     expect(f.line25.amount).toBe(3_000_000)
     expect(f.line33.amount).toBe(3_000_000)
-    expect(f.line34.amount).toBe(426_550)
+    expect(f.line34.amount).toBe(444_550)
     expect(f.line37.amount).toBe(0)
   })
 
@@ -317,8 +317,8 @@ describe('Scenario D — Multiple Stock Trades', () => {
 
   it('applies QDCG worksheet for net LTCG', () => {
     const result = computeAll(multipleTradesReturn())
-    // QDCG: ordinary on $66,400 + 15% on $9,200 = 952,200 + 138,000 = 1,090,200
-    expect(result.form1040.line16.amount).toBe(1_090_200)
+    // QDCG: ordinary on $65,650 + 15% on $9,200 = 935,700 + 138,000 = 1,073,700
+    expect(result.form1040.line16.amount).toBe(1_073_700)
   })
 
   it('computes all Form 1040 lines correctly', () => {
@@ -329,13 +329,13 @@ describe('Scenario D — Multiple Stock Trades', () => {
     expect(f.line7.amount).toBe(1_060_000)
     expect(f.line9.amount).toBe(9_060_000)
     expect(f.line11.amount).toBe(9_060_000)
-    expect(f.line12.amount).toBe(1_500_000)
-    expect(f.line15.amount).toBe(7_560_000)
-    expect(f.line16.amount).toBe(1_090_200)
-    expect(f.line24.amount).toBe(1_090_200)
+    expect(f.line12.amount).toBe(1_575_000)
+    expect(f.line15.amount).toBe(7_485_000)
+    expect(f.line16.amount).toBe(1_073_700)
+    expect(f.line24.amount).toBe(1_073_700)
     expect(f.line25.amount).toBe(1_200_000)
     expect(f.line33.amount).toBe(1_200_000)
-    expect(f.line34.amount).toBe(109_800)
+    expect(f.line34.amount).toBe(126_300)
     expect(f.line37.amount).toBe(0)
   })
 
@@ -369,10 +369,10 @@ describe('Scenario E — MFJ Basic', () => {
     const result = computeAll(mfjBasicReturn())
     const f = result.form1040
 
-    // MFJ standard deduction = $30,000
-    expect(f.line12.amount).toBe(3_000_000)
-    // Tax: 10% × $23,850 + 12% × $52,350 = 238,500 + 628,200 = 866,700
-    expect(f.line16.amount).toBe(866_700)
+    // MFJ standard deduction = $31,500
+    expect(f.line12.amount).toBe(3_150_000)
+    // Tax: 10% × $23,850 + 12% × $50,850 = 238,500 + 610,200 = 848,700
+    expect(f.line16.amount).toBe(848_700)
   })
 
   it('aggregates withholding from both W-2s', () => {
@@ -399,13 +399,13 @@ describe('Scenario E — MFJ Basic', () => {
     expect(f.line7.amount).toBe(0)
     expect(f.line9.amount).toBe(10_620_000)
     expect(f.line11.amount).toBe(10_620_000)
-    expect(f.line12.amount).toBe(3_000_000)
-    expect(f.line15.amount).toBe(7_620_000)
-    expect(f.line16.amount).toBe(866_700)
-    expect(f.line24.amount).toBe(866_700)
+    expect(f.line12.amount).toBe(3_150_000)
+    expect(f.line15.amount).toBe(7_470_000)
+    expect(f.line16.amount).toBe(848_700)
+    expect(f.line24.amount).toBe(848_700)
     expect(f.line25.amount).toBe(1_050_000)
     expect(f.line33.amount).toBe(1_050_000)
-    expect(f.line34.amount).toBe(183_300)
+    expect(f.line34.amount).toBe(201_300)
     expect(f.line37.amount).toBe(0)
   })
 

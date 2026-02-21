@@ -336,7 +336,7 @@ describe('Document resolution', () => {
     const result = resolveDocumentRef(model, 'standardDeduction')
     expect(result.label).toContain('Standard deduction')
     expect(result.label).toContain('single')
-    expect(result.amount).toBe(cents(15000))
+    expect(result.amount).toBe(cents(15750))
   })
 
   it('resolves itemized.medicalExpenses ref', () => {

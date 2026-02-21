@@ -85,7 +85,7 @@ describe('Line 12 — Deductions', () => {
         },
       },
     }
-    // Schedule A: SALT $10K (under $40K cap), mortgage $8K, charitable $2K → $20,000 > standard $15,000
+    // Schedule A: SALT $10K (under $40K cap), mortgage $8K, charitable $2K → $20,000 > standard $15,750
     const { deduction, scheduleA } = computeLine12(model, cents(100000), 0, cents(100000))
     expect(deduction.amount).toBe(cents(20000))
     expect(scheduleA).not.toBeNull()
@@ -158,9 +158,9 @@ describe('Line 12 — Dependent filer standard deduction limitation', () => {
       ...emptyTaxReturn(2025),
       canBeClaimedAsDependent: true,
     }
-    // Earned income = $80,000 → $80,000 + $450 = $80,450 > $15,000 standard → capped at $15,000
+    // Earned income = $80,000 → $80,000 + $450 = $80,450 > $15,750 standard → capped at $15,750
     const { deduction } = computeLine12(model, cents(80000), 0, cents(80000))
-    expect(deduction.amount).toBe(cents(15000)) // STANDARD_DEDUCTION.single
+    expect(deduction.amount).toBe(cents(15750)) // STANDARD_DEDUCTION.single
   })
 
   it('adds age 65+ additional deduction on top of limited base', () => {
@@ -184,7 +184,7 @@ describe('Line 12 — Dependent filer standard deduction limitation', () => {
   it('does not apply limitation when canBeClaimedAsDependent is false', () => {
     const model = simpleW2Return()
     const { deduction } = computeLine12(model, cents(5000), 0, cents(5000))
-    expect(deduction.amount).toBe(cents(15000)) // normal standard deduction
+    expect(deduction.amount).toBe(cents(15750)) // normal standard deduction
   })
 })
 
@@ -306,18 +306,18 @@ describe('computeForm1040 — Simple W-2 test', () => {
     expect(result.line11.amount).toBe(cents(75000))
   })
 
-  it('applies standard deduction = $15,000', () => {
+  it('applies standard deduction = $15,750', () => {
     expect(result.line12.amount).toBe(STANDARD_DEDUCTION.single)
-    expect(result.line12.amount).toBe(cents(15000))
+    expect(result.line12.amount).toBe(cents(15750))
   })
 
-  it('computes taxable income = $60,000', () => {
-    expect(result.line15.amount).toBe(cents(60000))
+  it('computes taxable income = $59,250', () => {
+    expect(result.line15.amount).toBe(cents(59250))
   })
 
-  it('computes tax = $8,114 (ordinary rates)', () => {
-    // 10% of $11,925 + 12% of $36,550 + 22% of $11,525
-    expect(result.line16.amount).toBe(cents(8114))
+  it('computes tax = $7,949 (ordinary rates)', () => {
+    // 10% of $11,925 + 12% of $36,550 + 22% of $10,775
+    expect(result.line16.amount).toBe(cents(7949))
   })
 
   it('Line 24 (total tax) = Line 16 for MVP', () => {
@@ -328,9 +328,9 @@ describe('computeForm1040 — Simple W-2 test', () => {
     expect(result.line25.amount).toBe(cents(8000))
   })
 
-  it('owes $114', () => {
-    expect(result.line37.amount).toBe(cents(114))
-    expect(result.line34.amount).toBe(0) // no refund
+  it('refund = $51', () => {
+    expect(result.line34.amount).toBe(cents(51))
+    expect(result.line37.amount).toBe(0) // no amount owed
   })
 
   it('does not compute Schedule D (no capital activity)', () => {
@@ -368,19 +368,19 @@ describe('computeForm1040 — LTCG preferential rate test', () => {
     expect(result.line11.amount).toBe(cents(70000))
   })
 
-  it('computes taxable income = $55,000', () => {
-    expect(result.line15.amount).toBe(cents(55000))
+  it('computes taxable income = $54,250', () => {
+    expect(result.line15.amount).toBe(cents(54250))
   })
 
   it('uses QDCG worksheet for lower tax', () => {
-    // QDCG: ordinary tax on $35,000 + LTCG at 0%/15%
-    // = $3,961.50 + $0 + $997.50 = $4,959
-    expect(result.line16.amount).toBe(cents(4959))
+    // QDCG: ordinary tax on $34,250 + LTCG at 0%/15%
+    // = $3,871.50 + $0 + $885 = $4,756.50
+    expect(result.line16.amount).toBe(cents(4756.50))
   })
 
   it('tax is less than all-ordinary would be', () => {
-    // All-ordinary on $55,000 = $7,014
-    expect(result.line16.amount).toBeLessThan(cents(7014))
+    // All-ordinary on $54,250 = $6,849
+    expect(result.line16.amount).toBeLessThan(cents(6849))
   })
 
   it('computes Schedule D', () => {
@@ -388,8 +388,8 @@ describe('computeForm1040 — LTCG preferential rate test', () => {
     expect(result.scheduleD!.line16.amount).toBe(cents(20000))
   })
 
-  it('refund = $10,000 - $4,959 = $5,041', () => {
-    expect(result.line34.amount).toBe(cents(5041))
+  it('refund = $10,000 - $4,756.50 = $5,243.50', () => {
+    expect(result.line34.amount).toBe(cents(5243.50))
     expect(result.line37.amount).toBe(0)
   })
 })
@@ -432,7 +432,7 @@ describe('computeForm1040 — Boundary: deduction equals income', () => {
   })
 
   it('taxable income = $0', () => {
-    // $15,000 - $15,000 standard deduction = $0
+    // $15,000 - $15,750 standard deduction = $0 (floored)
     expect(result.line15.amount).toBe(0)
   })
 
@@ -459,27 +459,27 @@ describe('computeForm1040 — MFJ test', () => {
     expect(result.line11.amount).toBe(cents(120000))
   })
 
-  it('applies MFJ standard deduction = $30,000', () => {
-    expect(result.line12.amount).toBe(cents(30000))
+  it('applies MFJ standard deduction = $31,500', () => {
+    expect(result.line12.amount).toBe(cents(31500))
   })
 
-  it('computes taxable income = $90,000', () => {
-    expect(result.line15.amount).toBe(cents(90000))
+  it('computes taxable income = $88,500', () => {
+    expect(result.line15.amount).toBe(cents(88500))
   })
 
-  it('computes tax using MFJ brackets = $10,323', () => {
+  it('computes tax using MFJ brackets = $10,143', () => {
     // 10% of $23,850 = $2,385
-    // 12% of $66,150 = $7,938
-    // Total = $10,323
-    expect(result.line16.amount).toBe(cents(10323))
+    // 12% of $64,650 = $7,758
+    // Total = $10,143
+    expect(result.line16.amount).toBe(cents(10143))
   })
 
   it('withholding = $15,000', () => {
     expect(result.line25.amount).toBe(cents(15000))
   })
 
-  it('refund = $4,677', () => {
-    expect(result.line34.amount).toBe(cents(4677))
+  it('refund = $4,857', () => {
+    expect(result.line34.amount).toBe(cents(4857))
     expect(result.line37.amount).toBe(0)
   })
 })
@@ -542,21 +542,21 @@ describe('computeForm1040 — Qualified dividends test', () => {
     expect(result.line11.amount).toBe(cents(63000))
   })
 
-  it('taxable income = $48,000', () => {
-    expect(result.line15.amount).toBe(cents(48000))
+  it('taxable income = $47,250', () => {
+    expect(result.line15.amount).toBe(cents(47250))
   })
 
   it('uses QDCG worksheet', () => {
-    // Ordinary: $45,000, QD: $3,000
-    // QD sits at $45,000–$48,000, all below $48,350 → 0%
-    // Tax = ordinary tax on $45,000 = $5,161.50
-    expect(result.line16.amount).toBe(cents(5161.50))
+    // Ordinary: $44,250, QD: $3,000
+    // QD sits at $44,250–$47,250, all below $48,350 → 0%
+    // Tax = ordinary tax on $44,250 = $5,071.50
+    expect(result.line16.amount).toBe(cents(5071.50))
   })
 
   it('is less than all-ordinary tax', () => {
-    // All-ordinary on $48,000:
-    // 10% of $11,925 + 12% of $36,075 = $1,192.50 + $4,329 = $5,521.50
-    expect(result.line16.amount).toBeLessThan(cents(5521.50))
+    // All-ordinary on $47,250:
+    // 10% of $11,925 + 12% of $35,325 = $1,192.50 + $4,239 = $5,431.50
+    expect(result.line16.amount).toBeLessThan(cents(5431.50))
   })
 })
 
@@ -596,19 +596,19 @@ describe('computeForm1040 — W-2 with investments (existing fixture)', () => {
     expect(result.scheduleD!.line13.amount).toBe(cents(500))
   })
 
-  it('taxable income = $81,800', () => {
-    expect(result.line15.amount).toBe(cents(81800))
+  it('taxable income = $81,050', () => {
+    expect(result.line15.amount).toBe(cents(81050))
   })
 
   it('uses QDCG worksheet (has qualified dividends + LTCG)', () => {
     // $1,500 QD + $500 net CG for QDCG = $2,000 preferential
-    // Ordinary: $79,800
-    // Ordinary tax: 10% of $11,925 + 12% of $36,550 + 22% of $31,325
-    //   = $1,192.50 + $4,386 + $6,891.50 = $12,470
-    // LTCG stacked $79,800–$81,800 → 15% bracket
+    // Ordinary: $79,050
+    // Ordinary tax: 10% of $11,925 + 12% of $36,550 + 22% of $30,575
+    //   = $1,192.50 + $4,386 + $6,726.50 = $12,305
+    // LTCG stacked $79,050–$81,050 → 15% bracket
     //   15% of $2,000 = $300
-    // Total: $12,770
-    expect(result.line16.amount).toBe(cents(12770))
+    // Total: $12,605
+    expect(result.line16.amount).toBe(cents(12605))
   })
 })
 
@@ -651,8 +651,8 @@ describe('computeForm1040 — Capital loss reduces income', () => {
     expect(result.line11.amount).toBe(cents(77000))
   })
 
-  it('taxable income = $62,000', () => {
-    expect(result.line15.amount).toBe(cents(62000))
+  it('taxable income = $61,250', () => {
+    expect(result.line15.amount).toBe(cents(61250))
   })
 
   it('carryforward = $2,000', () => {

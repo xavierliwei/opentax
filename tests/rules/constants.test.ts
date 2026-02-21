@@ -22,24 +22,24 @@ const ALL_STATUSES: FilingStatus[] = ['single', 'mfj', 'mfs', 'hoh', 'qw']
 // ── Spot checks against IRS Rev. Proc. 2024-40 ────────────────
 
 describe('standard deduction (Rev. Proc. 2024-40 §3.01)', () => {
-  it('single = $15,000', () => {
-    expect(STANDARD_DEDUCTION.single).toBe(cents(15000))
+  it('single = $15,750', () => {
+    expect(STANDARD_DEDUCTION.single).toBe(cents(15750))
   })
 
-  it('married filing jointly = $30,000', () => {
-    expect(STANDARD_DEDUCTION.mfj).toBe(cents(30000))
+  it('married filing jointly = $31,500', () => {
+    expect(STANDARD_DEDUCTION.mfj).toBe(cents(31500))
   })
 
-  it('married filing separately = $15,000', () => {
-    expect(STANDARD_DEDUCTION.mfs).toBe(cents(15000))
+  it('married filing separately = $15,750', () => {
+    expect(STANDARD_DEDUCTION.mfs).toBe(cents(15750))
   })
 
-  it('head of household = $22,500', () => {
-    expect(STANDARD_DEDUCTION.hoh).toBe(cents(22500))
+  it('head of household = $23,625', () => {
+    expect(STANDARD_DEDUCTION.hoh).toBe(cents(23625))
   })
 
-  it('qualifying surviving spouse = $30,000 (same as MFJ)', () => {
-    expect(STANDARD_DEDUCTION.qw).toBe(cents(30000))
+  it('qualifying surviving spouse = $31,500 (same as MFJ)', () => {
+    expect(STANDARD_DEDUCTION.qw).toBe(cents(31500))
   })
 
   it('has an entry for every filing status', () => {
