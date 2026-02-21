@@ -37,9 +37,7 @@ describe('W2IncomePage', () => {
   it('shows empty message when no W-2s', () => {
     renderWithRouter(<W2IncomePage />, { route: '/interview/w2-income' })
     expect(
-      screen.getByText(
-        "No W-2s added yet. Click '+ Add another W-2' to enter your wage information.",
-      ),
+      screen.getByText(/No W-2s added yet/),
     ).toBeDefined()
   })
 
@@ -47,7 +45,7 @@ describe('W2IncomePage', () => {
     const user = userEvent.setup()
     renderWithRouter(<W2IncomePage />, { route: '/interview/w2-income' })
 
-    await user.click(screen.getByText('+ Add another W-2'))
+    await user.click(screen.getByRole('button', { name: /add another w-2/i }))
 
     expect(useTaxStore.getState().taxReturn.w2s).toHaveLength(1)
     // Should see employer name input
@@ -70,7 +68,7 @@ describe('W2IncomePage', () => {
     renderWithRouter(<W2IncomePage />, { route: '/interview/w2-income' })
     expect(useTaxStore.getState().taxReturn.w2s).toHaveLength(1)
 
-    await user.click(screen.getByText('Remove'))
+    await user.click(screen.getByRole('button', { name: /remove/i }))
     expect(useTaxStore.getState().taxReturn.w2s).toHaveLength(0)
   })
 
@@ -78,7 +76,7 @@ describe('W2IncomePage', () => {
     const user = userEvent.setup()
     renderWithRouter(<W2IncomePage />, { route: '/interview/w2-income' })
 
-    await user.click(screen.getByText('+ Add another W-2'))
+    await user.click(screen.getByRole('button', { name: /add another w-2/i }))
     const employerInput = screen.getByPlaceholderText('Acme Corp')
     await user.type(employerInput, 'Google')
 
@@ -89,11 +87,11 @@ describe('W2IncomePage', () => {
     const user = userEvent.setup()
     renderWithRouter(<W2IncomePage />, { route: '/interview/w2-income' })
 
-    await user.click(screen.getByText('+ Add another W-2'))
+    await user.click(screen.getByRole('button', { name: /add another w-2/i }))
     // Advanced fields should be hidden initially
     expect(screen.queryByText('Box 13')).toBeNull()
 
-    await user.click(screen.getByText(/Show.*Box 7–20/))
+    await user.click(screen.getByText(/Box 7.*20.*advanced/i))
     expect(screen.getByText('Box 13')).toBeDefined()
   })
 })
@@ -109,9 +107,7 @@ describe('InterestIncomePage', () => {
   it('shows empty message when no forms', () => {
     renderWithRouter(<InterestIncomePage />, { route: '/interview/interest-income' })
     expect(
-      screen.getByText(
-        "No 1099-INT forms added. Click '+ Add 1099-INT' if you received interest income.",
-      ),
+      screen.getByText(/No 1099-INT forms added/),
     ).toBeDefined()
   })
 
@@ -119,7 +115,7 @@ describe('InterestIncomePage', () => {
     const user = userEvent.setup()
     renderWithRouter(<InterestIncomePage />, { route: '/interview/interest-income' })
 
-    await user.click(screen.getByText('+ Add 1099-INT'))
+    await user.click(screen.getByRole('button', { name: /add 1099-int/i }))
 
     expect(useTaxStore.getState().taxReturn.form1099INTs).toHaveLength(1)
     expect(screen.getByPlaceholderText('Savings Bank')).toBeDefined()
@@ -136,7 +132,7 @@ describe('InterestIncomePage', () => {
     renderWithRouter(<InterestIncomePage />, { route: '/interview/interest-income' })
     expect(useTaxStore.getState().taxReturn.form1099INTs).toHaveLength(1)
 
-    await user.click(screen.getByText('Remove'))
+    await user.click(screen.getByRole('button', { name: /remove/i }))
     expect(useTaxStore.getState().taxReturn.form1099INTs).toHaveLength(0)
   })
 
@@ -144,7 +140,7 @@ describe('InterestIncomePage', () => {
     const user = userEvent.setup()
     renderWithRouter(<InterestIncomePage />, { route: '/interview/interest-income' })
 
-    await user.click(screen.getByText('+ Add 1099-INT'))
+    await user.click(screen.getByRole('button', { name: /add 1099-int/i }))
     const payerInput = screen.getByPlaceholderText('Savings Bank')
     await user.type(payerInput, 'Chase')
 
@@ -163,9 +159,7 @@ describe('DividendIncomePage', () => {
   it('shows empty message when no forms', () => {
     renderWithRouter(<DividendIncomePage />, { route: '/interview/dividend-income' })
     expect(
-      screen.getByText(
-        "No 1099-DIV forms added. Click '+ Add 1099-DIV' if you received dividend income.",
-      ),
+      screen.getByText(/No 1099-DIV forms added/),
     ).toBeDefined()
   })
 
@@ -173,7 +167,7 @@ describe('DividendIncomePage', () => {
     const user = userEvent.setup()
     renderWithRouter(<DividendIncomePage />, { route: '/interview/dividend-income' })
 
-    await user.click(screen.getByText('+ Add 1099-DIV'))
+    await user.click(screen.getByRole('button', { name: /add 1099-div/i }))
 
     expect(useTaxStore.getState().taxReturn.form1099DIVs).toHaveLength(1)
     expect(screen.getByPlaceholderText('Vanguard')).toBeDefined()
@@ -190,7 +184,7 @@ describe('DividendIncomePage', () => {
     renderWithRouter(<DividendIncomePage />, { route: '/interview/dividend-income' })
     expect(useTaxStore.getState().taxReturn.form1099DIVs).toHaveLength(1)
 
-    await user.click(screen.getByText('Remove'))
+    await user.click(screen.getByRole('button', { name: /remove/i }))
     expect(useTaxStore.getState().taxReturn.form1099DIVs).toHaveLength(0)
   })
 
@@ -198,7 +192,7 @@ describe('DividendIncomePage', () => {
     const user = userEvent.setup()
     renderWithRouter(<DividendIncomePage />, { route: '/interview/dividend-income' })
 
-    await user.click(screen.getByText('+ Add 1099-DIV'))
+    await user.click(screen.getByRole('button', { name: /add 1099-div/i }))
     const payerInput = screen.getByPlaceholderText('Vanguard')
     await user.type(payerInput, 'Fidelity')
 

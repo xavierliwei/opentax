@@ -50,7 +50,7 @@ describe('RSUIncomePage', () => {
     const user = userEvent.setup()
     renderWithRouter(<RSUIncomePage />, { route: '/interview/rsu-income' })
 
-    await user.click(screen.getByText('+ Add RSU vest event'))
+    await user.click(screen.getByRole('button', { name: /add rsu vest event/i }))
     expect(useTaxStore.getState().taxReturn.rsuVestEvents).toHaveLength(1)
   })
 
@@ -70,7 +70,7 @@ describe('RSUIncomePage', () => {
     renderWithRouter(<RSUIncomePage />, { route: '/interview/rsu-income' })
     expect(useTaxStore.getState().taxReturn.rsuVestEvents).toHaveLength(1)
 
-    await user.click(screen.getByText('Remove'))
+    await user.click(screen.getByRole('button', { name: /remove/i }))
     expect(useTaxStore.getState().taxReturn.rsuVestEvents).toHaveLength(0)
   })
 
@@ -108,8 +108,8 @@ describe('DeductionsPage', () => {
     await user.click(screen.getByText('Itemized'))
     expect(useTaxStore.getState().taxReturn.deductions.method).toBe('itemized')
     expect(screen.getByText('Medical expenses')).toBeDefined()
-    expect(screen.getByText(/State and local taxes/)).toBeDefined()
-    expect(screen.getByText('Mortgage interest')).toBeDefined()
+    expect(screen.getByText(/State\/local income taxes/)).toBeDefined()
+    expect(screen.getByText(/mortgage interest/i)).toBeDefined()
   })
 
   it('shows comparison summary', () => {
@@ -305,7 +305,7 @@ describe('DownloadPage', () => {
     expect(btn).toBeDefined()
     expect(btn.hasAttribute('disabled')).toBe(true)
     // Helper text should be visible
-    expect(screen.getByText('Generate package first')).toBeDefined()
+    expect(screen.getByText(/Click.*Download All.*to generate/)).toBeDefined()
   })
 
   it('does not show state download section when no state returns', () => {

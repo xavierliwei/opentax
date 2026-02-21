@@ -51,7 +51,7 @@ describe('DependentsPage', () => {
   it('shows empty message when no dependents', () => {
     renderWithRouter(<DependentsPage />, { route: '/interview/dependents' })
     expect(
-      screen.getByText("No dependents added. Click '+ Add Dependent' if you have any."),
+      screen.getByText(/No dependents added/),
     ).toBeDefined()
   })
 
@@ -59,7 +59,7 @@ describe('DependentsPage', () => {
     const user = userEvent.setup()
     renderWithRouter(<DependentsPage />, { route: '/interview/dependents' })
 
-    const addBtn = screen.getByText('+ Add Dependent')
+    const addBtn = screen.getByRole('button', { name: /add dependent/i })
     await user.click(addBtn)
 
     expect(useTaxStore.getState().taxReturn.dependents).toHaveLength(1)

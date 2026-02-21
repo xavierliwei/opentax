@@ -74,7 +74,7 @@ describe('RepeatableSection', () => {
         maxItems={2}
       />,
     )
-    const addBtn = screen.getByText('+ Add')
+    const addBtn = screen.getByRole('button', { name: /add/i })
     expect((addBtn as HTMLButtonElement).disabled).toBe(true)
   })
 })
