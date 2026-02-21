@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — OpenTax</title>
+  <meta name="description" content="OpenTax privacy policy: all computation runs in your browser. No data is collected, transmitted, or stored on any server. Your tax information never leaves your device." />
+
+  <meta property="og:title" content="Privacy Policy — OpenTax" />
+  <meta property="og:description" content="OpenTax collects zero data. All computation runs client-side in your browser. Your tax information never leaves your device." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://opentax-org.github.io/opentax/privacy.html" />
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          colors: {
+            brand: { DEFAULT: '#1e40af', light: '#2563eb' },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+  </style>
+</head>
+<body class="font-sans text-gray-900 antialiased">
+
+  <!-- ───────────────── Nav ───────────────── -->
+  <nav class="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-200">
+    <div class="max-w-6xl mx-auto flex items-center justify-between px-6 py-4">
+      <a href="./" class="flex items-center gap-3">
+        <img src="favicon.svg" alt="OpenTax logo" class="w-7 h-7" />
+        <span class="text-lg font-bold tracking-tight">OpenTax</span>
+      </a>
+      <div class="flex items-center gap-6 text-sm font-medium text-gray-600">
+        <a href="trust/" class="hover:text-brand transition-colors hidden sm:inline">Trust Center</a>
+        <a href="./" class="hover:text-brand transition-colors hidden sm:inline">Home</a>
+        <a href="https://github.com/opentax-org/opentax" target="_blank" rel="noopener"
+           class="inline-flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg transition-colors text-gray-700">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+          GitHub
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ───────────────── Header ───────────────── -->
+  <section class="bg-gray-50 border-b border-gray-200">
+    <div class="max-w-4xl mx-auto px-6 py-12 sm:py-16">
+      <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4">Privacy Policy</h1>
+      <p class="text-gray-600 text-lg leading-relaxed">
+        Last updated: February 20, 2026
+      </p>
+    </div>
+  </section>
+
+  <!-- ───────────────── Content ───────────────── -->
+  <section class="max-w-4xl mx-auto px-6 py-12 sm:py-16">
+
+    <!-- Summary -->
+    <div class="bg-green-50 border border-green-200 rounded-xl p-5 mb-10">
+      <div class="flex gap-3">
+        <svg class="w-5 h-5 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        <div class="text-sm text-green-900">
+          <strong>The short version:</strong> OpenTax collects no personal data. All tax computation runs entirely in your browser. Your tax documents, personal information, and computed results never leave your device.
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 1 -->
+    <article class="mb-10">
+      <h2 class="text-xl font-bold tracking-tight mb-3">1. What data we collect</h2>
+      <p class="text-gray-600 leading-relaxed mb-3">
+        <strong>None.</strong> OpenTax does not collect, store, transmit, or process any personal data on any server. The application is a static website that runs entirely in your web browser.
+      </p>
+      <p class="text-gray-600 leading-relaxed">
+        Specifically, we do not collect:
+      </p>
+      <ul class="mt-2 space-y-1.5 text-gray-600">
+        <li class="flex items-start gap-2"><span class="text-gray-400 mt-1">&mdash;</span> Names, addresses, Social Security numbers, or taxpayer identification numbers</li>
+        <li class="flex items-start gap-2"><span class="text-gray-400 mt-1">&mdash;</span> W-2s, 1099s, or any tax documents you upload</li>
+        <li class="flex items-start gap-2"><span class="text-gray-400 mt-1">&mdash;</span> Income, deduction, or credit amounts</li>
+        <li class="flex items-start gap-2"><span class="text-gray-400 mt-1">&mdash;</span> Computed tax return results</li>
+        <li class="flex items-start gap-2"><span class="text-gray-400 mt-1">&mdash;</span> Email addresses, account credentials, or contact information</li>
+        <li class="flex items-start gap-2"><span class="text-gray-400 mt-1">&mdash;</span> IP addresses or device fingerprints</li>
+      </ul>
+    </article>
+
+    <!-- Section 2 -->
+    <article class="mb-10">
+      <h2 class="text-xl font-bold tracking-tight mb-3">2. How the application works</h2>
+      <p class="text-gray-600 leading-relaxed mb-3">
+        OpenTax is a client-side web application. When you visit the site, your browser downloads the application code (HTML, CSS, and JavaScript). From that point forward, all processing happens locally on your device:
+      </p>
+      <ul class="mt-2 space-y-1.5 text-gray-600">
+        <li class="flex items-start gap-2"><span class="text-gray-400 mt-1">&mdash;</span> <strong>Document OCR</strong> runs via Tesseract.js (WebAssembly) inside your browser</li>
+        <li class="flex items-start gap-2"><span class="text-gray-400 mt-1">&mdash;</span> <strong>Tax computation</strong> runs via the TypeScript rules engine in your browser</li>
+        <li class="flex items-start gap-2"><span class="text-gray-400 mt-1">&mdash;</span> <strong>PDF generation</strong> runs via pdf-lib in your browser</li>
+        <li class="flex items-start gap-2"><span class="text-gray-400 mt-1">&mdash;</span> <strong>Data persistence</strong> uses your browser's IndexedDB (local storage)</li>
+      </ul>
+      <p class="text-gray-600 leading-relaxed mt-3">
+        You can verify this by monitoring your browser's network tab in developer tools &mdash; no tax data is ever sent to any server.
+      </p>
+    </article>
+
+    <!-- Section 3 -->
+    <article class="mb-10">
+      <h2 class="text-xl font-bold tracking-tight mb-3">3. Cookies and tracking</h2>
+      <p class="text-gray-600 leading-relaxed">
+        OpenTax does not use cookies. We do not use any third-party analytics, advertising trackers, or behavioral monitoring tools. The GitHub Pages static hosting may log standard HTTP access logs (IP address, user agent, requested URL) as part of GitHub's infrastructure; see <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener" class="text-brand hover:underline">GitHub's privacy statement</a> for details on their hosting practices.
+      </p>
+    </article>
+
+    <!-- Section 4 -->
+    <article class="mb-10">
+      <h2 class="text-xl font-bold tracking-tight mb-3">4. Third-party services</h2>
+      <p class="text-gray-600 leading-relaxed mb-3">
+        The static marketing site (the page you're reading now) loads the following external resources:
+      </p>
+      <ul class="mt-2 space-y-1.5 text-gray-600">
+        <li class="flex items-start gap-2"><span class="text-gray-400 mt-1">&mdash;</span> <strong>Google Fonts</strong> (fonts.googleapis.com) &mdash; to load the Inter typeface</li>
+        <li class="flex items-start gap-2"><span class="text-gray-400 mt-1">&mdash;</span> <strong>Tailwind CSS CDN</strong> (cdn.tailwindcss.com) &mdash; for styling</li>
+      </ul>
+      <p class="text-gray-600 leading-relaxed mt-3">
+        These services may set their own cookies or collect request metadata per their respective privacy policies. The standalone OpenTax application (when run locally via <code class="bg-gray-100 px-1.5 py-0.5 rounded text-xs">npm run dev</code>) does not load any external resources.
+      </p>
+    </article>
+
+    <!-- Section 5 -->
+    <article class="mb-10">
+      <h2 class="text-xl font-bold tracking-tight mb-3">5. Data retention</h2>
+      <p class="text-gray-600 leading-relaxed">
+        Your tax data is stored only in your browser's local storage (IndexedDB). It persists until you clear your browser data, switch browsers, or explicitly delete it within the application. We have no access to this data and no ability to recover it. We recommend exporting your completed return (as a PDF) before clearing your browser data.
+      </p>
+    </article>
+
+    <!-- Section 6 -->
+    <article class="mb-10">
+      <h2 class="text-xl font-bold tracking-tight mb-3">6. Open source</h2>
+      <p class="text-gray-600 leading-relaxed">
+        OpenTax is open-source software licensed under the MIT License. You can review the complete source code, including all data handling logic, at <a href="https://github.com/opentax-org/opentax" target="_blank" rel="noopener" class="text-brand hover:underline">github.com/opentax-org/opentax</a>. We encourage security researchers and privacy-conscious users to audit the codebase.
+      </p>
+    </article>
+
+    <!-- Section 7 -->
+    <article class="mb-10">
+      <h2 class="text-xl font-bold tracking-tight mb-3">7. IRS disclaimer</h2>
+      <p class="text-gray-600 leading-relaxed">
+        OpenTax is not affiliated with, endorsed by, or connected to the Internal Revenue Service (IRS) or any state tax authority. The OpenTax name and project are independent open-source initiatives. You are solely responsible for the accuracy and completeness of any tax return you file.
+      </p>
+    </article>
+
+    <!-- Section 8 -->
+    <article class="mb-10">
+      <h2 class="text-xl font-bold tracking-tight mb-3">8. Changes to this policy</h2>
+      <p class="text-gray-600 leading-relaxed">
+        Any changes to this privacy policy will be committed to the public GitHub repository with a clear commit message. You can review the complete history of this file in the repository.
+      </p>
+    </article>
+
+    <!-- Section 9 -->
+    <article>
+      <h2 class="text-xl font-bold tracking-tight mb-3">9. Contact</h2>
+      <p class="text-gray-600 leading-relaxed">
+        For privacy-related questions or concerns, please open an issue on <a href="https://github.com/opentax-org/opentax/issues" target="_blank" rel="noopener" class="text-brand hover:underline">GitHub</a>.
+      </p>
+    </article>
+
+  </section>
+
+  <!-- ───────────────── Footer ───────────────── -->
+  <footer class="border-t border-gray-200">
+    <div class="max-w-6xl mx-auto px-6 py-10">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
+        <div class="flex items-center gap-2">
+          <img src="favicon.svg" alt="OpenTax" class="w-5 h-5" />
+          <span class="font-medium text-gray-700">OpenTax</span>
+          <span class="text-gray-300">|</span>
+          <span>MIT License</span>
+        </div>
+        <div class="flex items-center gap-4">
+          <a href="trust/" class="hover:text-brand transition-colors">Trust Center</a>
+          <span class="text-gray-300">|</span>
+          <span>Not affiliated with the IRS</span>
+          <span class="text-gray-300">|</span>
+          <a href="https://github.com/opentax-org/opentax" target="_blank" rel="noopener" class="hover:text-brand transition-colors">GitHub</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
