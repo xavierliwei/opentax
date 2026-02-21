@@ -1,6 +1,8 @@
 import { Fragment } from 'react'
 import { Link } from 'react-router-dom'
 import { useTaxStore } from '../../store/taxStore.ts'
+import { getStateModule } from '../../rules/stateRegistry.ts'
+import type { SupportedStateCode } from '../../model/types.ts'
 
 function formatCurrency(cents: number): string {
   const d = Math.abs(cents) / 100
@@ -39,6 +41,19 @@ function accentFor(isRefund: boolean, amount: number) {
     : amount === 0
       ? { text: 'text-gray-500', bg: 'bg-gray-50/50', border: 'border-gray-200', dot: 'bg-gray-300', pill: 'bg-gray-100 text-gray-600' }
       : { text: 'text-red-700', bg: 'bg-red-50/50', border: 'border-red-100', dot: 'bg-red-400', pill: 'bg-red-100 text-red-800' }
+}
+
+/** Look up the explain node ID for a state's refund/owed result from its module config */
+function getStateExplainNode(stateCode: SupportedStateCode, isRefund: boolean): string {
+  const mod = getStateModule(stateCode)
+  if (mod) {
+    const type = isRefund ? 'refund' : 'owed'
+    const line = mod.reviewResultLines.find(l => l.type === type)
+    if (line?.nodeId) return line.nodeId
+  }
+  // Fallback: should not happen for registered states, but safe for future states
+  // before their modules are fully configured
+  return ''
 }
 
 export function LiveBalance() {
@@ -144,9 +159,7 @@ export function LiveBalance() {
             : amount === 0
               ? `${sr.stateCode} Balanced`
               : `${sr.stateCode} Owed`
-          const explainNode = isRefund
-            ? `form540.overpaid`
-            : `form540.amountOwed`
+          const explainNode = getStateExplainNode(sr.stateCode, isRefund)
           const stateAccent = accentFor(isRefund, amount)
           return (
             <Fragment key={sr.stateCode}>

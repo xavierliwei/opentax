@@ -104,4 +104,36 @@ describe('LiveBalance', () => {
     const caText = screen.getByText(/^CA (Refund|Owed|Balanced)$/)
     expect(caText).toBeDefined()
   })
+
+  it('CA state pill links to form540 explain nodes (not hardcoded)', () => {
+    useTaxStore.getState().addW2({
+      ...W2_REFUND,
+      box15State: 'CA',
+      box17StateIncomeTax: 300000, // $3,000 CA withholding — triggers refund
+    })
+    useTaxStore.getState().addStateReturn({ stateCode: 'CA', residencyType: 'full-year' })
+    renderLiveBalance()
+
+    // Find all "Why?" links — first is federal, second is CA
+    const whyLinks = screen.getAllByText('Why?')
+    expect(whyLinks.length).toBe(2)
+
+    const caWhyHref = whyLinks[1].getAttribute('href')
+    // CA module's reviewResultLines use form540.overpaid or form540.amountOwed
+    expect(caWhyHref).toMatch(/^\/explain\/form540\.(overpaid|amountOwed)$/)
+  })
+
+  it('CA owed state pill links to form540.amountOwed', () => {
+    useTaxStore.getState().addW2({
+      ...W2_OWED,
+      box15State: 'CA',
+      box17StateIncomeTax: 10000, // $100 CA withholding — triggers owed
+    })
+    useTaxStore.getState().addStateReturn({ stateCode: 'CA', residencyType: 'full-year' })
+    renderLiveBalance()
+
+    const whyLinks = screen.getAllByText('Why?')
+    const caWhyHref = whyLinks[1].getAttribute('href')
+    expect(caWhyHref).toBe('/explain/form540.amountOwed')
+  })
 })
