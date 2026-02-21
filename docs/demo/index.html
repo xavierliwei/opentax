@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OpenTax Trace Demo — See How Every Tax Number Is Computed</title>
+  <meta name="description" content="Interactive demo of OpenTax's computation tracing. Click any line on a tax return to see exactly how it was calculated, which IRS rules apply, and what source documents contributed." />
+  <link rel="canonical" href="https://opentax-org.github.io/opentax/demo/" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="OpenTax Trace Demo — See How Every Tax Number Is Computed" />
+  <meta property="og:description" content="Click any line on a tax return to trace exactly how it was calculated. Every number links to IRS rules and source documents." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://opentax-org.github.io/opentax/demo/" />
+
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          colors: {
+            brand: { DEFAULT: '#1e40af', light: '#2563eb' },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+
+    /* ── Tree structure lines ── */
+    .trace-children { position: relative; }
+    .trace-children::before {
+      content: '';
+      position: absolute;
+      left: 19px;
+      top: 0;
+      bottom: 12px;
+      width: 2px;
+      background: #e5e7eb;
+    }
+    .trace-item { position: relative; }
+    .trace-item::before {
+      content: '';
+      position: absolute;
+      left: -21px;
+      top: 20px;
+      width: 20px;
+      height: 2px;
+      background: #e5e7eb;
+    }
+    .trace-item:last-child::after {
+      content: '';
+      position: absolute;
+      left: -23px;
+      top: 20px;
+      bottom: 0;
+      width: 4px;
+      background: white;
+    }
+
+    /* ── Node cards ── */
+    .trace-node {
+      border: 2px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 10px 14px;
+      background: white;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      cursor: default;
+    }
+    .trace-node[data-expandable="true"] { cursor: pointer; }
+    .trace-node[data-expandable="true"]:hover {
+      border-color: #93c5fd;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
+    }
+    .trace-node.selected {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+    }
+    .trace-node[data-source="document"] { border-left: 4px solid #22c55e; background: #f0fdf4; }
+    .trace-node[data-source="computed"] { border-left: 4px solid #3b82f6; background: #eff6ff; }
+    .trace-node[data-source="user-entry"] { border-left: 4px solid #9ca3af; background: #f9fafb; }
+
+    /* ── Summary row ── */
+    .summary-row {
+      display: grid;
+      grid-template-columns: 60px 1fr auto 32px;
+      gap: 8px;
+      align-items: center;
+      padding: 10px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.12s;
+      min-height: 44px;
+    }
+    .summary-row:hover { background: #f0f4ff; }
+    .summary-row.active { background: #eff6ff; }
+    @media (min-width: 640px) {
+      .summary-row { grid-template-columns: 80px 1fr auto 32px; padding: 10px 18px; }
+    }
+
+    /* ── Source badge ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+    .badge-document { background: #dcfce7; color: #166534; }
+    .badge-computed { background: #dbeafe; color: #1e40af; }
+    .badge-user-entry { background: #f3f4f6; color: #4b5563; }
+
+    /* ── Expand/collapse animation ── */
+    .trace-children-wrapper {
+      overflow: hidden;
+      transition: max-height 0.25s ease-out, opacity 0.2s;
+      max-height: 0;
+      opacity: 0;
+    }
+    .trace-children-wrapper.open {
+      max-height: 4000px;
+      opacity: 1;
+    }
+
+    /* ── Chevron rotation ── */
+    .chevron { transition: transform 0.2s; display: inline-block; }
+    .chevron.open { transform: rotate(90deg); }
+
+    /* ── Deep trace glow ── */
+    @keyframes deep-trace-glow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+      50% { box-shadow: 0 0 12px 2px rgba(59, 130, 246, 0.18); }
+    }
+    .deep-trace-indicator {
+      animation: deep-trace-glow 2s ease-in-out 1;
+    }
+
+    /* ── Citation panel ── */
+    .citation-panel {
+      transition: max-height 0.25s, opacity 0.2s, margin 0.2s;
+      max-height: 0; opacity: 0; margin-top: 0;
+      overflow: hidden;
+    }
+    .citation-panel.open {
+      max-height: 400px; opacity: 1; margin-top: 16px;
+    }
+
+    /* ── Sticky mobile nav ── */
+    @media (max-width: 639px) {
+      nav { position: sticky; top: 0; z-index: 50; }
+    }
+
+    /* ── Amount styling ── */
+    .amount { font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body class="font-sans text-gray-900 antialiased bg-white">
+
+  <!-- ═══════════════════ Nav ═══════════════════ -->
+  <nav class="bg-gray-900 text-white">
+    <div class="max-w-5xl mx-auto flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4">
+      <a href="../" class="flex items-center gap-2.5">
+        <img src="../favicon.svg" alt="OpenTax logo" class="w-7 h-7" />
+        <span class="text-base font-bold tracking-tight">OpenTax</span>
+      </a>
+      <div class="flex items-center gap-4 sm:gap-6 text-sm font-medium">
+        <a href="../" class="hover:text-blue-300 transition-colors hidden sm:inline">Home</a>
+        <a href="../trust/" class="hover:text-blue-300 transition-colors hidden sm:inline">Trust</a>
+        <span class="text-blue-400 font-semibold">Demo</span>
+        <a href="../docs/" class="hover:text-blue-300 transition-colors hidden sm:inline">Docs</a>
+        <a href="https://github.com/opentax-org/opentax" target="_blank" rel="noopener"
+           class="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg transition-colors text-xs sm:text-sm">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+          GitHub
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ═══════════════════ Demo banner ═══════════════════ -->
+  <div class="bg-amber-50 border-b border-amber-200">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-2.5 flex items-center gap-2 text-sm text-amber-800">
+      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <span>This is an <strong>interactive demo</strong> with sample data. No real tax information is used.</span>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ Hero ═══════════════════ -->
+  <header class="bg-gradient-to-b from-gray-50 to-white border-b border-gray-100">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
+      <h1 class="text-2xl sm:text-4xl font-extrabold tracking-tight text-gray-900 mb-3">
+        See how every number is computed
+      </h1>
+      <p class="text-base sm:text-lg text-gray-600 max-w-2xl leading-relaxed mb-6">
+        Click any line on the Form 1040 summary below to expand its full computation trace.
+        Every number traces back to source documents and IRS rules — nothing is a black box.
+      </p>
+      <!-- Legend -->
+      <div class="flex flex-wrap gap-3">
+        <span class="badge badge-document">
+          <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span> Document source
+        </span>
+        <span class="badge badge-computed">
+          <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span> Computed value
+        </span>
+        <span class="badge badge-user-entry">
+          <span class="w-2.5 h-2.5 rounded-full bg-gray-400"></span> User entry
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══════════════════ Main content ═══════════════════ -->
+  <main class="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+
+    <!-- Scenario card -->
+    <section id="scenario" class="mb-8 sm:mb-12">
+      <div class="rounded-xl border border-gray-200 bg-white p-5 sm:p-6 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 mb-4">
+          <h2 class="text-lg font-bold text-gray-900" id="scenario-title">Loading…</h2>
+          <span class="inline-flex items-center gap-1.5 text-xs font-semibold bg-blue-50 text-blue-700 px-3 py-1 rounded-full">
+            <span class="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+            Tax Year <span id="scenario-year">—</span>
+          </span>
+        </div>
+        <p class="text-sm text-gray-600 leading-relaxed" id="scenario-desc"></p>
+        <div class="mt-4 flex flex-wrap gap-2" id="scenario-docs"></div>
+      </div>
+    </section>
+
+    <!-- Form 1040 Summary -->
+    <section id="summary-section" class="mb-8 sm:mb-12">
+      <h2 class="text-base font-bold text-gray-500 uppercase tracking-wider mb-4">Form 1040 Summary</h2>
+      <div class="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden divide-y divide-gray-100" id="summary-table">
+        <!-- Rows injected by JS -->
+      </div>
+    </section>
+
+    <!-- Trace panel (shown when a line is expanded) -->
+    <section id="trace-section" class="mb-8 sm:mb-12 hidden">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-base font-bold text-gray-500 uppercase tracking-wider">
+          Computation Trace
+        </h2>
+        <button id="close-trace" class="text-sm text-gray-500 hover:text-gray-700 transition-colors flex items-center gap-1 min-h-[44px] px-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          Close
+        </button>
+      </div>
+      <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4 sm:p-6" id="trace-container">
+        <!-- Trace tree injected by JS -->
+      </div>
+    </section>
+
+    <!-- IRS Citation detail panel -->
+    <div id="citation-panel" class="citation-panel">
+      <div class="rounded-xl border border-blue-200 bg-blue-50 p-4 sm:p-5">
+        <div class="flex items-start justify-between gap-3 mb-2">
+          <h3 class="text-sm font-bold text-blue-900" id="citation-title"></h3>
+          <button id="close-citation" class="text-blue-400 hover:text-blue-600 p-1 min-w-[44px] min-h-[44px] flex items-center justify-center">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <p class="text-sm text-blue-800 leading-relaxed mb-1" id="citation-text"></p>
+        <p class="text-sm text-blue-700 mb-3" id="citation-formula"></p>
+        <a id="citation-link" href="#" target="_blank" rel="noopener"
+           class="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-700 hover:text-blue-900 transition-colors min-h-[44px]">
+          View IRS source
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- ═══════════════════ CTAs ═══════════════════ -->
+    <section class="mt-12 sm:mt-16 mb-8">
+      <div class="rounded-2xl bg-gradient-to-br from-gray-900 via-brand to-brand-light p-8 sm:p-10 text-white">
+        <h2 class="text-xl sm:text-2xl font-extrabold mb-3">Ready to trace your own return?</h2>
+        <p class="text-blue-100 text-sm sm:text-base mb-8 max-w-xl leading-relaxed">
+          OpenTax is free, open-source, and runs entirely in your browser. Clone the repo and see your own tax computation traced end-to-end.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-3">
+          <a href="https://github.com/opentax-org/opentax" target="_blank" rel="noopener"
+             class="inline-flex items-center justify-center gap-2 bg-white text-brand font-semibold px-6 py-3 rounded-xl hover:bg-blue-50 transition-colors shadow-lg min-h-[44px]">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+            Run with Your Data
+          </a>
+          <a href="https://github.com/opentax-org/opentax/tree/main/src/rules" target="_blank" rel="noopener"
+             class="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 font-semibold px-6 py-3 rounded-xl transition-colors min-h-[44px]">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+            View Source Code
+          </a>
+          <a href="../docs/openclaw-plugin.html"
+             class="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 font-semibold px-6 py-3 rounded-xl transition-colors min-h-[44px]">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            OpenClaw Plugin Docs
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ═══════════════════ Footer ═══════════════════ -->
+  <footer class="border-t border-gray-200 bg-gray-50">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-gray-500">
+      <span>OpenTax — Free, open-source tax preparation. MIT License.</span>
+      <div class="flex items-center gap-4">
+        <a href="../" class="hover:text-gray-700 transition-colors">Home</a>
+        <a href="https://github.com/opentax-org/opentax" target="_blank" rel="noopener" class="hover:text-gray-700 transition-colors">GitHub</a>
+        <a href="../privacy.html" class="hover:text-gray-700 transition-colors">Privacy</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ═══════════════════ Script ═══════════════════ -->
+  <script>
+  (function () {
+    'use strict';
+
+    // ── State ──
+    let traceData = null;
+    let activeLineId = null;
+    let selectedNodeId = null;
+    let expandedNodes = new Set();
+    let nodesExpanded = 0;
+    let maxDepthReached = 0;
+
+    // ── Formatting ──
+    function formatDollars(cents) {
+      const d = cents / 100;
+      const abs = Math.abs(d);
+      const formatted = abs.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return d < 0 ? '-$' + formatted : '$' + formatted;
+    }
+
+    function sourceLabel(type) {
+      switch (type) {
+        case 'document': return 'Document';
+        case 'computed': return 'Computed';
+        case 'user-entry': return 'User entry';
+        default: return type;
+      }
+    }
+
+    function badgeClass(type) {
+      switch (type) {
+        case 'document': return 'badge-document';
+        case 'computed': return 'badge-computed';
+        case 'user-entry': return 'badge-user-entry';
+        default: return 'badge-computed';
+      }
+    }
+
+    function dotColor(type) {
+      switch (type) {
+        case 'document': return 'bg-green-500';
+        case 'computed': return 'bg-blue-500';
+        case 'user-entry': return 'bg-gray-400';
+        default: return 'bg-blue-500';
+      }
+    }
+
+    // ── Section labels ──
+    function sectionLabel(section) {
+      switch (section) {
+        case 'income': return 'Income';
+        case 'deductions': return 'Deductions';
+        case 'tax': return 'Tax';
+        case 'payments': return 'Payments & Credits';
+        case 'refund': return 'Refund';
+        default: return '';
+      }
+    }
+
+    // ── Build summary table ──
+    function renderSummary() {
+      const table = document.getElementById('summary-table');
+      table.innerHTML = '';
+
+      let currentSection = null;
+      traceData.summaryLines.forEach(function (line) {
+        const trace = traceData.traces[line.nodeId];
+        if (!trace) return;
+
+        // Section header
+        if (line.section !== currentSection) {
+          currentSection = line.section;
+          var header = document.createElement('div');
+          header.className = 'px-4 sm:px-6 py-2 bg-gray-50 text-xs font-bold text-gray-500 uppercase tracking-wider';
+          header.textContent = sectionLabel(currentSection);
+          table.appendChild(header);
+        }
+
+        // Row
+        var row = document.createElement('div');
+        row.className = 'summary-row' + (activeLineId === line.nodeId ? ' active' : '');
+        row.setAttribute('data-node-id', line.nodeId);
+        row.setAttribute('role', 'button');
+        row.setAttribute('tabindex', '0');
+        row.setAttribute('aria-expanded', activeLineId === line.nodeId ? 'true' : 'false');
+        row.setAttribute('aria-label', trace.label + ': ' + formatDollars(trace.amount));
+
+        // Form line label
+        var lineLabel = document.createElement('span');
+        lineLabel.className = 'text-xs font-semibold text-gray-400';
+        lineLabel.textContent = line.formLine;
+
+        // Description
+        var desc = document.createElement('span');
+        desc.className = 'text-sm font-medium text-gray-800 truncate';
+        desc.textContent = trace.label;
+
+        // Amount
+        var amt = document.createElement('span');
+        amt.className = 'amount text-sm font-bold text-right whitespace-nowrap';
+        if (line.section === 'refund' && trace.amount > 0) {
+          amt.classList.add('text-green-700');
+        } else {
+          amt.classList.add('text-gray-900');
+        }
+        amt.textContent = formatDollars(trace.amount);
+
+        // Chevron
+        var chev = document.createElement('span');
+        chev.className = 'chevron text-gray-400 text-center' + (activeLineId === line.nodeId ? ' open' : '');
+        chev.innerHTML = '&#9654;';
+
+        row.appendChild(lineLabel);
+        row.appendChild(desc);
+        row.appendChild(amt);
+        row.appendChild(chev);
+
+        row.addEventListener('click', function () { toggleLine(line.nodeId); });
+        row.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleLine(line.nodeId); }
+        });
+
+        table.appendChild(row);
+      });
+    }
+
+    // ── Toggle a summary line ──
+    function toggleLine(nodeId) {
+      if (activeLineId === nodeId) {
+        activeLineId = null;
+        selectedNodeId = null;
+        expandedNodes.clear();
+        document.getElementById('trace-section').classList.add('hidden');
+        closeCitation();
+      } else {
+        activeLineId = nodeId;
+        selectedNodeId = null;
+        expandedNodes.clear();
+        expandedNodes.add(nodeId);
+        renderTrace();
+        document.getElementById('trace-section').classList.remove('hidden');
+        closeCitation();
+        // Scroll trace into view
+        setTimeout(function () {
+          document.getElementById('trace-section').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 50);
+      }
+      renderSummary();
+    }
+
+    // ── Render trace tree ──
+    function renderTrace() {
+      var container = document.getElementById('trace-container');
+      container.innerHTML = '';
+      var trace = traceData.traces[activeLineId];
+      if (!trace) return;
+      container.appendChild(buildTraceNode(trace, 0));
+    }
+
+    function buildTraceNode(node, depth) {
+      var wrapper = document.createElement('div');
+      wrapper.className = 'trace-item' + (depth > 0 ? '' : '');
+      if (depth > 0) wrapper.style.marginLeft = '40px';
+
+      var card = document.createElement('div');
+      card.className = 'trace-node' + (selectedNodeId === node.nodeId ? ' selected' : '');
+      card.setAttribute('data-source', node.sourceType);
+      card.setAttribute('data-node-id', node.nodeId);
+
+      var hasChildren = node.children && node.children.length > 0;
+      card.setAttribute('data-expandable', hasChildren ? 'true' : 'false');
+
+      // Top row: badge + label + toggle
+      var topRow = document.createElement('div');
+      topRow.className = 'flex items-center gap-2 mb-1';
+
+      var badge = document.createElement('span');
+      badge.className = 'badge ' + badgeClass(node.sourceType);
+      badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full ' + dotColor(node.sourceType) + '"></span>' + sourceLabel(node.sourceType);
+
+      if (node.formLine) {
+        var formRef = document.createElement('span');
+        formRef.className = 'text-xs text-gray-400 font-medium';
+        formRef.textContent = node.formLine;
+        topRow.appendChild(formRef);
+      }
+      topRow.appendChild(badge);
+
+      if (hasChildren) {
+        var toggle = document.createElement('button');
+        toggle.className = 'ml-auto chevron text-gray-400 hover:text-gray-600 p-1 min-w-[28px] min-h-[28px] flex items-center justify-center';
+        toggle.innerHTML = '&#9654;';
+        toggle.setAttribute('aria-label', expandedNodes.has(node.nodeId) ? 'Collapse' : 'Expand');
+        if (expandedNodes.has(node.nodeId)) toggle.classList.add('open');
+        toggle.addEventListener('click', function (e) {
+          e.stopPropagation();
+          toggleNode(node.nodeId, depth);
+        });
+        topRow.appendChild(toggle);
+      }
+
+      card.appendChild(topRow);
+
+      // Label
+      var label = document.createElement('div');
+      label.className = 'text-sm font-semibold text-gray-900 leading-snug';
+      label.textContent = node.label;
+      card.appendChild(label);
+
+      // Amount
+      var amt = document.createElement('div');
+      amt.className = 'amount text-lg font-bold text-gray-900 mt-0.5';
+      amt.textContent = formatDollars(node.amount);
+      card.appendChild(amt);
+
+      // Formula (if present)
+      if (node.formula) {
+        var formula = document.createElement('div');
+        formula.className = 'text-xs text-gray-500 mt-1 leading-snug';
+        formula.textContent = node.formula;
+        card.appendChild(formula);
+      }
+
+      // IRS citation link
+      if (node.irsCitation) {
+        var cite = document.createElement('button');
+        cite.className = 'text-xs text-blue-600 hover:text-blue-800 mt-1 inline-flex items-center gap-1 min-h-[28px] transition-colors';
+        cite.innerHTML = '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' + escapeHtml(node.irsCitation);
+        cite.addEventListener('click', function (e) {
+          e.stopPropagation();
+          showCitation(node);
+        });
+        card.appendChild(cite);
+      }
+
+      // Source document detail
+      if (node.sourceDetail) {
+        var detail = document.createElement('div');
+        detail.className = 'text-xs text-gray-500 mt-1';
+        detail.textContent = node.sourceDetail.documentType + ' from ' + node.sourceDetail.issuer + ' — ' + node.sourceDetail.field;
+        card.appendChild(detail);
+      }
+
+      // Click handler for selecting
+      card.addEventListener('click', function () {
+        if (hasChildren) {
+          toggleNode(node.nodeId, depth);
+        } else if (node.irsCitation) {
+          showCitation(node);
+        }
+      });
+
+      wrapper.appendChild(card);
+
+      // Children container
+      if (hasChildren) {
+        var childWrapper = document.createElement('div');
+        childWrapper.className = 'trace-children-wrapper' + (expandedNodes.has(node.nodeId) ? ' open' : '');
+
+        var childContainer = document.createElement('div');
+        childContainer.className = 'trace-children mt-3';
+
+        node.children.forEach(function (child) {
+          childContainer.appendChild(buildTraceNode(child, depth + 1));
+        });
+
+        childWrapper.appendChild(childContainer);
+        wrapper.appendChild(childWrapper);
+      }
+
+      return wrapper;
+    }
+
+    // ── Toggle node expansion ──
+    function toggleNode(nodeId, depth) {
+      if (expandedNodes.has(nodeId)) {
+        expandedNodes.delete(nodeId);
+      } else {
+        expandedNodes.add(nodeId);
+        nodesExpanded++;
+        var newDepth = depth + 1;
+        if (newDepth > maxDepthReached) {
+          maxDepthReached = newDepth;
+        }
+        // Deep trace indicator at depth 3+
+        if (newDepth >= 3) {
+          setTimeout(function () {
+            var cards = document.querySelectorAll('.trace-node');
+            cards.forEach(function (c) {
+              if (c.getAttribute('data-node-id') === nodeId) {
+                c.classList.add('deep-trace-indicator');
+                setTimeout(function () { c.classList.remove('deep-trace-indicator'); }, 2200);
+              }
+            });
+          }, 100);
+        }
+      }
+      renderTrace();
+    }
+
+    // ── Citation panel ──
+    function showCitation(node) {
+      selectedNodeId = node.nodeId;
+      var panel = document.getElementById('citation-panel');
+      document.getElementById('citation-title').textContent = node.label;
+      document.getElementById('citation-text').textContent = node.irsCitation || '';
+      document.getElementById('citation-formula').textContent = node.formula ? 'Formula: ' + node.formula : '';
+
+      var link = document.getElementById('citation-link');
+      if (node.irsUrl) {
+        link.href = node.irsUrl;
+        link.style.display = '';
+      } else {
+        link.style.display = 'none';
+      }
+
+      panel.classList.add('open');
+      renderTrace(); // re-render to show selected state
+    }
+
+    function closeCitation() {
+      selectedNodeId = null;
+      document.getElementById('citation-panel').classList.remove('open');
+    }
+
+    // ── Helpers ──
+    function escapeHtml(str) {
+      var div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // ── Init ──
+    function init() {
+      fetch('trace-data.json')
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          traceData = data;
+
+          // Scenario card
+          document.getElementById('scenario-title').textContent = data.scenario.title;
+          document.getElementById('scenario-year').textContent = data.scenario.taxYear;
+          document.getElementById('scenario-desc').textContent = data.scenario.description;
+
+          var docsContainer = document.getElementById('scenario-docs');
+          data.scenario.documents.forEach(function (doc) {
+            var chip = document.createElement('span');
+            chip.className = 'inline-flex items-center gap-1.5 text-xs font-medium bg-green-50 text-green-700 border border-green-200 px-2.5 py-1 rounded-full';
+            chip.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>' + doc.type + ' (' + doc.issuer + ')';
+            docsContainer.appendChild(chip);
+          });
+
+          renderSummary();
+        })
+        .catch(function (err) {
+          console.error('Failed to load trace data:', err);
+          document.getElementById('summary-table').innerHTML =
+            '<div class="p-6 text-center text-gray-500">Failed to load trace data. Make sure trace-data.json is served alongside this page.</div>';
+        });
+
+      // Close buttons
+      document.getElementById('close-trace').addEventListener('click', function () {
+        activeLineId = null;
+        expandedNodes.clear();
+        document.getElementById('trace-section').classList.add('hidden');
+        closeCitation();
+        renderSummary();
+      });
+
+      document.getElementById('close-citation').addEventListener('click', function () {
+        closeCitation();
+        renderTrace();
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  })();
+  </script>
+</body>
+</html>
