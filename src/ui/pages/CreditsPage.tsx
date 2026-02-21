@@ -104,7 +104,7 @@ export function CreditsPage() {
               <div className="flex items-center gap-1">
                 <span className="text-sm font-semibold text-gray-800">Child Tax Credit</span>
                 <InfoTooltip
-                  explanation="A qualifying child must be under age 17 at the end of the tax year, have a valid SSN, be your son/daughter/stepchild/foster child/sibling/grandchild, and have lived with you for more than half the year. Each qualifying child generates a $2,000 credit."
+                  explanation="A qualifying child must be under age 17 at the end of the tax year, have a valid SSN, be your son/daughter/stepchild/foster child/sibling/grandchild, and have lived with you for more than half the year. Each qualifying child generates a $2,200 credit."
                   pubName="IRS Schedule 8812 Instructions"
                   pubUrl="https://www.irs.gov/instructions/i1040s8"
                 />

@@ -182,7 +182,7 @@ export function ReviewPage() {
             nodeId="form1040.line12"
             amount={form1040.line12.amount}
             tooltip={{
-              explanation: 'Line 12 is the greater of your standard deduction or itemized deductions (Schedule A Line 17). For 2025: $15,000 (Single), $30,000 (MFJ), $22,500 (HOH), $15,000 (MFS). Additional amounts apply if you are 65 or older or blind.',
+              explanation: 'Line 12 is the greater of your standard deduction or itemized deductions (Schedule A Line 17). For 2025: $15,750 (Single), $31,500 (MFJ), $23,625 (HOH), $15,750 (MFS). Additional amounts apply if you are 65 or older or blind.',
               pubName: 'IRS Form 1040 Instructions — Line 12',
               pubUrl: 'https://www.irs.gov/instructions/i1040gi',
             }}

@@ -87,7 +87,7 @@ export function DependentsPage() {
                   <label className="text-sm font-medium text-gray-700 flex items-center">
                     Date of birth
                     <InfoTooltip
-                      explanation="Date of birth is used to determine if a dependent qualifies for the Child Tax Credit ($2,000 per child under 17 at end of tax year). Children who turn 17 during 2025 do not qualify for the full CTC but may qualify for the $500 Other Dependent Credit."
+                      explanation="Date of birth is used to determine if a dependent qualifies for the Child Tax Credit ($2,200 per child under 17 at end of tax year). Children who turn 17 during 2025 do not qualify for the full CTC but may qualify for the $500 Other Dependent Credit."
                       pubName="IRS Publication 972 — Child Tax Credit"
                       pubUrl="https://www.irs.gov/publications/p972"
                     />
