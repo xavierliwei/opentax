@@ -56,6 +56,7 @@ export interface StateReviewResultLine {
 /** Contract that each state module must implement */
 export interface StateRulesModule {
   stateCode: SupportedStateCode
+  stateName: string              // "California", "New York"
   formLabel: string              // "CA Form 540", "NY IT-201"
   sidebarLabel: string           // "CA Form 540" — used in interview sidebar
 

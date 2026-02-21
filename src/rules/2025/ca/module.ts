@@ -306,6 +306,7 @@ const CA_REVIEW_RESULT_LINES: StateReviewResultLine[] = [
 
 export const caModule: StateRulesModule = {
   stateCode: 'CA',
+  stateName: 'California',
   formLabel: 'CA Form 540',
   sidebarLabel: 'CA Form 540',
 

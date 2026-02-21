@@ -14,10 +14,11 @@ export function getStateModule(code: SupportedStateCode): StateRulesModule | und
   return STATE_MODULES.get(code)
 }
 
-export function getSupportedStates(): { code: SupportedStateCode; label: string }[] {
+export function getSupportedStates(): { code: SupportedStateCode; label: string; stateName: string }[] {
   return [...STATE_MODULES.entries()].map(([code, mod]) => ({
     code,
     label: mod.formLabel,
+    stateName: mod.stateName,
   }))
 }
 

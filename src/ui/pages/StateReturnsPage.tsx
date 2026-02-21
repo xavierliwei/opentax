@@ -3,10 +3,7 @@ import { useInterview } from '../../interview/useInterview.ts'
 import { getSupportedStates } from '../../rules/stateRegistry.ts'
 import { InfoTooltip } from '../components/InfoTooltip.tsx'
 import { InterviewNav } from './InterviewNav.tsx'
-
-const STATE_NAMES: Record<string, string> = {
-  CA: 'California',
-}
+import type { SupportedStateCode } from '../../model/types.ts'
 
 export function StateReturnsPage() {
   const stateReturns = useTaxStore((s) => s.taxReturn.stateReturns ?? [])
@@ -31,7 +28,7 @@ export function StateReturnsPage() {
       </p>
 
       <div className="mt-6 flex flex-col gap-4">
-        {supportedStates.map(({ code }) => (
+        {supportedStates.map(({ code, label, stateName }) => (
           <div key={code} className="border border-gray-200 rounded-lg p-4">
             <label className="flex items-start gap-3 cursor-pointer">
               <input
@@ -39,54 +36,45 @@ export function StateReturnsPage() {
                 checked={isSelected(code)}
                 onChange={(e) => {
                   if (e.target.checked) {
-                    addStateReturn({ stateCode: code as 'CA', residencyType: 'full-year' })
+                    addStateReturn({ stateCode: code as SupportedStateCode, residencyType: 'full-year' })
                   } else {
-                    removeStateReturn(code as 'CA')
+                    removeStateReturn(code as SupportedStateCode)
                   }
                 }}
                 className="mt-1"
               />
               <div>
                 <span className="font-medium text-gray-900 inline-flex items-center">
-                  {STATE_NAMES[code] ?? code} resident (full year)
+                  {stateName} resident (full year)
                   <InfoTooltip
-                    explanation={
-                      code === 'CA'
-                        ? 'Check this if you lived in California for the entire tax year. OpenTax will compute your California Form 540 state return alongside your federal return. CA taxes all income at ordinary rates (no preferential capital gains rate) and adds a 1% mental health surcharge on taxable income above $1 million.'
-                        : `Check this if you lived in ${STATE_NAMES[code] ?? code} for the entire tax year.`
-                    }
-                    pubName={
-                      code === 'CA'
-                        ? 'FTB — Filing Requirements'
-                        : 'State filing requirements'
-                    }
-                    pubUrl={
-                      code === 'CA'
-                        ? 'https://www.ftb.ca.gov/file/personal/residency-status/index.html'
-                        : '#'
+                    explanation={`Check this if you lived in ${stateName} for the entire tax year. OpenTax will compute your ${label} state return alongside your federal return.`}
+                    pubName={`${stateName} — Filing Requirements`}
+                    pubUrl={code === 'CA'
+                      ? 'https://www.ftb.ca.gov/file/personal/residency-status/index.html'
+                      : '#'
                     }
                   />
                 </span>
                 <p className="text-sm text-gray-500 mt-0.5">
-                  {code === 'CA' && 'Enables California Form 540 computation.'}
+                  Enables {label} computation.
                 </p>
               </div>
             </label>
 
             {/* CA-specific follow-up options */}
-            {code === 'CA' && isSelected('CA') && (
+            {code === 'CA' && isSelected(code) && (
               <label className="flex items-start gap-3 cursor-pointer mt-3 ml-6">
                 <input
                   type="checkbox"
-                  checked={getConfig('CA')?.rentPaid ?? false}
+                  checked={getConfig(code)?.rentPaid ?? false}
                   onChange={(e) =>
-                    updateStateReturn('CA', { rentPaid: e.target.checked })
+                    updateStateReturn(code as SupportedStateCode, { rentPaid: e.target.checked })
                   }
                   className="mt-1"
                 />
                 <div>
                   <span className="font-medium text-gray-900 inline-flex items-center">
-                    I paid rent in California
+                    I paid rent in {stateName}
                     <InfoTooltip
                       explanation="The California nonrefundable renter's credit is $60 for single/MFS filers (CA AGI ≤ $53,994) or $120 for MFJ/HOH/QW filers (CA AGI ≤ $107,987). You must have paid rent for at least half the year on your principal residence in California."
                       pubName="FTB — Renter's Credit"
@@ -105,7 +93,7 @@ export function StateReturnsPage() {
 
       {supportedStates.length === 1 && (
         <p className="mt-4 text-xs text-gray-400">
-          More states coming soon. Currently only California is supported.
+          More states coming soon. Currently only {supportedStates[0].stateName} is supported.
         </p>
       )}
 

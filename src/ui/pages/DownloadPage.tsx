@@ -246,7 +246,7 @@ export function DownloadPage() {
                     {sr.formLabel} PDF
                   </button>
                   {!isReady && (
-                    <span className="text-xs text-gray-400">Generate package first</span>
+                    <span className="text-xs text-gray-400">Click &ldquo;Download All&rdquo; above to generate</span>
                   )}
                 </div>
               )
