@@ -5,14 +5,15 @@
  * The registry (stateRegistry.ts) maps state codes to modules.
  */
 
-import type { SupportedStateCode, TaxReturn, StateReturnConfig } from '../model/types'
+import type { SupportedStateCode, ResidencyType, TaxReturn, StateReturnConfig } from '../model/types'
 import type { Form1040Result } from './2025/form1040'
 import type { TracedValue } from '../model/traced'
 
 /** Standardised result from any state computation */
 export interface StateComputeResult {
   stateCode: SupportedStateCode
-  formLabel: string              // e.g. "CA Form 540", "NY IT-201"
+  formLabel: string              // e.g. "CA Form 540", "CA Form 540NR", "NY IT-201"
+  residencyType: ResidencyType
   stateAGI: number
   stateTaxableIncome: number
   stateTax: number
@@ -21,6 +22,8 @@ export interface StateComputeResult {
   stateWithholding: number
   overpaid: number
   amountOwed: number
+  /** For part-year/nonresident: fraction of the year spent in the state (0–1) */
+  apportionmentRatio?: number
   /** State-specific detail object (e.g. Form540Result) — opaque to the framework */
   detail: unknown
 }

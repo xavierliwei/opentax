@@ -12,9 +12,11 @@ import type { StateRulesModule, StateComputeResult, StateReviewSection, StateRev
 
 /** Map a Form540Result into the standardised StateComputeResult */
 function toStateResult(form540: Form540Result): StateComputeResult {
+  const isPartYear = form540.residencyType === 'part-year'
   return {
     stateCode: 'CA',
-    formLabel: 'CA Form 540',
+    formLabel: isPartYear ? 'CA Form 540NR' : 'CA Form 540',
+    residencyType: form540.residencyType,
     stateAGI: form540.caAGI,
     stateTaxableIncome: form540.caTaxableIncome,
     stateTax: form540.caTax + form540.mentalHealthTax,
@@ -23,6 +25,7 @@ function toStateResult(form540: Form540Result): StateComputeResult {
     stateWithholding: form540.stateWithholding,
     overpaid: form540.overpaid,
     amountOwed: form540.amountOwed,
+    apportionmentRatio: form540.apportionmentRatio,
     detail: form540,
   }
 }
@@ -30,6 +33,8 @@ function toStateResult(form540: Form540Result): StateComputeResult {
 /** Node labels for CA trace nodes */
 const CA_NODE_LABELS: Record<string, string> = {
   'form540.caAGI': 'California adjusted gross income',
+  'form540.caSourceIncome': 'CA-source income (apportioned)',
+  'form540.apportionmentRatio': 'CA residency apportionment ratio',
   'form540.caDeduction': 'California deduction',
   'form540.caTaxableIncome': 'California taxable income',
   'form540.caTax': 'California tax',
@@ -70,6 +75,13 @@ function collectCATracedValues(result: StateComputeResult): Map<string, TracedVa
   values.set('form540.caAGI', tracedFromComputation(
     form540.caAGI, 'form540.caAGI', caInputs, 'California adjusted gross income',
   ))
+
+  if (form540.caSourceIncome !== undefined) {
+    values.set('form540.caSourceIncome', tracedFromComputation(
+      form540.caSourceIncome, 'form540.caSourceIncome', ['form540.caAGI'],
+      `CA-source income (${Math.round(form540.apportionmentRatio * 100)}% of CA AGI)`,
+    ))
+  }
   values.set('form540.caDeduction', tracedFromComputation(
     form540.deductionUsed, 'form540.caDeduction', [],
     `CA ${form540.deductionMethod} deduction`,
@@ -176,6 +188,17 @@ const CA_REVIEW_LAYOUT: StateReviewSection[] = [
           pubName: 'FTB Form 540 Instructions — Line 17',
           pubUrl: 'https://www.ftb.ca.gov/forms/2025/2025-540-instructions.html',
         },
+      },
+      {
+        label: 'CA-Source Income',
+        nodeId: 'form540.caSourceIncome',
+        getValue: (r) => d(r).caSourceIncome ?? r.stateAGI,
+        tooltip: {
+          explanation: 'For part-year residents, this is the portion of your CA AGI allocated to California based on the number of days you were a CA resident. Tax is computed on your full-year income, then multiplied by the apportionment ratio (days in CA / days in year).',
+          pubName: 'FTB Form 540NR Instructions — Schedule CA',
+          pubUrl: 'https://www.ftb.ca.gov/forms/2025/2025-540nr-instructions.html',
+        },
+        showWhen: (r) => d(r).residencyType === 'part-year',
       },
     ],
   },
@@ -310,8 +333,8 @@ export const caModule: StateRulesModule = {
   formLabel: 'CA Form 540',
   sidebarLabel: 'CA Form 540',
 
-  compute(model: TaxReturn, federal: Form1040Result, _config: StateReturnConfig): StateComputeResult {
-    const form540 = computeForm540(model, federal)
+  compute(model: TaxReturn, federal: Form1040Result, config: StateReturnConfig): StateComputeResult {
+    const form540 = computeForm540(model, federal, config)
     return toStateResult(form540)
   },
 

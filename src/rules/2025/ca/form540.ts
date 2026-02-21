@@ -7,7 +7,7 @@
  * Source: FTB 2025 Form 540 Instructions
  */
 
-import type { TaxReturn, FilingStatus } from '../../../model/types'
+import type { TaxReturn, FilingStatus, StateReturnConfig } from '../../../model/types'
 import type { Form1040Result } from '../form1040'
 import type { ScheduleAResult } from '../scheduleA'
 import { computeBracketTax } from '../taxComputation'
@@ -62,6 +62,11 @@ export interface Form540Result {
   // Result
   overpaid: number                  // Line 93 (refund)
   amountOwed: number                // Line 97
+
+  // Part-year / nonresident apportionment
+  residencyType: 'full-year' | 'part-year' | 'nonresident'
+  apportionmentRatio: number        // 1.0 for full-year, days/365 for part-year, 0 for NR
+  caSourceIncome?: number           // Income sourced to CA before apportionment (part-year)
 }
 
 // ── CA Itemized Deductions ──────────────────────────────────────
@@ -186,13 +191,77 @@ function computeRentersCredit(
   return caAGI <= agiLimit ? credit : 0
 }
 
+// ── Apportionment ───────────────────────────────────────────────
+// For part-year residents, California taxes income based on the
+// ratio of days spent as a CA resident to total days in the year.
+// FTB Schedule CA (540NR) uses this ratio to apportion income.
+
+/**
+ * Compute the CA residency apportionment ratio.
+ * - full-year: 1.0 (all income taxed by CA)
+ * - part-year: days in CA / days in year
+ * - nonresident: 0.0 (only CA-source income taxed — not yet modeled)
+ */
+export function computeApportionmentRatio(
+  config: StateReturnConfig,
+  taxYear: number,
+): number {
+  if (config.residencyType === 'full-year') return 1.0
+  if (config.residencyType === 'nonresident') return 0.0
+
+  // part-year: compute from move-in / move-out dates
+  // Use UTC dates throughout to avoid timezone issues
+  const daysInYear = isLeapYear(taxYear) ? 366 : 365
+  const yearStartMs = Date.UTC(taxYear, 0, 1)
+  const yearEndMs = Date.UTC(taxYear, 11, 31)
+  const MS_PER_DAY = 86400000
+
+  let startMs = yearStartMs
+  let endMs = yearEndMs
+
+  if (config.moveInDate) {
+    const parts = config.moveInDate.split('-').map(Number)
+    if (parts.length === 3) {
+      const ms = Date.UTC(parts[0], parts[1] - 1, parts[2])
+      if (!isNaN(ms)) startMs = ms
+    }
+  }
+  if (config.moveOutDate) {
+    const parts = config.moveOutDate.split('-').map(Number)
+    if (parts.length === 3) {
+      const ms = Date.UTC(parts[0], parts[1] - 1, parts[2])
+      if (!isNaN(ms)) endMs = ms
+    }
+  }
+
+  // Clamp to tax year boundaries
+  if (startMs < yearStartMs) startMs = yearStartMs
+  if (endMs > yearEndMs) endMs = yearEndMs
+
+  if (endMs < startMs) return 0
+
+  // +1 because both start and end dates are inclusive
+  const daysInState = Math.round((endMs - startMs) / MS_PER_DAY) + 1
+
+  return Math.min(1.0, Math.max(0, daysInState / daysInYear))
+}
+
+function isLeapYear(year: number): boolean {
+  return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0
+}
+
 // ── Main orchestrator ───────────────────────────────────────────
 
 export function computeForm540(
   model: TaxReturn,
   form1040: Form1040Result,
+  config?: StateReturnConfig,
 ): Form540Result {
   const filingStatus = model.filingStatus
+  const residencyType = config?.residencyType ?? 'full-year'
+  const ratio = config
+    ? computeApportionmentRatio(config, model.taxYear)
+    : 1.0
 
   // ── Income (Lines 13–17) ──────────────────────────────────
   const scheduleCA = computeScheduleCA(form1040)
@@ -215,24 +284,42 @@ export function computeForm540(
   const caTaxableIncome = Math.max(0, caAGI - deductionUsed)
 
   // ── Tax (Line 31) ────────────────────────────────────────
-  const caTax = computeBracketTax(caTaxableIncome, CA_TAX_BRACKETS[filingStatus])
+  // For part-year residents, CA computes tax on TOTAL taxable income
+  // then multiplies by the apportionment ratio (540NR method).
+  const fullYearTax = computeBracketTax(caTaxableIncome, CA_TAX_BRACKETS[filingStatus])
+  const caTax = ratio < 1.0
+    ? Math.round(fullYearTax * ratio)
+    : fullYearTax
 
   // ── Exemption Credits (Line 32) ──────────────────────────
   const exemptions = computeExemptionCredits(filingStatus, model.dependents.length, caAGI)
+  // Part-year: exemption credits are also prorated
+  const proratedExemptionTotal = ratio < 1.0
+    ? Math.round(exemptions.total * ratio)
+    : exemptions.total
 
   // ── Tax minus exemption credits (Line 33) ────────────────
-  const taxMinusExemptions = Math.max(0, caTax - exemptions.total)
+  const taxMinusExemptions = Math.max(0, caTax - proratedExemptionTotal)
 
   // ── Mental Health Services Tax (Line 36) ──────────────────
-  const mentalHealthTax = caTaxableIncome > CA_MENTAL_HEALTH_THRESHOLD
-    ? Math.round((caTaxableIncome - CA_MENTAL_HEALTH_THRESHOLD) * CA_MENTAL_HEALTH_RATE)
+  // Mental health tax applies to CA-sourced taxable income for part-year
+  const apportionedTaxable = ratio < 1.0
+    ? Math.round(caTaxableIncome * ratio)
+    : caTaxableIncome
+  const mentalHealthTax = apportionedTaxable > CA_MENTAL_HEALTH_THRESHOLD
+    ? Math.round((apportionedTaxable - CA_MENTAL_HEALTH_THRESHOLD) * CA_MENTAL_HEALTH_RATE)
     : 0
 
   // ── Net tax before credits (Line 35 + Line 36) ──────────
   const netTaxBeforeCredits = taxMinusExemptions + mentalHealthTax
 
   // ── Other credits ────────────────────────────────────────
-  const rentersCredit = computeRentersCredit(filingStatus, caAGI, model.rentPaidInCA ?? false)
+  // Renter's credit: part-year residents qualify only if they rented
+  // in CA for at least half the year. We check the ratio as a proxy.
+  const rentEligible = residencyType === 'full-year' || ratio >= 0.5
+  const rentersCredit = rentEligible
+    ? computeRentersCredit(filingStatus, caAGI, model.rentPaidInCA ?? false)
+    : 0
 
   // ── Tax after credits (Line 48) ──────────────────────────
   const taxAfterCredits = Math.max(0, netTaxBeforeCredits - rentersCredit)
@@ -256,6 +343,11 @@ export function computeForm540(
     ? taxAfterCredits - totalPayments
     : 0
 
+  // CA-source income for part-year display
+  const caSourceIncome = ratio < 1.0
+    ? Math.round(caAGI * ratio)
+    : undefined
+
   return {
     federalAGI,
     caAdjustments: scheduleCA,
@@ -273,7 +365,7 @@ export function computeForm540(
     personalExemptionCredit: exemptions.personalCredit,
     dependentExemptionCredit: exemptions.dependentCredit,
     exemptionPhaseOutReduction: exemptions.phaseOutReduction,
-    totalExemptionCredits: exemptions.total,
+    totalExemptionCredits: proratedExemptionTotal,
     rentersCredit,
 
     taxAfterCredits,
@@ -283,5 +375,9 @@ export function computeForm540(
 
     overpaid,
     amountOwed,
+
+    residencyType,
+    apportionmentRatio: ratio,
+    caSourceIncome,
   }
 }

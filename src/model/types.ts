@@ -433,10 +433,26 @@ export interface Credit {
 export type SupportedStateCode = 'CA'
 // Future: | 'NY' | 'NJ' | 'IL' | 'MA' | 'PA'
 
+/** Residency classification for a state return */
+export type ResidencyType = 'full-year' | 'part-year' | 'nonresident'
+
 /** Per-state return configuration selected by the user */
 export interface StateReturnConfig {
   stateCode: SupportedStateCode
-  residencyType: 'full-year'         // Phase 1: full-year only
+  residencyType: ResidencyType
+
+  /**
+   * Date the taxpayer moved INTO the state (part-year only).
+   * ISO 8601 format: 'YYYY-MM-DD'
+   */
+  moveInDate?: string
+
+  /**
+   * Date the taxpayer moved OUT OF the state (part-year only).
+   * ISO 8601 format: 'YYYY-MM-DD'
+   */
+  moveOutDate?: string
+
   // State-specific flags
   rentPaid?: boolean                  // CA renter's credit
 }
