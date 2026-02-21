@@ -42,8 +42,10 @@
         <span class="text-lg font-bold tracking-tight">OpenTax</span>
       </a>
       <div class="flex items-center gap-6 text-sm font-medium text-gray-600">
-        <a href="./" class="hover:text-brand transition-colors hidden sm:inline">Trust Center</a>
         <a href="../" class="hover:text-brand transition-colors hidden sm:inline">Home</a>
+        <a href="./" class="text-brand font-semibold hidden sm:inline">Trust Center</a>
+        <a href="../demo/" class="hover:text-brand transition-colors hidden sm:inline">Demo</a>
+        <a href="../docs/" class="hover:text-brand transition-colors hidden sm:inline">Docs</a>
         <a href="https://github.com/opentax-org/opentax" target="_blank" rel="noopener"
            class="inline-flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg transition-colors text-gray-700">
           <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
@@ -68,9 +70,28 @@
     </div>
   </section>
 
+  <!-- ───────────────── Risk Disclaimer ───────────────── -->
+  <section class="max-w-6xl mx-auto px-6 pt-10 sm:pt-14">
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-5 flex gap-3">
+      <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+      <div>
+        <p class="text-sm text-amber-900 font-semibold mb-1">Important disclaimer</p>
+        <p class="text-sm text-amber-800 leading-relaxed">These scenarios validate OpenTax's computation logic against hand-calculated expected values. They do <strong>not</strong> constitute tax advice. OpenTax is not a substitute for a qualified tax professional. See <a href="limitations.html" class="underline hover:text-amber-950">known limitations</a> for scope details.</p>
+      </div>
+    </div>
+  </section>
+
   <!-- ───────────────── Coverage Matrix ───────────────── -->
   <section class="max-w-6xl mx-auto px-6 py-12 sm:py-16">
-    <h2 class="text-2xl font-bold tracking-tight mb-6">Scenario coverage matrix</h2>
+    <!-- Coverage legend -->
+    <div class="flex flex-wrap items-center gap-4 mb-6 text-sm">
+      <h2 class="text-2xl font-bold tracking-tight mr-2">Scenario coverage matrix</h2>
+      <span class="inline-flex items-center gap-1.5 text-green-700 bg-green-50 px-2.5 py-1 rounded-full text-xs font-medium border border-green-200">
+        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+        Validated = expected matches computed
+      </span>
+    </div>
+    <p class="text-sm text-gray-500 mb-6">All scenarios target <strong>Tax Year 2025</strong> federal returns unless noted. Filing statuses covered: Single, MFJ, Head of Household.</p>
     <div class="overflow-x-auto">
       <table class="w-full text-sm text-left">
         <thead>
@@ -475,6 +496,14 @@
     </div>
   </section>
 
+  <!-- ───────────────── Last Updated ───────────────── -->
+  <section class="max-w-6xl mx-auto px-6 pb-4">
+    <div class="flex flex-wrap items-center justify-between gap-3 text-xs text-gray-400 border-t border-gray-200 pt-4">
+      <span>Last validated: February 2026 &middot; Tax Year 2025 rules</span>
+      <a href="https://github.com/opentax-org/opentax/issues/new?labels=tax-accuracy&template=tax-accuracy.md" target="_blank" rel="noopener" class="hover:text-brand transition-colors">Report a discrepancy &rarr;</a>
+    </div>
+  </section>
+
   <!-- ───────────────── CTA ───────────────── -->
   <section class="max-w-4xl mx-auto px-6 py-12 text-center">
     <p class="text-gray-600 mb-6">Want to run these scenarios yourself? Clone the repo and run the test suite.</p>
@@ -492,7 +521,7 @@
   </section>
 
   <!-- ───────────────── Footer ───────────────── -->
-  <footer class="border-t border-gray-200">
+  <footer class="bg-gray-50 border-t border-gray-200">
     <div class="max-w-6xl mx-auto px-6 py-10">
       <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
         <div class="flex items-center gap-2">
@@ -501,14 +530,19 @@
           <span class="text-gray-300">|</span>
           <span>MIT License</span>
         </div>
-        <div class="flex items-center gap-4">
-          <a href="../privacy.html" class="hover:text-brand transition-colors">Privacy</a>
+        <div class="flex items-center gap-4 flex-wrap justify-center">
+          <a href="../trust/" class="hover:text-brand transition-colors">Trust Center</a>
           <span class="text-gray-300">|</span>
-          <span>Not affiliated with the IRS</span>
+          <a href="../demo/" class="hover:text-brand transition-colors">Demo</a>
+          <span class="text-gray-300">|</span>
+          <a href="../docs/" class="hover:text-brand transition-colors">Docs</a>
+          <span class="text-gray-300">|</span>
+          <a href="../privacy.html" class="hover:text-brand transition-colors">Privacy</a>
           <span class="text-gray-300">|</span>
           <a href="https://github.com/opentax-org/opentax" target="_blank" rel="noopener" class="hover:text-brand transition-colors">GitHub</a>
         </div>
       </div>
+      <div class="text-center text-xs text-gray-400 mt-4">Not affiliated with the IRS. OpenTax is not tax advice.</div>
     </div>
   </footer>
 
