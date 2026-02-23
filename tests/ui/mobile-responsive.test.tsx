@@ -21,6 +21,9 @@ import { WelcomePage } from '../../src/ui/pages/WelcomePage.tsx'
 import { InterviewNav } from '../../src/ui/pages/InterviewNav.tsx'
 import { Button } from '../../src/ui/components/Button.tsx'
 import { InfoTooltip } from '../../src/ui/components/InfoTooltip.tsx'
+import { ScheduleCPage } from '../../src/ui/pages/ScheduleCPage.tsx'
+import { ScheduleK1Page } from '../../src/ui/pages/ScheduleK1Page.tsx'
+import { Form1095APage } from '../../src/ui/pages/Form1095APage.tsx'
 
 function renderWithRouter(ui: React.ReactElement, { route = '/' } = {}) {
   return render(<MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>)
@@ -145,6 +148,55 @@ describe('WelcomePage mobile responsiveness', () => {
     const heading = screen.getByRole('heading', { name: /welcome to opentax/i })
     expect(heading.className).toContain('text-2xl')
     expect(heading.className).toContain('sm:text-3xl')
+  })
+})
+
+describe('Phase 4 pages mobile responsiveness', () => {
+  it('ScheduleCPage uses max-w-xl constraint', () => {
+    renderWithRouter(<ScheduleCPage />, { route: '/interview/schedule-c' })
+    const container = screen.getByTestId('page-schedule-c')
+    expect(container.className).toContain('max-w-xl')
+    expect(container.className).toContain('mx-auto')
+  })
+
+  it('ScheduleCPage grids are responsive', async () => {
+    const user = userEvent.setup()
+    renderWithRouter(<ScheduleCPage />, { route: '/interview/schedule-c' })
+    await user.click(screen.getByRole('button', { name: /add business/i }))
+
+    const container = screen.getByTestId('page-schedule-c')
+    const grids = container.querySelectorAll('.grid')
+    for (const grid of grids) {
+      // All grids should use responsive col classes
+      expect(grid.className).toContain('grid-cols-1')
+    }
+  })
+
+  it('ScheduleK1Page uses max-w-xl constraint', () => {
+    renderWithRouter(<ScheduleK1Page />, { route: '/interview/schedule-k1' })
+    const container = screen.getByTestId('page-schedule-k1')
+    expect(container.className).toContain('max-w-xl')
+    expect(container.className).toContain('mx-auto')
+  })
+
+  it('Form1095APage uses max-w-xl constraint', () => {
+    renderWithRouter(<Form1095APage />, { route: '/interview/form-1095a' })
+    const container = screen.getByTestId('page-form-1095a')
+    expect(container.className).toContain('max-w-xl')
+    expect(container.className).toContain('mx-auto')
+  })
+
+  it('Form1095APage monthly grid is responsive', async () => {
+    const user = userEvent.setup()
+    renderWithRouter(<Form1095APage />, { route: '/interview/form-1095a' })
+    await user.click(screen.getByRole('button', { name: /add 1095-a/i }))
+
+    const container = screen.getByTestId('page-form-1095a')
+    const grids = container.querySelectorAll('.grid')
+    for (const grid of grids) {
+      // Should have mobile-first single column
+      expect(grid.className).toContain('grid-cols-1')
+    }
   })
 })
 

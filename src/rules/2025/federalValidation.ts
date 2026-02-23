@@ -372,9 +372,9 @@ function validateForeignTaxCredit(model: TaxReturn): FederalValidationItem[] {
 
 function validateUnsupportedSchedules(_model: TaxReturn): FederalValidationItem[] {
   return [{
-    code: 'PHASE4_LIMITATIONS',
+    code: 'SUPPORTED_SCOPE',
     severity: 'info',
-    message: 'Federal Gap Closure Phase 4 supports: W-2 wages, self-employment (Schedule C/SE), QBI deduction (Form 8995 simplified), investment income, retirement distributions, Social Security benefits, rental income (Schedule E), capital gains (Schedule D), Premium Tax Credit (Form 8962), K-1 passthrough income (ordinary, rental, interest, dividends, capital gains), Foreign Tax Credit (Form 1116, passive category), and common credits/deductions. Not yet supported: farm income (Schedule F), general category FTC, FTC carryover, K-1 SE tax (partnership Box 14), K-1 guaranteed payments (Box 4), passive activity loss limitations for K-1 rental losses, and full Form 8995-A complex QBI limitations.',
+    message: 'Supported: W-2 wages, self-employment (Schedule C/SE), QBI deduction (Form 8995 with partial 8995-A above-threshold handling), investment income, retirement distributions (1099-R), Social Security benefits (SSA-1099), rental income (Schedule E), capital gains (Schedule D/8949), Premium Tax Credit (Form 8962/1095-A), Foreign Tax Credit (Form 1116 passive category), K-1 passthrough income core flows (ordinary, rental, interest, dividends, capital gains), HSA (Form 8889), education credits, energy credits, and common deductions. Not yet supported: farm income (Schedule F), general-category FTC, FTC carryover, K-1 SE tax (partnership Box 14), K-1 guaranteed payments (Box 4), passive activity loss limits for K-1 rental losses, and full complex Form 8995-A/SSTB edge cases.',
     irsCitation: 'Form 1040',
     category: 'unsupported',
   }]

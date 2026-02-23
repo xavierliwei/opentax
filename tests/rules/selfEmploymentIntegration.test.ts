@@ -491,10 +491,10 @@ describe('Validation integration for Phase 3', () => {
     expect(qbiInfo).toBeDefined()
   })
 
-  it('emits PHASE4_LIMITATIONS for all returns', () => {
+  it('emits SUPPORTED_SCOPE for all returns', () => {
     const model = emptyTaxReturn(2025)
     const result = computeForm1040(model)
-    const item = result.validation!.items.find(i => i.code === 'PHASE4_LIMITATIONS')
+    const item = result.validation!.items.find(i => i.code === 'SUPPORTED_SCOPE')
     expect(item).toBeDefined()
   })
 

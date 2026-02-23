@@ -19,6 +19,9 @@ import type {
   RSUVestEvent,
   ISOExercise,
   ScheduleEProperty,
+  ScheduleC,
+  ScheduleK1,
+  Form1095A,
   ItemizedDeductions,
   PriorYearInfo,
   DependentCareExpenses,
@@ -96,6 +99,15 @@ export interface TaxStoreState {
   setStudentLoanInterest: (cents: number) => void
   setEstimatedTaxPayment: (quarter: 'q1' | 'q2' | 'q3' | 'q4', cents: number) => void
   setHSA: (updates: Partial<HSAInfo>) => void
+  addScheduleC: (biz: ScheduleC) => void
+  updateScheduleC: (id: string, updates: Partial<ScheduleC>) => void
+  removeScheduleC: (id: string) => void
+  addScheduleK1: (k1: ScheduleK1) => void
+  updateScheduleK1: (id: string, updates: Partial<ScheduleK1>) => void
+  removeScheduleK1: (id: string) => void
+  addForm1095A: (form: Form1095A) => void
+  updateForm1095A: (id: string, updates: Partial<Form1095A>) => void
+  removeForm1095A: (id: string) => void
   addStateReturn: (config: StateReturnConfig) => void
   removeStateReturn: (stateCode: SupportedStateCode) => void
   updateStateReturn: (stateCode: SupportedStateCode, updates: Partial<StateReturnConfig>) => void
@@ -696,6 +708,84 @@ export const useTaxStore = create<TaxStoreState>()(
         const tr = {
           ...prev,
           hsa: { ...existing, ...updates },
+        }
+        set(recompute(tr))
+      },
+
+      addScheduleC: (biz) => {
+        const prev = get().taxReturn
+        const tr = { ...prev, scheduleCBusinesses: [...prev.scheduleCBusinesses, biz] }
+        set(recompute(tr))
+      },
+
+      updateScheduleC: (id, updates) => {
+        const prev = get().taxReturn
+        const tr = {
+          ...prev,
+          scheduleCBusinesses: prev.scheduleCBusinesses.map((b) =>
+            b.id === id ? { ...b, ...updates } : b,
+          ),
+        }
+        set(recompute(tr))
+      },
+
+      removeScheduleC: (id) => {
+        const prev = get().taxReturn
+        const tr = {
+          ...prev,
+          scheduleCBusinesses: prev.scheduleCBusinesses.filter((b) => b.id !== id),
+        }
+        set(recompute(tr))
+      },
+
+      addScheduleK1: (k1) => {
+        const prev = get().taxReturn
+        const tr = { ...prev, scheduleK1s: [...prev.scheduleK1s, k1] }
+        set(recompute(tr))
+      },
+
+      updateScheduleK1: (id, updates) => {
+        const prev = get().taxReturn
+        const tr = {
+          ...prev,
+          scheduleK1s: prev.scheduleK1s.map((k) =>
+            k.id === id ? { ...k, ...updates } : k,
+          ),
+        }
+        set(recompute(tr))
+      },
+
+      removeScheduleK1: (id) => {
+        const prev = get().taxReturn
+        const tr = {
+          ...prev,
+          scheduleK1s: prev.scheduleK1s.filter((k) => k.id !== id),
+        }
+        set(recompute(tr))
+      },
+
+      addForm1095A: (form) => {
+        const prev = get().taxReturn
+        const tr = { ...prev, form1095As: [...prev.form1095As, form] }
+        set(recompute(tr))
+      },
+
+      updateForm1095A: (id, updates) => {
+        const prev = get().taxReturn
+        const tr = {
+          ...prev,
+          form1095As: prev.form1095As.map((f) =>
+            f.id === id ? { ...f, ...updates } : f,
+          ),
+        }
+        set(recompute(tr))
+      },
+
+      removeForm1095A: (id) => {
+        const prev = get().taxReturn
+        const tr = {
+          ...prev,
+          form1095As: prev.form1095As.filter((f) => f.id !== id),
         }
         set(recompute(tr))
       },

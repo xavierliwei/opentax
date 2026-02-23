@@ -3,6 +3,7 @@ import { useTaxStore } from '../../store/taxStore.ts'
 import { useInterview } from '../../interview/useInterview.ts'
 import { InfoTooltip } from '../components/InfoTooltip.tsx'
 import { InterviewNav } from './InterviewNav.tsx'
+import type { FederalValidationItem } from '../../rules/2025/federalValidation.ts'
 
 function formatCurrency(cents: number): string {
   const d = Math.abs(cents) / 100
@@ -43,12 +44,55 @@ function LineItem({ label, nodeId, amount, tooltip }: LineItemProps) {
   )
 }
 
+function ValidationAlert({ item }: { item: FederalValidationItem }) {
+  const styles = {
+    error: 'bg-red-50 border-red-200 text-red-800',
+    warning: 'bg-amber-50 border-amber-200 text-amber-800',
+    info: 'bg-blue-50 border-blue-200 text-blue-800',
+  }
+  const icons = {
+    error: '!',
+    warning: '!',
+    info: 'i',
+  }
+  const iconBg = {
+    error: 'bg-red-200 text-red-700',
+    warning: 'bg-amber-200 text-amber-700',
+    info: 'bg-blue-200 text-blue-700',
+  }
+
+  return (
+    <div data-testid={`validation-${item.code}`} className={`border rounded-md px-3 py-2 ${styles[item.severity]}`}>
+      <div className="flex gap-2 items-start">
+        <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold shrink-0 mt-0.5 ${iconBg[item.severity]}`}>
+          {icons[item.severity]}
+        </span>
+        <div className="min-w-0">
+          <p className="text-xs leading-relaxed">{item.message}</p>
+          {item.irsCitation && (
+            <p className="text-xs opacity-70 mt-1">Ref: {item.irsCitation}</p>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function ReviewPage() {
   const taxReturn = useTaxStore((s) => s.taxReturn)
   const form1040 = useTaxStore((s) => s.computeResult.form1040)
   const executedSchedules = useTaxStore((s) => s.computeResult.executedSchedules)
   const stateResults = useTaxStore((s) => s.computeResult.stateResults)
   const interview = useInterview()
+
+  const validation = form1040.validation
+  const errors = validation?.items.filter(i => i.severity === 'error') ?? []
+  const warnings = validation?.items.filter(i => i.severity === 'warning') ?? []
+  const infos = validation?.items.filter(i => i.severity === 'info') ?? []
+
+  const hasScheduleC = taxReturn.scheduleCBusinesses.length > 0
+  const hasK1 = taxReturn.scheduleK1s.length > 0
+  const has1095A = taxReturn.form1095As.length > 0
 
   const FILING_STATUS_LABELS: Record<string, string> = {
     single: 'Single',
@@ -64,6 +108,24 @@ export function ReviewPage() {
       <p className="mt-1 text-sm text-gray-600">
         Review your tax return summary. Click [?] to see how any number was calculated.
       </p>
+
+      {/* Validation Errors — blocking issues at top */}
+      {errors.length > 0 && (
+        <section data-testid="validation-errors" className="mt-4 flex flex-col gap-2">
+          {errors.map((item) => (
+            <ValidationAlert key={item.code} item={item} />
+          ))}
+        </section>
+      )}
+
+      {/* Validation Warnings */}
+      {warnings.length > 0 && (
+        <section data-testid="validation-warnings" className="mt-4 flex flex-col gap-2">
+          {warnings.map((item) => (
+            <ValidationAlert key={item.code} item={item} />
+          ))}
+        </section>
+      )}
 
       {/* Filing info */}
       <div className="mt-6 flex flex-col gap-2">
@@ -136,6 +198,18 @@ export function ReviewPage() {
               pubUrl: 'https://www.irs.gov/instructions/i1040gi',
             }}
           />
+          {form1040.line8.amount !== 0 && (
+            <LineItem
+              label="Line 8 — Other income"
+              nodeId="form1040.line8"
+              amount={form1040.line8.amount}
+              tooltip={{
+                explanation: 'Line 8 includes additional income from Schedule 1: business income (Schedule C), rental income (Schedule E), unemployment, alimony received, and other income sources. This is the net of all Schedule 1 Part I items.',
+                pubName: 'IRS Form 1040 Instructions — Line 8',
+                pubUrl: 'https://www.irs.gov/instructions/i1040gi',
+              }}
+            />
+          )}
           <LineItem
             label="Line 9 — Total income"
             nodeId="form1040.line9"
@@ -149,6 +223,60 @@ export function ReviewPage() {
         </div>
       </section>
 
+      {/* Schedule Summaries — after income, before deductions */}
+      {(hasScheduleC || hasK1 || has1095A) && (
+        <section className="mt-4 flex flex-col gap-2">
+          {hasScheduleC && (
+            <div data-testid="review-schedule-c" className="border border-gray-200 rounded-md px-3 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="min-w-0">
+                <span className="text-sm font-medium text-gray-800">Schedule C — Business Income</span>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {taxReturn.scheduleCBusinesses.length} business{taxReturn.scheduleCBusinesses.length > 1 ? 'es' : ''} reported. Net profit flows to Schedule 1 Line 3. SE tax computed on Schedule SE.
+                </p>
+              </div>
+              <Link
+                to="/interview/schedule-c"
+                className="text-xs text-tax-blue hover:text-blue-700 shrink-0 py-2 sm:py-0"
+              >
+                Edit
+              </Link>
+            </div>
+          )}
+          {hasK1 && (
+            <div data-testid="review-schedule-k1" className="border border-red-200 bg-red-50/50 rounded-md px-3 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="min-w-0">
+                <span className="text-sm font-medium text-red-800">Schedule K-1 — Not Computed</span>
+                <p className="text-xs text-red-700 mt-0.5">
+                  {taxReturn.scheduleK1s.length} K-1 form{taxReturn.scheduleK1s.length > 1 ? 's' : ''} captured. Income is NOT included in this return. Do not file without professional review.
+                </p>
+              </div>
+              <Link
+                to="/interview/schedule-k1"
+                className="text-xs text-tax-blue hover:text-blue-700 shrink-0 py-2 sm:py-0"
+              >
+                Edit
+              </Link>
+            </div>
+          )}
+          {has1095A && (
+            <div data-testid="review-1095a" className="border border-gray-200 rounded-md px-3 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="min-w-0">
+                <span className="text-sm font-medium text-gray-800">Form 1095-A / PTC (Form 8962)</span>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {taxReturn.form1095As.length} marketplace statement{taxReturn.form1095As.length > 1 ? 's' : ''}. Premium Tax Credit reconciliation computed on Form 8962.
+                </p>
+              </div>
+              <Link
+                to="/interview/form-1095a"
+                className="text-xs text-tax-blue hover:text-blue-700 shrink-0 py-2 sm:py-0"
+              >
+                Edit
+              </Link>
+            </div>
+          )}
+        </section>
+      )}
+
       {/* Deductions */}
       <section className="mt-6">
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-200 pb-1">
@@ -161,7 +289,7 @@ export function ReviewPage() {
               nodeId="form1040.line10"
               amount={form1040.line10.amount}
               tooltip={{
-                explanation: 'Line 10 is the total of above-the-line adjustments from Schedule 1 Part II. These include the Traditional IRA deduction, student loan interest, educator expenses, and HSA contributions. These adjustments reduce your total income to arrive at AGI.',
+                explanation: 'Line 10 is the total of above-the-line adjustments from Schedule 1 Part II. These include the Traditional IRA deduction, student loan interest, educator expenses, HSA contributions, and the deductible half of self-employment tax. These adjustments reduce your total income to arrive at AGI.',
                 pubName: 'IRS Form 1040 Instructions — Line 10',
                 pubUrl: 'https://www.irs.gov/instructions/i1040gi',
               }}
@@ -187,6 +315,18 @@ export function ReviewPage() {
               pubUrl: 'https://www.irs.gov/instructions/i1040gi',
             }}
           />
+          {form1040.line13.amount > 0 && (
+            <LineItem
+              label="Line 13 — QBI deduction"
+              nodeId="form1040.line13"
+              amount={form1040.line13.amount}
+              tooltip={{
+                explanation: 'Line 13 is the Qualified Business Income (QBI) deduction under IRC §199A. For below-threshold taxpayers, this is 20% of qualified business income from Schedule C and/or K-1 Section 199A amounts, limited to 20% of taxable income before the QBI deduction. Above-threshold limitations are not yet supported.',
+                pubName: 'Form 8995 / IRC §199A',
+                pubUrl: 'https://www.irs.gov/forms-pubs/about-form-8995',
+              }}
+            />
+          )}
           <LineItem
             label="Line 15 — Taxable income"
             nodeId="form1040.line15"
@@ -246,7 +386,7 @@ export function ReviewPage() {
               nodeId="form1040.line23"
               amount={form1040.line23.amount}
               tooltip={{
-                explanation: 'Line 23 includes additional taxes from Schedule 2, Part II: the Net Investment Income Tax (3.8% surtax, Form 8960), Additional Medicare Tax (0.9% on high wages, Form 8959), early withdrawal penalties (Form 5329), and HSA penalties.',
+                explanation: 'Line 23 includes additional taxes from Schedule 2, Part II: self-employment tax (Schedule SE), the Net Investment Income Tax (3.8% surtax, Form 8960), Additional Medicare Tax (0.9% on high wages, Form 8959), early withdrawal penalties (Form 5329), HSA penalties, and excess advance PTC repayment (Form 8962).',
                 pubName: 'IRS Schedule 2 — Additional Taxes',
                 pubUrl: 'https://www.irs.gov/forms-pubs/about-schedule-2-form-1040',
               }}
@@ -308,12 +448,24 @@ export function ReviewPage() {
               }}
             />
           )}
+          {form1040.line31.amount > 0 && (
+            <LineItem
+              label="Line 31 — Other refundable credits"
+              nodeId="form1040.line31"
+              amount={form1040.line31.amount}
+              tooltip={{
+                explanation: 'Line 31 includes other refundable credits such as the net Premium Tax Credit (Form 8962) and excess Social Security withholding. If your PTC exceeds the advance payments you received, the net amount appears here as an additional refund.',
+                pubName: 'IRS Form 1040 Instructions — Line 31',
+                pubUrl: 'https://www.irs.gov/instructions/i1040gi',
+              }}
+            />
+          )}
           <LineItem
             label="Line 33 — Total payments"
             nodeId="form1040.line33"
             amount={form1040.line33.amount}
             tooltip={{
-              explanation: 'Line 33 sums all tax payments: federal withholding (Line 25), estimated tax payments (Line 26), and refundable credits (Lines 27–32) such as the Earned Income Credit, Additional Child Tax Credit, and American Opportunity Credit. Total payments are compared to total tax to determine your refund or amount owed.',
+              explanation: 'Line 33 sums all tax payments: federal withholding (Line 25), estimated tax payments (Line 26), and refundable credits (Lines 27–32) such as the Earned Income Credit, Additional Child Tax Credit, American Opportunity Credit, and net Premium Tax Credit. Total payments are compared to total tax to determine your refund or amount owed.',
               pubName: 'IRS Form 1040 Instructions — Line 33',
               pubUrl: 'https://www.irs.gov/instructions/i1040gi',
             }}
@@ -401,6 +553,20 @@ export function ReviewPage() {
         <div className="mt-4 text-xs text-gray-500">
           Schedules included: {executedSchedules.join(', ')}
         </div>
+      )}
+
+      {/* Info-level validation (collapsed) */}
+      {infos.length > 0 && (
+        <details className="mt-4">
+          <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-700">
+            {infos.length} informational note{infos.length > 1 ? 's' : ''} — click to expand
+          </summary>
+          <div className="mt-2 flex flex-col gap-2">
+            {infos.map((item) => (
+              <ValidationAlert key={item.code} item={item} />
+            ))}
+          </div>
+        </details>
       )}
 
       <InterviewNav interview={interview} />

@@ -16,6 +16,9 @@ import { ISOExercisesPage } from '../ui/pages/ISOExercisesPage.tsx'
 import { Form1099GPage } from '../ui/pages/Form1099GPage.tsx'
 import { RetirementIncomePage } from '../ui/pages/RetirementIncomePage.tsx'
 import { ScheduleEPage } from '../ui/pages/ScheduleEPage.tsx'
+import { ScheduleCPage } from '../ui/pages/ScheduleCPage.tsx'
+import { ScheduleK1Page } from '../ui/pages/ScheduleK1Page.tsx'
+import { Form1095APage } from '../ui/pages/Form1095APage.tsx'
 import { PriorYearPage } from '../ui/pages/PriorYearPage.tsx'
 import { DeductionsPage } from '../ui/pages/DeductionsPage.tsx'
 import { CreditsPage } from '../ui/pages/CreditsPage.tsx'
@@ -222,6 +225,33 @@ export const STEPS: InterviewStep[] = [
     isVisible: () => true,
     isComplete: () => true,
     component: ISOExercisesPage,
+  },
+  {
+    id: 'schedule-c',
+    label: 'Business Income',
+    path: '/interview/schedule-c',
+    section: 'income',
+    isVisible: () => true,
+    isComplete: () => true,
+    component: ScheduleCPage,
+  },
+  {
+    id: 'schedule-k1',
+    label: 'K-1 Income',
+    path: '/interview/schedule-k1',
+    section: 'income',
+    isVisible: () => true,
+    isComplete: () => true,
+    component: ScheduleK1Page,
+  },
+  {
+    id: 'form-1095a',
+    label: 'Health Insurance (1095-A)',
+    path: '/interview/form-1095a',
+    section: 'deductions-credits',
+    isVisible: () => true,
+    isComplete: () => true,
+    component: Form1095APage,
   },
   {
     id: 'deductions',
