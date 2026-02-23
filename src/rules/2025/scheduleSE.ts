@@ -23,8 +23,6 @@ import {
   SE_NET_EARNINGS_FACTOR,
   SE_DEDUCTIBLE_HALF,
   SS_WAGE_BASE,
-  ADDITIONAL_MEDICARE_RATE,
-  ADDITIONAL_MEDICARE_THRESHOLD,
 } from './constants'
 import type { FilingStatus } from '../../model/types'
 import type { TracedValue } from '../../model/traced'

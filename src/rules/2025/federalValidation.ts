@@ -253,7 +253,7 @@ function validateK1(model: TaxReturn): FederalValidationItem[] {
   }
 
   const items: FederalValidationItem[] = []
-  const totalOrdinaryIncome = k1s.reduce((s, k) => s + k.ordinaryIncome, 0)
+  // total ordinary K-1 income is captured in totalAllIncome aggregation below
   const totalAllIncome = k1s.reduce((s, k) =>
     s + k.ordinaryIncome + k.rentalIncome + k.interestIncome +
     k.dividendIncome + k.shortTermCapitalGain + k.longTermCapitalGain, 0)
