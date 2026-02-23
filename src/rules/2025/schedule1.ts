@@ -17,20 +17,29 @@ import type { TaxReturn } from '../../model/types'
 import type { TracedValue } from '../../model/traced'
 import { tracedFromComputation, tracedZero } from '../../model/traced'
 import type { ScheduleEResult } from './scheduleE'
+import type { ScheduleCAggregateResult } from './scheduleC'
+import type { ScheduleSEResult } from './scheduleSE'
 
 // ── Result type ──────────────────────────────────────────────────
 
 export interface Schedule1Result {
   line1: TracedValue   // Taxable refunds (state/local)
+  line3: TracedValue   // Business income or (loss) — Schedule C
   line5: TracedValue   // Rents + royalties
   line7: TracedValue   // Unemployment compensation
   line8z: TracedValue  // Other income
   line10: TracedValue  // Total additional income
+  line15: TracedValue  // Deductible half of SE tax — Part II adjustment
 }
 
 // ── Computation ──────────────────────────────────────────────────
 
-export function computeSchedule1(model: TaxReturn, scheduleE?: ScheduleEResult): Schedule1Result {
+export function computeSchedule1(
+  model: TaxReturn,
+  scheduleE?: ScheduleEResult,
+  scheduleCAggregate?: ScheduleCAggregateResult,
+  scheduleSEResult?: ScheduleSEResult,
+): Schedule1Result {
   const forms = model.form1099MISCs ?? []
   const form1099Gs = model.form1099Gs ?? []
 
@@ -52,6 +61,19 @@ export function computeSchedule1(model: TaxReturn, scheduleE?: ScheduleEResult):
   const line1: TracedValue = line1Total > 0
     ? tracedFromComputation(line1Total, 'schedule1.line1', line1Inputs, 'Schedule 1, Line 1')
     : tracedZero('schedule1.line1', 'Schedule 1, Line 1')
+
+  // Line 3 — Business income or (loss) from Schedule C
+  let line3: TracedValue
+  if (scheduleCAggregate && scheduleCAggregate.totalNetProfitCents !== 0) {
+    line3 = tracedFromComputation(
+      scheduleCAggregate.totalNetProfitCents,
+      'schedule1.line3',
+      ['scheduleC.totalNetProfit'],
+      'Schedule 1, Line 3',
+    )
+  } else {
+    line3 = tracedZero('schedule1.line3', 'Schedule 1, Line 3')
+  }
 
   // Line 5 — rents and royalties
   // If Schedule E is provided, it takes precedence (proper computation).
@@ -105,10 +127,11 @@ export function computeSchedule1(model: TaxReturn, scheduleE?: ScheduleEResult):
     ? tracedFromComputation(line8zTotal, 'schedule1.line8z', line8zInputs, 'Schedule 1, Line 8z')
     : tracedZero('schedule1.line8z', 'Schedule 1, Line 8z')
 
-  // Line 10 — total additional income (Lines 1 + 5 + 7 + Line 9 (= 8z for now))
-  const line10Total = line1.amount + line5.amount + line7.amount + line8zTotal
+  // Line 10 — total additional income (Lines 1 + 3 + 5 + 7 + Line 9 (= 8z for now))
+  const line10Total = line1.amount + line3.amount + line5.amount + line7.amount + line8zTotal
   const line10Inputs: string[] = []
   if (line1.amount > 0) line10Inputs.push('schedule1.line1')
+  if (line3.amount !== 0) line10Inputs.push('schedule1.line3')
   if (line5.amount !== 0) line10Inputs.push('schedule1.line5')
   if (line7.amount > 0) line10Inputs.push('schedule1.line7')
   if (line8zTotal > 0) line10Inputs.push('schedule1.line8z')
@@ -117,5 +140,19 @@ export function computeSchedule1(model: TaxReturn, scheduleE?: ScheduleEResult):
     ? tracedFromComputation(line10Total, 'schedule1.line10', line10Inputs, 'Schedule 1, Line 10')
     : tracedZero('schedule1.line10', 'Schedule 1, Line 10')
 
-  return { line1, line5, line7, line8z, line10 }
+  // Part II — Adjustments to Income
+  // Line 15 — Deductible half of self-employment tax
+  let line15: TracedValue
+  if (scheduleSEResult && scheduleSEResult.deductibleHalfCents > 0) {
+    line15 = tracedFromComputation(
+      scheduleSEResult.deductibleHalfCents,
+      'schedule1.line15',
+      ['scheduleSE.deductibleHalf'],
+      'Schedule 1, Line 15',
+    )
+  } else {
+    line15 = tracedZero('schedule1.line15', 'Schedule 1, Line 15')
+  }
+
+  return { line1, line3, line5, line7, line8z, line10, line15 }
 }

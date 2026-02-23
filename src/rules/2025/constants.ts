@@ -439,6 +439,36 @@ export const PAL_PHASEOUT_RANGE = c(50000)             // $50,000
 export const DEPENDENT_FILER_MIN_DEDUCTION = c(1350)
 export const DEPENDENT_FILER_EARNED_INCOME_ADDON = c(450)
 
+// ── Self-Employment Tax (Schedule SE) ───────────────────────────
+// Source: IRC §1401, §1402
+
+export const SE_TAX_RATE_SS = 0.124        // 12.4% Social Security (employer + employee)
+export const SE_TAX_RATE_MEDICARE = 0.029   // 2.9% Medicare (employer + employee)
+export const SE_NET_EARNINGS_FACTOR = 0.9235  // 92.35% — net SE earnings = SE income × 0.9235
+export const SE_DEDUCTIBLE_HALF = 0.50      // 50% of SE tax is deductible adjustment
+
+// ── QBI Deduction (IRC §199A, Form 8995) ───────────────────────
+// Simplified computation for taxpayers with taxable income below threshold
+
+export const QBI_DEDUCTION_RATE = 0.20      // 20% of QBI
+
+export const QBI_TAXABLE_INCOME_THRESHOLD: Record<FilingStatus, number> = {
+  single: c(191950),
+  mfj:    c(383900),
+  mfs:    c(191950),
+  hoh:    c(191950),
+  qw:     c(383900),
+}
+
+// Phase-out range above threshold (for SSTB and W-2/UBIA limitations)
+export const QBI_PHASEOUT_RANGE: Record<FilingStatus, number> = {
+  single: c(50000),
+  mfj:    c(100000),
+  mfs:    c(50000),
+  hoh:    c(50000),
+  qw:     c(100000),
+}
+
 // ── Tax Year ───────────────────────────────────────────────────
 
 export const TAX_YEAR = 2025

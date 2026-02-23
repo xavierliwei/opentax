@@ -154,17 +154,90 @@ function validateForm1099RCodes(model: TaxReturn): FederalValidationItem[] {
   return items
 }
 
-function validateSelfEmploymentGap(model: TaxReturn): FederalValidationItem[] {
-  // Check for 1099-NEC-like indicators (large 1099-MISC Box 3 or other SE markers)
-  const miscPrizesTotal = (model.form1099MISCs ?? []).reduce((s, f) => s + f.box3, 0)
+function validateSelfEmployment(model: TaxReturn): FederalValidationItem[] {
   const items: FederalValidationItem[] = []
+  const businesses = model.scheduleCBusinesses ?? []
 
-  if (miscPrizesTotal > 60_000) { // $600 threshold
+  // If they have Schedule C businesses, validate supported features
+  for (const biz of businesses) {
+    if (biz.hasInventory) {
+      items.push({
+        code: 'SCHEDULE_C_INVENTORY',
+        severity: 'warning',
+        message: `Schedule C "${biz.businessName}": Inventory/COGS detail (Part III) is not yet supported. Cost of Goods Sold is used as entered but Part III is not computed. Verify COGS accuracy.`,
+        irsCitation: 'Schedule C, Part III',
+        category: 'accuracy',
+      })
+    }
+    if (biz.hasHomeOffice) {
+      items.push({
+        code: 'SCHEDULE_C_HOME_OFFICE',
+        severity: 'warning',
+        message: `Schedule C "${biz.businessName}": Home office deduction (Form 8829) is not yet supported. The deduction is $0 — you may be entitled to a deduction of up to $1,500 (simplified) or actual expenses.`,
+        irsCitation: 'Form 8829',
+        category: 'unsupported',
+      })
+    }
+    if (biz.hasVehicleExpenses) {
+      items.push({
+        code: 'SCHEDULE_C_VEHICLE',
+        severity: 'info',
+        message: `Schedule C "${biz.businessName}": Vehicle expense detail (Form 4562 Part V) is not yet computed. Car/truck expenses are used as entered.`,
+        irsCitation: 'Form 4562, Part V',
+        category: 'accuracy',
+      })
+    }
+  }
+
+  // Check for 1099-MISC Box 3 without Schedule C — may be SE income
+  if (businesses.length === 0) {
+    const miscPrizesTotal = (model.form1099MISCs ?? []).reduce((s, f) => s + f.box3, 0)
+    if (miscPrizesTotal > 60_000) { // $600 threshold
+      items.push({
+        code: 'POSSIBLE_SE_INCOME',
+        severity: 'warning',
+        message: `1099-MISC Box 3 income of $${(miscPrizesTotal / 100).toFixed(0)} detected. If this is self-employment income, add a Schedule C business to compute SE tax. Without Schedule C, the income is included as "other income" but SE tax (15.3% up to the wage base) is NOT computed.`,
+        irsCitation: 'Schedule C / Schedule SE',
+        category: 'accuracy',
+      })
+    }
+  }
+
+  // Informational when Schedule C is present
+  if (businesses.length > 0) {
     items.push({
-      code: 'UNSUPPORTED_SCHEDULE_C',
-      severity: 'warning',
-      message: `1099-MISC Box 3 income of $${(miscPrizesTotal / 100).toFixed(0)} detected. If this is self-employment income, Schedule C (profit/loss from business) and Schedule SE (self-employment tax) are required but not yet supported. The income is included as "other income" but SE tax (15.3% up to the wage base) is NOT computed. This may significantly understate your tax liability. Consult a tax professional.`,
+      code: 'SCHEDULE_C_SE_COMPUTED',
+      severity: 'info',
+      message: `Schedule C and SE tax computed for ${businesses.length} business${businesses.length > 1 ? 'es' : ''}. Net profit flows to Schedule 1 Line 3, SE tax to Schedule 2. Deductible half of SE tax reduces AGI.`,
       irsCitation: 'Schedule C / Schedule SE',
+      category: 'compliance',
+    })
+  }
+
+  return items
+}
+
+function validateQBIDeduction(model: TaxReturn): FederalValidationItem[] {
+  const items: FederalValidationItem[] = []
+  const hasScheduleC = (model.scheduleCBusinesses ?? []).length > 0
+  const hasK1QBI = (model.scheduleK1s ?? []).some(k => k.section199AQBI > 0)
+  const hasScheduleE = (model.scheduleEProperties ?? []).length > 0
+
+  if (hasScheduleC || hasK1QBI) {
+    items.push({
+      code: 'QBI_DEDUCTION_COMPUTED',
+      severity: 'info',
+      message: 'QBI deduction (IRC §199A) computed via Form 8995 simplified path. Below-threshold taxpayers receive up to 20% of qualified business income. Above-threshold limitations (W-2 wages, UBIA, SSTB phase-out) are not yet supported — the deduction is conservatively set to $0 when above the threshold.',
+      irsCitation: 'Form 8995 / IRC §199A',
+      category: 'compliance',
+    })
+  } else if (hasScheduleE) {
+    // Rental real estate may have QBI if safe harbor elected — informational
+    items.push({
+      code: 'QBI_RENTAL_NOT_COMPUTED',
+      severity: 'info',
+      message: 'Rental real estate income may qualify for the QBI deduction (IRC §199A) if you elected the safe harbor under Rev. Proc. 2019-38. This election is not yet supported. Consult a tax professional.',
+      irsCitation: 'Form 8995 / Rev. Proc. 2019-38',
       category: 'unsupported',
     })
   }
@@ -172,42 +245,47 @@ function validateSelfEmploymentGap(model: TaxReturn): FederalValidationItem[] {
   return items
 }
 
-function validateQBIDeductionGap(model: TaxReturn): FederalValidationItem[] {
-  // QBI deduction (Form 8995/8995-A) is relevant for:
-  // - Self-employment income (Schedule C)
-  // - Rental real estate (if elected safe harbor)
-  // - Partnership/S-corp K-1 income
-  const hasScheduleE = (model.scheduleEProperties ?? []).length > 0
-  const hasMiscIncome = (model.form1099MISCs ?? []).some(f => f.box3 > 60_000) // $600
+function validateK1(model: TaxReturn): FederalValidationItem[] {
+  const k1s = model.scheduleK1s ?? []
 
-  if (!hasScheduleE && !hasMiscIncome) return []
+  if (k1s.length === 0) {
+    return []
+  }
 
-  return [{
-    code: 'UNSUPPORTED_QBI_DEDUCTION',
-    severity: 'info',
-    message: 'Qualified Business Income (QBI) deduction (IRC §199A) is not yet implemented. If you have qualified business income from sole proprietorship, partnership, S-corp, or elected rental real estate, you may be entitled to a deduction of up to 20% of QBI on Form 1040, Line 13. This is currently $0 — consult a tax professional.',
-    irsCitation: 'Form 8995 / IRC §199A',
-    category: 'unsupported',
-  }]
-}
+  const items: FederalValidationItem[] = []
+  const totalOrdinaryIncome = k1s.reduce((s, k) => s + k.ordinaryIncome, 0)
+  const totalAllIncome = k1s.reduce((s, k) =>
+    s + k.ordinaryIncome + k.rentalIncome + k.interestIncome +
+    k.dividendIncome + k.shortTermCapitalGain + k.longTermCapitalGain, 0)
 
-function validateK1Gap(_model: TaxReturn): FederalValidationItem[] {
-  // K-1 income from partnerships (Form 1065) and S-corps (Form 1120-S)
-  // is not in the data model. Emit an informational message about this limitation.
-  return [{
-    code: 'UNSUPPORTED_K1_INCOME',
-    severity: 'info',
-    message: 'Schedule K-1 income from partnerships (Form 1065), S-corporations (Form 1120-S), and trusts/estates (Form 1041) is not yet supported. If you received K-1 forms, the associated income, deductions, and credits are not included in this return.',
+  items.push({
+    code: 'K1_INCOME_NOT_COMPUTED',
+    severity: 'error',
+    message: `${k1s.length} Schedule K-1 form${k1s.length > 1 ? 's' : ''} detected with total reported income of $${(totalAllIncome / 100).toFixed(0)}. K-1 income is captured in the data model but full tax computation for passthrough income is NOT yet implemented. The K-1 income, deductions, and credits are NOT included in this return. This may significantly understate your tax liability. Do NOT file this return without professional review.`,
     irsCitation: 'Schedule K-1 (Form 1065/1120-S/1041)',
     category: 'unsupported',
-  }]
+  })
+
+  // QBI from K-1 is partially supported (flows to QBI deduction if below threshold)
+  const totalK1QBI = k1s.reduce((s, k) => s + k.section199AQBI, 0)
+  if (totalK1QBI > 0) {
+    items.push({
+      code: 'K1_QBI_PARTIAL',
+      severity: 'warning',
+      message: `K-1 Section 199A QBI of $${(totalK1QBI / 100).toFixed(0)} detected. QBI deduction is computed but the underlying K-1 income is not yet included in the return. The QBI deduction may be inaccurate.`,
+      irsCitation: 'IRC §199A',
+      category: 'accuracy',
+    })
+  }
+
+  return items
 }
 
 function validateUnsupportedSchedules(_model: TaxReturn): FederalValidationItem[] {
   return [{
-    code: 'PHASE2_LIMITATIONS',
+    code: 'PHASE3_LIMITATIONS',
     severity: 'info',
-    message: 'Federal Gap Closure Phase 2 supports: W-2 wages, investment income, retirement distributions, Social Security benefits (including MFS lived-apart exception), rental income (Schedule E), capital gains (Schedule D), Premium Tax Credit (Form 8962), and common credits/deductions. Not yet supported: self-employment (Schedule C/SE), farm income (Schedule F), foreign tax credit (Form 1116), K-1 passthrough income.',
+    message: 'Federal Gap Closure Phase 3 supports: W-2 wages, self-employment (Schedule C/SE), QBI deduction (Form 8995 simplified), investment income, retirement distributions, Social Security benefits, rental income (Schedule E), capital gains (Schedule D), Premium Tax Credit (Form 8962), and common credits/deductions. K-1 data model is captured but computation is not yet supported. Not yet supported: farm income (Schedule F), foreign tax credit (Form 1116), full K-1 passthrough tax computation, Form 8995-A (complex QBI limitations).',
     irsCitation: 'Form 1040',
     category: 'unsupported',
   }]
@@ -230,9 +308,9 @@ export function validateFederalReturn(
     ...validateSeniorDeduction(model),
     ...validateDependentFiler(model),
     ...validateForm1099RCodes(model),
-    ...validateSelfEmploymentGap(model),
-    ...validateQBIDeductionGap(model),
-    ...validateK1Gap(model),
+    ...validateSelfEmployment(model),
+    ...validateQBIDeduction(model),
+    ...validateK1(model),
     ...validateUnsupportedSchedules(model),
   ]
 

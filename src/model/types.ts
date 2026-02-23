@@ -240,6 +240,81 @@ export interface HSAInfo {
   age65OrDisabled: boolean    // exempt from 20% distribution penalty
 }
 
+// ── Schedule C (Profit or Loss From Business) ─────────────────
+
+export type ScheduleCAccountingMethod = 'cash' | 'accrual'
+
+export interface ScheduleC {
+  id: string
+  owner?: 'taxpayer' | 'spouse'  // whose business (MFJ returns); defaults to 'taxpayer'
+
+  // Business info (Part I header)
+  businessName: string
+  businessEin?: string            // Employer ID (optional for sole proprietors)
+  principalBusinessCode: string   // 6-digit NAICS code (e.g., "541511")
+  accountingMethod: ScheduleCAccountingMethod
+
+  // Gross income (Part I)
+  grossReceipts: number           // cents — Line 1 (gross receipts or sales)
+  returns: number                 // cents — Line 2 (returns and allowances)
+  costOfGoodsSold: number         // cents — Line 4 (COGS, simplified — no Part III detail)
+
+  // Expenses (Part II, all cents)
+  advertising: number             // Line 8
+  carAndTruck: number             // Line 9 (simplified — standard mileage or actual)
+  commissions: number             // Line 10
+  contractLabor: number           // Line 11
+  depreciation: number            // Line 13 (manual entry)
+  insurance: number               // Line 15
+  mortgageInterest: number        // Line 16a
+  otherInterest: number           // Line 16b
+  legal: number                   // Line 17
+  officeExpense: number           // Line 18
+  rent: number                    // Line 20b (machinery/equipment)
+  repairs: number                 // Line 21
+  supplies: number                // Line 22
+  taxes: number                   // Line 23 (taxes and licenses)
+  travel: number                  // Line 24a
+  meals: number                   // Line 24b (50% deductible meals)
+  utilities: number               // Line 25
+  wages: number                   // Line 26
+  otherExpenses: number           // Line 27a
+
+  // Flags for unsupported features
+  hasInventory?: boolean          // if true, COGS Part III required (unsupported)
+  hasHomeOffice?: boolean         // if true, Form 8829 required (unsupported)
+  hasVehicleExpenses?: boolean    // if true, Form 4562 Part V required (unsupported)
+}
+
+// ── Schedule K-1 (Passthrough Income) ─────────────────────────
+
+export type K1EntityType = 'partnership' | 's-corp' | 'trust-estate'
+
+/**
+ * Schedule K-1 stub — captures essential fields for ingestion and warning.
+ * Full K-1 tax handling is not yet supported; this scaffolding ensures
+ * K-1 data does not silently go missing from the return.
+ */
+export interface ScheduleK1 {
+  id: string
+  owner?: 'taxpayer' | 'spouse'
+  entityType: K1EntityType
+  entityName: string
+  entityEin: string
+
+  // Key income items (cents) — for display/warning purposes
+  ordinaryIncome: number          // Box 1 (1065) / Box 1 (1120-S)
+  rentalIncome: number            // Box 2 (1065)
+  interestIncome: number          // Box 5 (1065) / Box 4 (1120-S)
+  dividendIncome: number          // Box 6a (1065) / Box 5a (1120-S)
+  shortTermCapitalGain: number    // Box 8 (1065) / Box 7 (1120-S)
+  longTermCapitalGain: number     // Box 9a (1065) / Box 8a (1120-S)
+  section199AQBI: number          // Box 20 Code Z (1065) / Box 17 Code V (1120-S)
+
+  // Distributions and basis
+  distributions: number           // For reference, not directly used in computation yet
+}
+
 // ── RSU vest events ────────────────────────────────────────────
 
 export interface RSUVestEvent {
@@ -513,6 +588,12 @@ export interface TaxReturn {
   // ISO exercise events (AMT preference item)
   isoExercises: ISOExercise[]
 
+  // Schedule C — Sole proprietorship businesses
+  scheduleCBusinesses: ScheduleC[]
+
+  // Schedule K-1 — Passthrough income (stub)
+  scheduleK1s: ScheduleK1[]
+
   // Schedule E — Rental real estate properties
   scheduleEProperties: ScheduleEProperty[]
 
@@ -599,6 +680,8 @@ export function emptyTaxReturn(taxYear: number): TaxReturn {
     form1095As: [],
     rsuVestEvents: [],
     isoExercises: [],
+    scheduleCBusinesses: [],
+    scheduleK1s: [],
     scheduleEProperties: [],
     capitalTransactions: [],
     adjustments: [],

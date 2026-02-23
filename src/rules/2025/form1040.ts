@@ -58,6 +58,12 @@ import { computeSchedule1 } from './schedule1'
 import type { Schedule1Result } from './schedule1'
 import { computeScheduleE } from './scheduleE'
 import type { ScheduleEResult } from './scheduleE'
+import { computeAllScheduleC } from './scheduleC'
+import type { ScheduleCAggregateResult } from './scheduleC'
+import { computeScheduleSE } from './scheduleSE'
+import type { ScheduleSEResult } from './scheduleSE'
+import { computeQBIDeduction } from './qbiDeduction'
+import type { QBIDeductionResult } from './qbiDeduction'
 import { computeTaxableSocialSecurity } from './socialSecurityBenefits'
 import type { SocialSecurityBenefitsResult } from './socialSecurityBenefits'
 import { computeSeniorDeduction } from './seniorDeduction'
@@ -345,12 +351,14 @@ export function computeLine10(
   iraDeduction: IRADeductionResult | null,
   hsaDeduction: HSAResult | null,
   studentLoanDeduction: StudentLoanDeductionResult | null,
+  seDeductibleHalf: number = 0,
 ): TracedValue {
   const ira = iraDeduction?.deductibleAmount ?? 0
   const hsa = hsaDeduction?.deductibleAmount ?? 0
   const studentLoan = studentLoanDeduction?.deductibleAmount ?? 0
-  const amount = ira + hsa + studentLoan
+  const amount = ira + hsa + studentLoan + seDeductibleHalf
   const inputs: string[] = []
+  if (seDeductibleHalf > 0) inputs.push('adjustments.seDeductibleHalf')
   if (ira > 0) inputs.push('adjustments.ira')
   if (hsa > 0) inputs.push('adjustments.hsa')
   if (studentLoan > 0) inputs.push('adjustments.studentLoan')
@@ -459,9 +467,12 @@ export function computeLine12(
 }
 
 // ── Line 13 — Qualified business income deduction ───────────────
-// Placeholder $0 for MVP.
+// IRC §199A — QBI deduction from Form 8995 (simplified) or Form 8995-A.
 
-export function computeLine13(): TracedValue {
+export function computeLine13(qbiResult?: QBIDeductionResult | null): TracedValue {
+  if (qbiResult && qbiResult.deductionAmount > 0) {
+    return qbiResult.line13
+  }
   return tracedZero('form1040.line13', 'Form 1040, Line 13')
 }
 
@@ -734,6 +745,7 @@ export function computeLine23(
   earlyWithdrawal: EarlyWithdrawalPenaltyResult | null,
   niit: NIITResult | null,
   additionalMedicare: AdditionalMedicareTaxResult | null,
+  selfEmploymentTax: number = 0,
 ): TracedValue {
   const hsaDistPenalty = hsaDeduction?.distributionPenalty ?? 0
   const hsaExcessPenalty = hsaDeduction?.excessPenalty ?? 0
@@ -741,10 +753,11 @@ export function computeLine23(
   const earlyPenalty = earlyWithdrawal?.penaltyAmount ?? 0
   const niitAmount = niit?.niitAmount ?? 0
   const additionalMedicareAmount = additionalMedicare?.additionalTax ?? 0
-  const total = hsaPenalties + earlyPenalty + niitAmount + additionalMedicareAmount
+  const total = hsaPenalties + earlyPenalty + niitAmount + additionalMedicareAmount + selfEmploymentTax
 
   if (total > 0) {
     const inputs: string[] = []
+    if (selfEmploymentTax > 0) inputs.push('scheduleSE.line6')
     if (hsaPenalties > 0) inputs.push('hsa.penalties')
     if (earlyPenalty > 0) inputs.push('form5329.earlyWithdrawalPenalty')
     if (niitAmount > 0) inputs.push('form8960.niit')
@@ -1043,6 +1056,15 @@ export interface Form1040Result {
   // Line 31 refundable credits detail
   refundableCreditsResult: RefundableCreditsResult | null
 
+  // Schedule C detail (sole proprietorship)
+  scheduleCResult: ScheduleCAggregateResult | null
+
+  // Schedule SE detail (self-employment tax)
+  scheduleSEResult: ScheduleSEResult | null
+
+  // QBI deduction detail (IRC §199A)
+  qbiResult: QBIDeductionResult | null
+
   // Federal validation warnings
   validation: FederalValidationResult | null
 
@@ -1068,6 +1090,18 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     model.form1099DIVs.some(f => f.box2a > 0)
   const scheduleD = hasCapitalActivity ? computeScheduleD(model) : null
 
+  // Schedule C (compute if there are sole proprietorship businesses)
+  const hasScheduleC = (model.scheduleCBusinesses ?? []).length > 0
+  const scheduleCResult = hasScheduleC
+    ? computeAllScheduleC(model.scheduleCBusinesses)
+    : null
+
+  // Schedule SE (compute if there is SE income)
+  const w2SSWages = model.w2s.reduce((sum, w) => sum + w.box3, 0)
+  const scheduleSEResult = (scheduleCResult && scheduleCResult.totalNetProfitCents > 0)
+    ? computeScheduleSE(scheduleCResult.totalNetProfitCents, w2SSWages, model.filingStatus)
+    : null
+
   // Schedule E (compute if there are rental properties)
   const hasScheduleEProperties = (model.scheduleEProperties ?? []).length > 0
   // Compute a preliminary AGI for PAL phase-out: total income minus adjustments,
@@ -1075,24 +1109,27 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   // We'll use line9 without Schedule E contribution as a proxy.
   let scheduleE: ScheduleEResult | null = null
   if (hasScheduleEProperties) {
-    // Preliminary AGI: wages + interest + dividends + cap gains (no Schedule E yet)
+    // Preliminary AGI: wages + interest + dividends + cap gains + Schedule C (no Schedule E yet)
     const prelimLine1a = computeLine1a(model)
     const prelimLine2b = computeLine2b(model)
     const prelimLine3b = computeLine3b(model)
     const prelimLine7 = computeLine7(scheduleD?.line21)
-    const prelimAGI = prelimLine1a.amount + prelimLine2b.amount + prelimLine3b.amount + prelimLine7.amount
+    const schedCIncome = scheduleCResult?.totalNetProfitCents ?? 0
+    const prelimAGI = prelimLine1a.amount + prelimLine2b.amount + prelimLine3b.amount + prelimLine7.amount + schedCIncome
     scheduleE = computeScheduleE(model.scheduleEProperties, model.filingStatus, prelimAGI)
   }
 
-  // Schedule 1 (compute if there is 1099-MISC income, 1099-G income, or Schedule E)
+  // Schedule 1 (compute if there is 1099-MISC income, 1099-G income, Schedule E, or Schedule C)
   const has1099MISCIncome = (model.form1099MISCs ?? []).some(
     f => f.box1 > 0 || f.box2 > 0 || f.box3 > 0,
   )
   const has1099GIncome = (model.form1099Gs ?? []).some(
     f => f.box1 > 0 || f.box2 > 0,
   )
-  const needSchedule1 = has1099MISCIncome || has1099GIncome || hasScheduleEProperties
-  const schedule1 = needSchedule1 ? computeSchedule1(model, scheduleE ?? undefined) : null
+  const needSchedule1 = has1099MISCIncome || has1099GIncome || hasScheduleEProperties || hasScheduleC
+  const schedule1 = needSchedule1
+    ? computeSchedule1(model, scheduleE ?? undefined, scheduleCResult ?? undefined, scheduleSEResult ?? undefined)
+    : null
 
   // ── HSA (computed early — no dependency on Line 9) ──────
   const hsaResult = computeHSADeduction(model)
@@ -1165,12 +1202,15 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     - (hsaResult?.deductibleAmount ?? 0)
   const studentLoanDeduction = computeStudentLoanDeduction(model, studentLoanMAGI)
 
-  const line10 = computeLine10(iraDeduction, hsaResult, studentLoanDeduction)
+  const seDeductibleHalf = scheduleSEResult?.deductibleHalfCents ?? 0
+  const line10 = computeLine10(iraDeduction, hsaResult, studentLoanDeduction, seDeductibleHalf)
   const line11 = computeLine11(line9, line10)
 
   // ── Deductions ──────────────────────────────────────────
-  // Earned income = sum of W-2 Box 1 (used for dependent filer deduction limit and credits)
-  const earnedIncome = model.w2s.reduce((sum, w) => sum + w.box1, 0)
+  // Earned income = sum of W-2 Box 1 + net SE earnings (used for dependent filer deduction limit and credits)
+  const w2Wages = model.w2s.reduce((sum, w) => sum + w.box1, 0)
+  const netSEEarnings = scheduleSEResult?.netSEEarnings ?? 0
+  const earnedIncome = w2Wages + Math.max(0, netSEEarnings)
 
   // Net investment income for Form 4952 investment interest limit.
   // Includes: taxable interest + non-qualified dividends + net ST capital gains.
@@ -1188,7 +1228,16 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   )
 
   const { deduction: line12, scheduleA } = computeLine12(model, line11.amount, netInvestmentIncome, earnedIncome, seniorDeductionResult)
-  const line13 = computeLine13()
+
+  // QBI deduction (IRC §199A) — compute if there is QBI from Schedule C or K-1
+  const scheduleCQBI = scheduleCResult?.totalNetProfitCents ?? 0
+  const k1QBI = (model.scheduleK1s ?? []).reduce((sum, k) => sum + k.section199AQBI, 0)
+  const taxableIncomeBeforeQBI = Math.max(0, line11.amount - line12.amount)
+  let qbiResult: QBIDeductionResult | null = null
+  if (scheduleCQBI !== 0 || k1QBI !== 0) {
+    qbiResult = computeQBIDeduction(scheduleCQBI, k1QBI, taxableIncomeBeforeQBI, model.filingStatus)
+  }
+  const line13 = computeLine13(qbiResult)
   const line14 = computeLine14(line12, line13)
   const line15 = computeLine15(line11, line14)
 
@@ -1269,7 +1318,8 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   // Additional Medicare Tax (Form 8959): 0.9% on wages above threshold
   const additionalMedicareTaxResult = computeAdditionalMedicareTax(model)
 
-  const line23 = computeLine23(hsaResult, earlyWithdrawalPenalty, niitResult, additionalMedicareTaxResult)
+  const selfEmploymentTax = scheduleSEResult?.totalSETax ?? 0
+  const line23 = computeLine23(hsaResult, earlyWithdrawalPenalty, niitResult, additionalMedicareTaxResult, selfEmploymentTax)
   const line24 = computeLine24(line22, line23)
 
   // ── Payments & refundable credits ──────────────────────
@@ -1354,6 +1404,9 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     socialSecurityResult,
     seniorDeduction: seniorDeductionResult,
     refundableCreditsResult,
+    scheduleCResult,
+    scheduleSEResult,
+    qbiResult,
     validation,
     schedule1, scheduleA, scheduleD, scheduleE,
   }
