@@ -47,7 +47,11 @@ export function AppShell() {
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <Sidebar steps={sidebarSteps} currentPath={location.pathname} />
+        <Sidebar
+          steps={sidebarSteps}
+          currentPath={location.pathname}
+          onNavigate={() => setSidebarOpen(false)}
+        />
       </aside>
 
       {/* Main content */}

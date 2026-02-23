@@ -13,6 +13,7 @@ export interface SidebarStep {
 interface SidebarProps {
   steps: SidebarStep[]
   currentPath: string
+  onNavigate?: () => void
 }
 
 const SECTION_LABELS: Record<InterviewSection, string> = {
@@ -56,7 +57,7 @@ function StepBadge({ status, index }: { status: SidebarStep['status']; index: nu
   )
 }
 
-export function Sidebar({ steps }: SidebarProps) {
+export function Sidebar({ steps, onNavigate }: SidebarProps) {
   const completedCount = steps.filter((s) => s.isComplete).length
   const progress = steps.length > 0 ? completedCount / steps.length : 0
 
@@ -97,6 +98,7 @@ export function Sidebar({ steps }: SidebarProps) {
               )}
               <NavLink
                 to={step.path}
+                onClick={onNavigate}
                 className={({ isActive }) =>
                   `flex items-center gap-2.5 px-3 py-3 lg:py-2 text-sm rounded-md transition-colors ${
                     isActive
@@ -142,6 +144,7 @@ export function Sidebar({ steps }: SidebarProps) {
       <div className="px-4 py-3 border-t border-gray-200">
         <NavLink
           to="/dashboard"
+          onClick={onNavigate}
           className={({ isActive }) =>
             `flex items-center gap-2 px-3 py-2.5 rounded-md text-xs font-medium transition-colors ${
               isActive

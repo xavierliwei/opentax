@@ -10,7 +10,7 @@ interface InterviewNavProps {
 export function InterviewNav({ interview }: InterviewNavProps) {
   return (
     <div
-      className="sticky bottom-0 z-30 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 bg-white border-t border-gray-200 flex justify-between mt-8 shadow-[0_-2px_8px_rgba(0,0,0,0.06)] sm:static sm:z-auto sm:mx-0 sm:px-0 sm:py-0 sm:pt-6 sm:mt-8 sm:bg-transparent sm:border-gray-100 sm:shadow-none"
+      className="fixed bottom-0 left-0 right-0 z-40 px-4 py-3 bg-white border-t border-gray-200 flex justify-between mt-8 shadow-[0_-2px_8px_rgba(0,0,0,0.06)] sm:static sm:z-auto sm:mx-0 sm:px-0 sm:py-0 sm:pt-6 sm:mt-8 sm:bg-transparent sm:border-gray-100 sm:shadow-none"
       style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
     >
       <button
