@@ -12,7 +12,7 @@ import { emptyTaxReturn } from '../../src/model/types'
 import { makeW2, makeSSA1099 } from '../fixtures/returns'
 
 describe('validateFederalReturn', () => {
-  it('returns phase 1 limitations info for any return', () => {
+  it('returns phase 2 limitations info for any return', () => {
     const model = {
       ...emptyTaxReturn(2025),
       w2s: [
@@ -25,7 +25,7 @@ describe('validateFederalReturn', () => {
       ],
     }
     const result = validateFederalReturn(model)
-    const phaseItem = result.items.find(i => i.code === 'PHASE1_LIMITATIONS')
+    const phaseItem = result.items.find(i => i.code === 'PHASE2_LIMITATIONS')
     expect(phaseItem).toBeDefined()
     expect(phaseItem!.severity).toBe('info')
   })
@@ -129,9 +129,9 @@ describe('validateFederalReturn', () => {
       ],
     }
     const result = validateFederalReturn(model)
-    const seItem = result.items.find(i => i.code === 'POSSIBLE_SE_INCOME')
+    const seItem = result.items.find(i => i.code === 'UNSUPPORTED_SCHEDULE_C')
     expect(seItem).toBeDefined()
-    expect(seItem!.severity).toBe('info')
+    expect(seItem!.severity).toBe('warning')
   })
 
   it('has no errors for a clean simple return', () => {
