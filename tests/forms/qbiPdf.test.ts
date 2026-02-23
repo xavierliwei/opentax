@@ -48,6 +48,9 @@ beforeAll(() => {
     f6251: new Uint8Array(readFileSync(join(dir, 'f6251.pdf'))),
     f8889: new Uint8Array(readFileSync(join(dir, 'f8889.pdf'))),
     f1040se: new Uint8Array(readFileSync(join(dir, 'f1040se.pdf'))),
+    f1040sc: new Uint8Array(readFileSync(join(dir, 'f1040sc.pdf'))),
+    f1040sse: new Uint8Array(readFileSync(join(dir, 'f1040sse.pdf'))),
+    f1116: new Uint8Array(readFileSync(join(dir, 'f1116.pdf'))),
   }
 })
 

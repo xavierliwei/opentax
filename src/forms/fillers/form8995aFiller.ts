@@ -21,7 +21,7 @@
 
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 import type { TaxReturn } from '../../model/types'
-import type { QBIDeductionResult, QBIBusinessResult } from '../../rules/2025/qbiDeduction'
+import type { QBIDeductionResult } from '../../rules/2025/qbiDeduction'
 import { formatDollars, formatSSN } from '../helpers'
 
 /** Unsupported sub-path warnings to render on the form. */
