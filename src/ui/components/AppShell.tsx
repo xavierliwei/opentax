@@ -73,7 +73,7 @@ export function AppShell() {
         <LiveBalance />
 
         {/* Page content */}
-        <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto p-4 sm:p-6 pb-20 sm:pb-6">
+        <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto p-4 sm:p-6 pb-28 sm:pb-6">
           <Outlet />
         </main>
       </div>

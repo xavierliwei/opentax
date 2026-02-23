@@ -68,7 +68,7 @@ export function LiveBalance() {
     return (
       <div
         data-testid="live-balance"
-        className="sticky top-0 z-20 bg-gray-50 border-b border-gray-200 px-4 sm:px-6 py-3 text-sm text-gray-400 italic"
+        className="z-20 bg-gray-50 border-b border-gray-200 px-4 sm:px-6 py-3 text-sm text-gray-400 italic sm:sticky sm:top-0"
         aria-live="polite"
       >
         Enter your income to see your balance
@@ -90,7 +90,7 @@ export function LiveBalance() {
     return (
       <div
         data-testid="live-balance"
-        className={`sticky top-0 z-20 ${fedAccent.bg} border-b ${fedAccent.border} px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3`}
+        className={`z-20 ${fedAccent.bg} border-b ${fedAccent.border} px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3 sm:sticky sm:top-0`}
         aria-live="polite"
         aria-label={`${label}: ${formatCurrency(fedAmount)}`}
       >
@@ -145,7 +145,7 @@ export function LiveBalance() {
   return (
     <div
       data-testid="live-balance"
-      className={`sticky top-0 z-20 ${combinedBg} border-b ${combinedBorder} px-4 sm:px-6 py-2 flex items-center justify-between gap-3`}
+      className={`z-20 ${combinedBg} border-b ${combinedBorder} px-4 sm:px-6 py-2 flex items-center justify-between gap-3 sm:sticky sm:top-0`}
       aria-live="polite"
       aria-label={`${fedLabel}: ${formatCurrency(fedAmount)}, ${stateLabels}`}
     >
