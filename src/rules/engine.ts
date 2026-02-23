@@ -56,6 +56,8 @@ export const NODE_LABELS: Record<string, string> = {
   'form1040.line4b': 'IRA distributions (taxable)',
   'form1040.line5a': 'Pensions and annuities',
   'form1040.line5b': 'Pensions and annuities (taxable)',
+  'form1040.line6a': 'Social security benefits',
+  'form1040.line6b': 'Social security benefits (taxable)',
   'form1040.line7': 'Capital gain or (loss)',
   'form1040.line8': 'Other income',
   'form1040.line9': 'Total income',
@@ -183,6 +185,16 @@ export const NODE_LABELS: Record<string, string> = {
   'credits.education': 'Education credits (Form 8863)',
   'credits.aotcRefundable': 'AOTC refundable (Line 29)',
 
+  // Social Security detail
+  'ss.grossBenefits': 'Gross Social Security benefits (SSA-1099 Box 5)',
+  'ss.taxableBenefits': 'Taxable Social Security benefits (Pub 915 worksheet)',
+
+  // OBBBA Senior deduction detail
+  'seniorDeduction.total': 'Additional standard deduction (OBBBA §70104)',
+
+  // Line 31 refundable credits detail
+  'refundableCredit.excessSSWithholding': 'Excess Social Security tax withheld',
+
   // AMT (Form 6251)
   'amt.amti': 'Alternative minimum taxable income (AMTI)',
   'amt.saltAddBack': 'SALT deduction add-back',
@@ -276,6 +288,8 @@ export function collectAllValues(
   add(form1040.line4b)
   add(form1040.line5a)
   add(form1040.line5b)
+  add(form1040.line6a)
+  add(form1040.line6b)
   add(form1040.line7)
   add(form1040.line8)
   add(form1040.line9)
@@ -794,6 +808,68 @@ export function collectAllValues(
     }
   }
 
+  // SSA-1099s
+  for (const f of (model.formSSA1099s ?? [])) {
+    const fields: Array<[string, number]> = [
+      ['box5', f.box5],
+      ['box6', f.box6],
+    ]
+    for (const [field, amount] of fields) {
+      if (amount !== 0) {
+        values.set(`ssa1099:${f.id}:${field}`, {
+          amount,
+          source: {
+            kind: 'document',
+            documentType: 'SSA-1099',
+            documentId: f.id,
+            field: boxLabel(field),
+            description: `SSA-1099 for ${f.recipientName} (${boxLabel(field)})`,
+          },
+          confidence: 1.0,
+        })
+      }
+    }
+  }
+
+  // Social Security detail nodes
+  if (form1040.socialSecurityResult && form1040.socialSecurityResult.grossBenefits > 0) {
+    const ss = form1040.socialSecurityResult
+    values.set('ss.grossBenefits', tracedFromComputation(
+      ss.grossBenefits,
+      'ss.grossBenefits',
+      (model.formSSA1099s ?? []).map(f => `ssa1099:${f.id}:box5`),
+      'Gross Social Security benefits',
+    ))
+    values.set('ss.taxableBenefits', tracedFromComputation(
+      ss.taxableBenefits,
+      'ss.taxableBenefits',
+      ['ss.grossBenefits'],
+      'Taxable Social Security benefits (Pub 915)',
+    ))
+  }
+
+  // OBBBA senior deduction detail node
+  if (form1040.seniorDeduction && form1040.seniorDeduction.totalAdditional > 0) {
+    values.set('seniorDeduction.total', tracedFromComputation(
+      form1040.seniorDeduction.totalAdditional,
+      'seniorDeduction.total',
+      [],
+      'Additional standard deduction (OBBBA §70104)',
+    ))
+  }
+
+  // Line 31 refundable credits detail nodes
+  if (form1040.refundableCreditsResult) {
+    for (const item of form1040.refundableCreditsResult.items) {
+      values.set(`refundableCredit.${item.creditId}`, tracedFromComputation(
+        item.amount,
+        `refundableCredit.${item.creditId}`,
+        [],
+        item.description,
+      ))
+    }
+  }
+
   // 1099-Bs
   for (const f of model.form1099Bs) {
     if (f.federalTaxWithheld > 0) {
@@ -1094,6 +1170,19 @@ export function resolveDocumentRef(
     const amount = (f as unknown as Record<string, number>)[field] ?? 0
     return {
       label: `1099-R from ${f.payerName} (${boxLabel(field)})`,
+      amount,
+    }
+  }
+
+  // SSA-1099: ssa1099:{id}:{field}
+  m = refId.match(/^ssa1099:(.+?):(.+)$/)
+  if (m) {
+    const f = (model.formSSA1099s ?? []).find(f => f.id === m![1])
+    if (!f) return { label: `Unknown SSA-1099 (${m[1]})`, amount: 0 }
+    const field = m[2]
+    const amount = (f as unknown as Record<string, number>)[field] ?? 0
+    return {
+      label: `SSA-1099 for ${f.recipientName} (${boxLabel(field)})`,
       amount,
     }
   }

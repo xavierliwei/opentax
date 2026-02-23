@@ -58,6 +58,14 @@ import { computeSchedule1 } from './schedule1'
 import type { Schedule1Result } from './schedule1'
 import { computeScheduleE } from './scheduleE'
 import type { ScheduleEResult } from './scheduleE'
+import { computeTaxableSocialSecurity } from './socialSecurityBenefits'
+import type { SocialSecurityBenefitsResult } from './socialSecurityBenefits'
+import { computeSeniorDeduction } from './seniorDeduction'
+import type { SeniorDeductionResult } from './seniorDeduction'
+import { computeRefundableCredits } from './refundableCredits'
+import type { RefundableCreditsResult } from './refundableCredits'
+import { validateFederalReturn } from './federalValidation'
+import type { FederalValidationResult } from './federalValidation'
 
 // ── Line 1a — Wages, salaries, tips ────────────────────────────
 // Sum of all W-2 Box 1 values.
@@ -222,6 +230,44 @@ export function computeLine5b(model: TaxReturn): TracedValue {
     : tracedZero('form1040.line5b', 'Form 1040, Line 5b')
 }
 
+// ── Line 6a — Social security benefits (gross) ─────────────────
+// Sum of all SSA-1099 Box 5 (net benefits) values.
+// Source: Form 1040, Line 6a
+
+export function computeLine6a(model: TaxReturn): TracedValue {
+  const ssaForms = model.formSSA1099s ?? []
+  if (ssaForms.length === 0) {
+    return tracedZero('form1040.line6a', 'Form 1040, Line 6a')
+  }
+  const inputIds = ssaForms.map(f => `ssa1099:${f.id}:box5`)
+  const total = ssaForms.reduce((sum, f) => sum + f.box5, 0)
+
+  return total !== 0
+    ? tracedFromComputation(total, 'form1040.line6a', inputIds, 'Form 1040, Line 6a')
+    : tracedZero('form1040.line6a', 'Form 1040, Line 6a')
+}
+
+// ── Line 6b — Social security benefits (taxable) ───────────────
+// Computed via IRS Publication 915 worksheet.
+// Requires "other income" (all income excluding SS benefits) to determine
+// combined income and the applicable tier.
+// This is a two-pass computation: we need a preliminary AGI without SS to
+// compute the taxable SS amount, then include it in the final totals.
+
+export function computeLine6b(
+  ssResult: SocialSecurityBenefitsResult,
+): TracedValue {
+  if (ssResult.taxableBenefits <= 0) {
+    return tracedZero('form1040.line6b', 'Form 1040, Line 6b')
+  }
+  return tracedFromComputation(
+    ssResult.taxableBenefits,
+    'form1040.line6b',
+    ['form1040.line6a'],
+    'Form 1040, Line 6b',
+  )
+}
+
 // ── Line 7 — Capital gain or (loss) ───────────────────────────
 // Reads from Schedule D Line 21 (or Line 16 if no 28%/unrecaptured gains).
 // Accepts the Schedule D result as a parameter; returns $0 if not provided.
@@ -337,16 +383,24 @@ export function computeLine12(
   agi: number,
   netInvestmentIncome: number,
   earnedIncome: number,
-): { deduction: TracedValue; scheduleA: ScheduleAResult | null } {
-  const additionalPer = ADDITIONAL_STANDARD_DEDUCTION[model.filingStatus]
-  let additionalCount = 0
-  if (model.deductions.taxpayerAge65) additionalCount++
-  if (model.deductions.taxpayerBlind) additionalCount++
-  if (model.filingStatus === 'mfj' || model.filingStatus === 'mfs') {
-    if (model.deductions.spouseAge65) additionalCount++
-    if (model.deductions.spouseBlind) additionalCount++
-  }
-  let standardAmount = STANDARD_DEDUCTION[model.filingStatus] + additionalPer * additionalCount
+  seniorDeduction?: SeniorDeductionResult | null,
+): { deduction: TracedValue; scheduleA: ScheduleAResult | null; seniorDeduction: SeniorDeductionResult | null } {
+  // Use OBBBA-enhanced senior deduction if computed, otherwise fallback to pre-OBBBA
+  const additionalAmount = seniorDeduction
+    ? seniorDeduction.totalAdditional
+    : (() => {
+        const additionalPer = ADDITIONAL_STANDARD_DEDUCTION[model.filingStatus]
+        let count = 0
+        if (model.deductions.taxpayerAge65) count++
+        if (model.deductions.taxpayerBlind) count++
+        if (model.filingStatus === 'mfj' || model.filingStatus === 'mfs') {
+          if (model.deductions.spouseAge65) count++
+          if (model.deductions.spouseBlind) count++
+        }
+        return additionalPer * count
+      })()
+
+  let standardAmount = STANDARD_DEDUCTION[model.filingStatus] + additionalAmount
 
   // Dependent filer limitation — IRC §63(c)(5)
   // Standard deduction limited to greater of $1,350 or earned income + $450,
@@ -358,7 +412,7 @@ export function computeLine12(
       baseStandard,
       Math.max(DEPENDENT_FILER_MIN_DEDUCTION, earnedIncome + DEPENDENT_FILER_EARNED_INCOME_ADDON),
     )
-    standardAmount = limitedBase + additionalPer * additionalCount
+    standardAmount = limitedBase + additionalAmount
   }
 
   if (model.deductions.method === 'itemized' && model.deductions.itemized) {
@@ -374,6 +428,7 @@ export function computeLine12(
           'Form 1040, Line 12',
         ),
         scheduleA,
+        seniorDeduction: seniorDeduction ?? null,
       }
     }
 
@@ -387,6 +442,7 @@ export function computeLine12(
         'Form 1040, Line 12',
       ),
       scheduleA,
+      seniorDeduction: seniorDeduction ?? null,
     }
   }
 
@@ -398,6 +454,7 @@ export function computeLine12(
       'Form 1040, Line 12',
     ),
     scheduleA: null,
+    seniorDeduction: seniorDeduction ?? null,
   }
 }
 
@@ -754,6 +811,14 @@ export function computeLine25(model: TaxReturn): TracedValue {
     }
   }
 
+  // SSA-1099 Box 6 — voluntary federal income tax withheld
+  for (const f of (model.formSSA1099s ?? [])) {
+    if (f.box6 > 0) {
+      total += f.box6
+      inputIds.push(`ssa1099:${f.id}:box6`)
+    }
+  }
+
   return tracedFromComputation(
     total,
     'form1040.line25',
@@ -797,10 +862,15 @@ export function computeLine29(educationCredit: EducationCreditResult | null): Tr
 }
 
 // ── Line 31 — Other refundable credits ─────────────────────────
-// Placeholder $0.
+// Computed via the refundable credits framework (excess SS withholding, etc.)
 
-export function computeLine31(): TracedValue {
-  return tracedZero('form1040.line31', 'Form 1040, Line 31')
+export function computeLine31(refundableCredits?: RefundableCreditsResult | null): TracedValue {
+  const amount = refundableCredits?.totalLine31 ?? 0
+  if (amount <= 0) {
+    return tracedZero('form1040.line31', 'Form 1040, Line 31')
+  }
+  const inputs = (refundableCredits?.items ?? []).map(item => `refundableCredit.${item.creditId}`)
+  return tracedFromComputation(amount, 'form1040.line31', inputs, 'Form 1040, Line 31')
 }
 
 // ── Line 32 — Total other payments and refundable credits ──────
@@ -881,6 +951,8 @@ export interface Form1040Result {
   line4b: TracedValue
   line5a: TracedValue
   line5b: TracedValue
+  line6a: TracedValue
+  line6b: TracedValue
   line7: TracedValue
   line8: TracedValue
   line9: TracedValue
@@ -953,6 +1025,18 @@ export interface Form1040Result {
   // Additional Medicare Tax (Form 8959)
   additionalMedicareTaxResult: AdditionalMedicareTaxResult | null
 
+  // Social Security benefits detail (Lines 6a/6b)
+  socialSecurityResult: SocialSecurityBenefitsResult | null
+
+  // OBBBA senior deduction detail (§70104)
+  seniorDeduction: SeniorDeductionResult | null
+
+  // Line 31 refundable credits detail
+  refundableCreditsResult: RefundableCreditsResult | null
+
+  // Federal validation warnings
+  validation: FederalValidationResult | null
+
   // Attached schedules
   schedule1: Schedule1Result | null
   scheduleA: ScheduleAResult | null
@@ -1015,16 +1099,45 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   const line4b = computeLine4b(model)
   const line5a = computeLine5a(model)
   const line5b = computeLine5b(model)
+  const line6a = computeLine6a(model)
   const line7 = computeLine7(scheduleD?.line21)
   const line8 = computeLine8(schedule1 ?? undefined, hsaResult)
 
+  // SS taxable benefits require "other income" (all income minus SS).
+  // We compute preliminary other income first, then determine the taxable SS amount.
+  const otherIncomeExclSS =
+    line1z.amount + line2b.amount + line3b.amount + line4b.amount + line5b.amount +
+    line7.amount + line8.amount
+  const taxExemptInterest = line2a.amount
+
+  const ssaForms = model.formSSA1099s ?? []
+  const grossSSBenefits = ssaForms.reduce((sum, f) => sum + f.box5, 0)
+  const ssaFederalWithheld = ssaForms.reduce((sum, f) => sum + f.box6, 0)
+
+  let socialSecurityResult: SocialSecurityBenefitsResult | null = null
+  let line6b: TracedValue
+
+  if (grossSSBenefits > 0) {
+    socialSecurityResult = computeTaxableSocialSecurity(
+      grossSSBenefits,
+      otherIncomeExclSS,
+      taxExemptInterest,
+      model.filingStatus,
+      ssaFederalWithheld,
+    )
+    line6b = computeLine6b(socialSecurityResult)
+  } else {
+    line6b = tracedZero('form1040.line6b', 'Form 1040, Line 6b')
+  }
+
   const line9Inputs = [
     'form1040.line1z', 'form1040.line2b', 'form1040.line3b',
-    'form1040.line4b', 'form1040.line5b',
+    'form1040.line4b', 'form1040.line5b', 'form1040.line6b',
     'form1040.line7', 'form1040.line8',
   ]
   const line9 = tracedFromComputation(
-    line1z.amount + line2b.amount + line3b.amount + line4b.amount + line5b.amount + line7.amount + line8.amount,
+    line1z.amount + line2b.amount + line3b.amount + line4b.amount + line5b.amount +
+    line6b.amount + line7.amount + line8.amount,
     'form1040.line9',
     line9Inputs,
     'Form 1040, Line 9',
@@ -1054,7 +1167,16 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   const netSTGain = Math.max(0, scheduleD?.line7.amount ?? 0)
   const netInvestmentIncome = line2b.amount + nonQualifiedDivs + netSTGain
 
-  const { deduction: line12, scheduleA } = computeLine12(model, line11.amount, netInvestmentIncome, earnedIncome)
+  // OBBBA senior deduction — compute enhanced additional standard deduction
+  const seniorDeductionResult = computeSeniorDeduction(
+    model.filingStatus,
+    model.deductions.taxpayerAge65,
+    model.deductions.taxpayerBlind,
+    model.deductions.spouseAge65,
+    model.deductions.spouseBlind,
+  )
+
+  const { deduction: line12, scheduleA } = computeLine12(model, line11.amount, netInvestmentIncome, earnedIncome, seniorDeductionResult)
   const line13 = computeLine13()
   const line14 = computeLine14(line12, line13)
   const line15 = computeLine15(line11, line14)
@@ -1177,7 +1299,10 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     : tracedZero('form1040.line28', 'Form 1040, Line 28')
 
   const line29 = computeLine29(educationCredit)
-  const line31 = computeLine31()
+
+  // Line 31 — Other refundable credits (excess SS withholding, etc.)
+  const refundableCreditsResult = computeRefundableCredits(model)
+  const line31 = computeLine31(refundableCreditsResult)
   const line32 = computeLine32(line27, line28, line29, line31)
   const line33 = computeLine33(line25, line26, line32)
 
@@ -1185,8 +1310,13 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   const line34 = computeLine34(line33, line24)
   const line37 = computeLine37(line24, line33)
 
+  // ── Validation ─────────────────────────────────────────────
+  const validation = validateFederalReturn(model)
+
   return {
-    line1a, line1z, line2a, line2b, line3a, line3b, line4a, line4b, line5a, line5b, line7, line8, line9,
+    line1a, line1z, line2a, line2b, line3a, line3b, line4a, line4b, line5a, line5b,
+    line6a, line6b,
+    line7, line8, line9,
     line10, line11,
     line12, line13, line14, line15,
     line16, line17, line18, line19, line20, line21, line22, line23, line24,
@@ -1205,6 +1335,10 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     earlyWithdrawalPenalty,
     niitResult,
     additionalMedicareTaxResult,
+    socialSecurityResult,
+    seniorDeduction: seniorDeductionResult,
+    refundableCreditsResult,
+    validation,
     schedule1, scheduleA, scheduleD, scheduleE,
   }
 }
