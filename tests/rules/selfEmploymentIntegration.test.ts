@@ -212,7 +212,7 @@ describe('Self-employment full integration', () => {
     expect(result.line14.amount).toBe(result.line12.amount + result.line13.amount)
   })
 
-  it('sets QBI to $0 when taxable income is above threshold', () => {
+  it('computes Form 8995-A deduction when taxable income is above threshold', () => {
     const model = {
       ...emptyTaxReturn(2025),
       filingStatus: 'single' as const,
@@ -238,9 +238,18 @@ describe('Self-employment full integration', () => {
     // AGI should be > $191,950 single threshold
     expect(result.line11.amount).toBeGreaterThan(cents(191950))
 
-    // QBI deduction should be $0 (above threshold, conservative)
+    // QBI above threshold triggers Form 8995-A path
     expect(result.qbiResult!.aboveThreshold).toBe(true)
-    expect(result.line13.amount).toBe(0)
+    expect(result.qbiResult!.simplifiedPath).toBe(false)
+
+    // Business has no W-2 wages/UBIA, so in phase-in range the deduction is
+    // partially limited. With $0 W-2/$0 UBIA, the wage limitation is $0,
+    // and the deduction depends on phase-in factor.
+    // In the phase-in range (between threshold and threshold + $50K),
+    // deductible = 20%×QBI - phaseInFactor × 20%×QBI = 20%×QBI × (1 - phaseInFactor)
+    // Since this is in the phase-in range, deduction should be > $0 but < 20% × QBI
+    expect(result.line13.amount).toBeGreaterThan(0)
+    expect(result.line13.amount).toBeLessThan(Math.round(cents(50000) * 0.20))
   })
 
   it('MFJ with both spouses having businesses', () => {

@@ -63,7 +63,7 @@ import type { ScheduleCAggregateResult } from './scheduleC'
 import { computeScheduleSE } from './scheduleSE'
 import type { ScheduleSEResult } from './scheduleSE'
 import { computeQBIDeduction } from './qbiDeduction'
-import type { QBIDeductionResult } from './qbiDeduction'
+import type { QBIDeductionResult, QBIBusinessInput } from './qbiDeduction'
 import { computeTaxableSocialSecurity } from './socialSecurityBenefits'
 import type { SocialSecurityBenefitsResult } from './socialSecurityBenefits'
 import { computeSeniorDeduction } from './seniorDeduction'
@@ -1270,7 +1270,34 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   const taxableIncomeBeforeQBI = Math.max(0, line11.amount - line12.amount)
   let qbiResult: QBIDeductionResult | null = null
   if (scheduleCQBI !== 0 || k1QBI !== 0) {
-    qbiResult = computeQBIDeduction(scheduleCQBI, k1QBI, taxableIncomeBeforeQBI, model.filingStatus)
+    // Build per-business QBI inputs for Form 8995-A (above-threshold path)
+    const qbiBusinesses: QBIBusinessInput[] = []
+    if (scheduleCResult) {
+      for (const biz of scheduleCResult.businesses) {
+        const schedC = (model.scheduleCBusinesses ?? []).find(c => c.id === biz.businessId)
+        qbiBusinesses.push({
+          id: biz.businessId,
+          name: biz.businessName,
+          qbi: biz.line31.amount,
+          w2Wages: schedC?.qbiW2Wages ?? 0,
+          ubia: schedC?.qbiUBIA ?? 0,
+          isSSTB: schedC?.isSSTB ?? false,
+        })
+      }
+    }
+    for (const k1 of (model.scheduleK1s ?? [])) {
+      if (k1.section199AQBI !== 0) {
+        qbiBusinesses.push({
+          id: k1.id,
+          name: k1.entityName,
+          qbi: k1.section199AQBI,
+          w2Wages: k1.section199AW2Wages ?? 0,
+          ubia: k1.section199AUBIA ?? 0,
+          isSSTB: k1.isSSTB ?? false,
+        })
+      }
+    }
+    qbiResult = computeQBIDeduction(scheduleCQBI, k1QBI, taxableIncomeBeforeQBI, model.filingStatus, qbiBusinesses)
   }
   const line13 = computeLine13(qbiResult)
   const line14 = computeLine14(line12, line13)

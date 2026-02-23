@@ -280,6 +280,11 @@ export interface ScheduleC {
   wages: number                   // Line 26
   otherExpenses: number           // Line 27a
 
+  // Form 8995-A QBI limitation fields (optional — used for above-threshold computation)
+  isSSTB?: boolean                // Is this a Specified Service Trade or Business? (IRC §199A(d)(2))
+  qbiW2Wages?: number             // cents — W-2 wages paid by this business (for W-2/UBIA limitation)
+  qbiUBIA?: number                // cents — Unadjusted Basis Immediately After Acquisition of qualified property
+
   // Flags for unsupported features
   hasInventory?: boolean          // if true, COGS Part III required (unsupported)
   hasHomeOffice?: boolean         // if true, Form 8829 required (unsupported)
@@ -310,6 +315,11 @@ export interface ScheduleK1 {
   shortTermCapitalGain: number    // Box 8 (1065) / Box 7 (1120-S)
   longTermCapitalGain: number     // Box 9a (1065) / Box 8a (1120-S)
   section199AQBI: number          // Box 20 Code Z (1065) / Box 17 Code V (1120-S)
+
+  // Form 8995-A QBI limitation fields (optional — reported by entity on K-1)
+  isSSTB?: boolean                // Is this entity a Specified Service Trade or Business?
+  section199AW2Wages?: number     // cents — Entity's allocable share of W-2 wages (Box 20 Code AA / Box 17 Code W)
+  section199AUBIA?: number        // cents — Entity's allocable share of UBIA (Box 20 Code AB / Box 17 Code X)
 
   // Distributions and basis
   distributions: number           // For reference, not directly used in computation yet

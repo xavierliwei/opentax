@@ -223,14 +223,26 @@ function validateQBIDeduction(model: TaxReturn): FederalValidationItem[] {
   const hasK1QBI = (model.scheduleK1s ?? []).some(k => k.section199AQBI > 0)
   const hasScheduleE = (model.scheduleEProperties ?? []).length > 0
 
+  const hasSSTB = (model.scheduleCBusinesses ?? []).some(c => c.isSSTB) ||
+    (model.scheduleK1s ?? []).some(k => k.isSSTB)
+
   if (hasScheduleC || hasK1QBI) {
     items.push({
       code: 'QBI_DEDUCTION_COMPUTED',
       severity: 'info',
-      message: 'QBI deduction (IRC §199A) computed via Form 8995 simplified path. Below-threshold taxpayers receive up to 20% of qualified business income. Above-threshold limitations (W-2 wages, UBIA, SSTB phase-out) are not yet supported — the deduction is conservatively set to $0 when above the threshold.',
-      irsCitation: 'Form 8995 / IRC §199A',
+      message: 'QBI deduction (IRC §199A) computed. Below-threshold taxpayers use Form 8995 simplified path (20% of QBI). Above-threshold taxpayers use Form 8995-A with W-2 wage / UBIA limitations. If per-business W-2 wages and UBIA are not provided for above-threshold returns, the deduction is conservatively set to $0.',
+      irsCitation: 'Form 8995 / Form 8995-A / IRC §199A',
       category: 'compliance',
     })
+    if (hasSSTB) {
+      items.push({
+        code: 'QBI_SSTB_WARNING',
+        severity: 'warning',
+        message: 'One or more businesses are marked as Specified Service Trade or Business (SSTB). For above-threshold taxpayers, SSTB income is reduced or excluded from the QBI deduction. If taxable income is fully above the phase-in range, SSTB QBI is $0. Verify SSTB classification with a tax professional.',
+        irsCitation: 'IRC §199A(d)(2) / Form 8995-A',
+        category: 'compliance',
+      })
+    }
   } else if (hasScheduleE) {
     // Rental real estate may have QBI if safe harbor elected — informational
     items.push({
