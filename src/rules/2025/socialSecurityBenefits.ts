@@ -41,6 +41,15 @@ export const SS_ADDITIONAL_AMOUNT: Record<FilingStatus, number> = {
   qw:     3_400_000,   // $34,000
 }
 
+/**
+ * MFS lived-apart thresholds — IRC §86(c)(1)(C)(ii)
+ * If filing MFS and lived apart from spouse for the ENTIRE year,
+ * the taxpayer uses these thresholds instead of $0/$0.
+ * These are the same as the single filer amounts.
+ */
+export const SS_MFS_LIVED_APART_BASE = 2_500_000       // $25,000
+export const SS_MFS_LIVED_APART_ADDITIONAL = 3_400_000  // $34,000
+
 // ── Result ─────────────────────────────────────────────────────
 
 export interface SocialSecurityBenefitsResult {
@@ -53,6 +62,7 @@ export interface SocialSecurityBenefitsResult {
   taxableBenefits: number         // Line 6b: taxable amount (cents)
   tier: 0 | 1 | 2                // Which tier applied
   federalWithheld: number         // SSA-1099 Box 6 total (cents) — for Line 25
+  mfsLivedApart?: boolean         // If true, MFS used lived-apart thresholds
 }
 
 // ── Computation ────────────────────────────────────────────────
@@ -65,6 +75,7 @@ export interface SocialSecurityBenefitsResult {
  * @param taxExemptInterest  Sum of 1099-INT Box 8 (tax-exempt interest) in cents
  * @param filingStatus   Filing status
  * @param federalWithheld Sum of SSA-1099 Box 6 (voluntary withholding) in cents
+ * @param mfsLivedApart  If true and MFS, use lived-apart thresholds (IRC §86(c)(1)(C)(ii))
  */
 export function computeTaxableSocialSecurity(
   grossBenefits: number,
@@ -72,18 +83,25 @@ export function computeTaxableSocialSecurity(
   taxExemptInterest: number,
   filingStatus: FilingStatus,
   federalWithheld: number = 0,
+  mfsLivedApart: boolean = false,
 ): SocialSecurityBenefitsResult {
+  // Determine effective thresholds — MFS lived-apart uses single-like thresholds
+  const effectiveMfsLivedApart = filingStatus === 'mfs' && mfsLivedApart
+
   if (grossBenefits <= 0) {
+    const baseAmount = effectiveMfsLivedApart ? SS_MFS_LIVED_APART_BASE : SS_BASE_AMOUNT[filingStatus]
+    const additionalAmount = effectiveMfsLivedApart ? SS_MFS_LIVED_APART_ADDITIONAL : SS_ADDITIONAL_AMOUNT[filingStatus]
     return {
       grossBenefits: 0,
       halfBenefits: 0,
       modifiedAGI: 0,
       combinedIncome: 0,
-      baseAmount: SS_BASE_AMOUNT[filingStatus],
-      additionalAmount: SS_ADDITIONAL_AMOUNT[filingStatus],
+      baseAmount,
+      additionalAmount,
       taxableBenefits: 0,
       tier: 0,
       federalWithheld,
+      mfsLivedApart: effectiveMfsLivedApart,
     }
   }
 
@@ -91,8 +109,8 @@ export function computeTaxableSocialSecurity(
   const modifiedAGI = otherIncome + taxExemptInterest
   const combinedIncome = modifiedAGI + halfBenefits
 
-  const baseAmount = SS_BASE_AMOUNT[filingStatus]
-  const additionalAmount = SS_ADDITIONAL_AMOUNT[filingStatus]
+  const baseAmount = effectiveMfsLivedApart ? SS_MFS_LIVED_APART_BASE : SS_BASE_AMOUNT[filingStatus]
+  const additionalAmount = effectiveMfsLivedApart ? SS_MFS_LIVED_APART_ADDITIONAL : SS_ADDITIONAL_AMOUNT[filingStatus]
 
   // Tier 0: combined income ≤ base amount → nothing taxable
   if (combinedIncome <= baseAmount) {
@@ -106,6 +124,7 @@ export function computeTaxableSocialSecurity(
       taxableBenefits: 0,
       tier: 0,
       federalWithheld,
+      mfsLivedApart: effectiveMfsLivedApart,
     }
   }
 
@@ -129,6 +148,7 @@ export function computeTaxableSocialSecurity(
       taxableBenefits,
       tier: 1,
       federalWithheld,
+      mfsLivedApart: effectiveMfsLivedApart,
     }
   }
 
@@ -155,5 +175,6 @@ export function computeTaxableSocialSecurity(
     taxableBenefits,
     tier: 2,
     federalWithheld,
+    mfsLivedApart: effectiveMfsLivedApart,
   }
 }

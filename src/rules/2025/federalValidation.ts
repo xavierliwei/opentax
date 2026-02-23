@@ -32,22 +32,6 @@ export interface FederalValidationResult {
 
 // ── Validation functions ───────────────────────────────────────
 
-function validateSelfEmployment(model: TaxReturn): FederalValidationItem[] {
-  // Check for indicators of self-employment income (1099-NEC, Schedule C)
-  // Not in data model yet, but if 1099-MISC Box 3 > $600, might indicate SE
-  const miscPrizes = (model.form1099MISCs ?? []).reduce((s, f) => s + f.box3, 0)
-  if (miscPrizes > 60_000) { // $600 threshold
-    return [{
-      code: 'POSSIBLE_SE_INCOME',
-      severity: 'info',
-      message: 'Large amounts in 1099-MISC Box 3 (Other income) detected. If this represents self-employment income, Schedule C and self-employment tax (Schedule SE) are not yet supported. Consult a tax professional.',
-      irsCitation: 'Schedule C / Schedule SE',
-      category: 'unsupported',
-    }]
-  }
-  return []
-}
-
 function validateFormSSA1099(model: TaxReturn): FederalValidationItem[] {
   const items: FederalValidationItem[] = []
   const ssaForms = model.formSSA1099s ?? []
@@ -58,8 +42,19 @@ function validateFormSSA1099(model: TaxReturn): FederalValidationItem[] {
       items.push({
         code: 'SSA_NEGATIVE_NET_BENEFITS',
         severity: 'warning',
-        message: `SSA-1099 for ${ssa.recipientName}: Net benefits (Box 5) is negative ($${(ssa.box5 / 100).toFixed(2)}). This may indicate a lump-sum repayment situation requiring special treatment per IRS Pub 915.`,
-        irsCitation: 'Publication 915',
+        message: `SSA-1099 for ${ssa.recipientName}: Net benefits (Box 5) is negative ($${(ssa.box5 / 100).toFixed(2)}). This indicates benefits were repaid exceeding amounts received this year. You may be eligible for an itemized deduction or tax credit under IRC §1341 for the repaid amount. Consult IRS Publication 915 and a tax professional.`,
+        irsCitation: 'Publication 915, IRC §1341',
+        category: 'accuracy',
+      })
+    }
+
+    // Significant benefits repaid (Box 4 > 0) — informational
+    if (ssa.box4 > 0 && ssa.box5 >= 0) {
+      items.push({
+        code: 'SSA_BENEFITS_REPAID',
+        severity: 'info',
+        message: `SSA-1099 for ${ssa.recipientName}: Benefits repaid (Box 4) of $${(ssa.box4 / 100).toFixed(2)}. Net benefits (Box 5 = Box 3 − Box 4) are used for taxability computation. If the repayment exceeds $3,000 and relates to benefits included in prior-year income, you may use IRC §1341 claim-of-right for a larger benefit.`,
+        irsCitation: 'Publication 915, IRC §1341',
         category: 'accuracy',
       })
     }
@@ -79,10 +74,17 @@ function validateFormSSA1099(model: TaxReturn): FederalValidationItem[] {
   return items
 }
 
-function validatePremiumTaxCredit(_model: TaxReturn): FederalValidationItem[] {
-  // Phase 1: Form 8962 (Premium Tax Credit) is not implemented.
-  // When Form 1095-A data is added to the model, emit a warning here.
-  return []
+function validatePremiumTaxCredit(model: TaxReturn): FederalValidationItem[] {
+  const forms = model.form1095As ?? []
+  if (forms.length === 0) return []
+
+  return [{
+    code: 'PTC_FORM_8962',
+    severity: 'info',
+    message: `Form 1095-A marketplace data detected (${forms.length} statement${forms.length > 1 ? 's' : ''}). Form 8962 Premium Tax Credit reconciliation has been computed. Verify SLCSP amounts match your marketplace notice.`,
+    irsCitation: 'Form 8962 / IRC §36B',
+    category: 'compliance',
+  }]
 }
 
 function validateMFSSocialSecurity(model: TaxReturn): FederalValidationItem[] {
@@ -90,10 +92,22 @@ function validateMFSSocialSecurity(model: TaxReturn): FederalValidationItem[] {
   const ssaForms = model.formSSA1099s ?? []
   if (ssaForms.length === 0) return []
 
+  const livedApart = model.deductions.mfsLivedApartAllYear ?? false
+
+  if (livedApart) {
+    return [{
+      code: 'MFS_SS_BENEFITS_LIVED_APART',
+      severity: 'info',
+      message: 'Filing as Married Filing Separately with Social Security benefits. You indicated you lived apart from your spouse all year, so single-filer thresholds ($25,000 base / $34,000 additional) are being used per IRC §86(c)(1)(C)(ii).',
+      irsCitation: 'IRC §86(c)(1)(C)(ii), Publication 915',
+      category: 'compliance',
+    }]
+  }
+
   return [{
     code: 'MFS_SS_BENEFITS',
     severity: 'warning',
-    message: 'Filing as Married Filing Separately with Social Security benefits: if you lived with your spouse at any time during the year, up to 85% of benefits may be taxable regardless of income level. This tool assumes you lived together (worst case). If you lived apart all year, consult IRS Publication 915 for different thresholds.',
+    message: 'Filing as Married Filing Separately with Social Security benefits: if you lived with your spouse at any time during the year, up to 85% of benefits may be taxable regardless of income level ($0 base amount). If you lived apart from your spouse for the entire year, indicate this to use the more favorable single-filer thresholds ($25,000/$34,000).',
     irsCitation: 'IRC §86(c)(1)(C)',
     category: 'accuracy',
   }]
@@ -140,12 +154,60 @@ function validateForm1099RCodes(model: TaxReturn): FederalValidationItem[] {
   return items
 }
 
-function validateUnsupportedSchedules(_model: TaxReturn): FederalValidationItem[] {
-  // Future: check for indicators that Schedule C, Schedule F, Form 8962, etc. are needed
+function validateSelfEmploymentGap(model: TaxReturn): FederalValidationItem[] {
+  // Check for 1099-NEC-like indicators (large 1099-MISC Box 3 or other SE markers)
+  const miscPrizesTotal = (model.form1099MISCs ?? []).reduce((s, f) => s + f.box3, 0)
+  const items: FederalValidationItem[] = []
+
+  if (miscPrizesTotal > 60_000) { // $600 threshold
+    items.push({
+      code: 'UNSUPPORTED_SCHEDULE_C',
+      severity: 'warning',
+      message: `1099-MISC Box 3 income of $${(miscPrizesTotal / 100).toFixed(0)} detected. If this is self-employment income, Schedule C (profit/loss from business) and Schedule SE (self-employment tax) are required but not yet supported. The income is included as "other income" but SE tax (15.3% up to the wage base) is NOT computed. This may significantly understate your tax liability. Consult a tax professional.`,
+      irsCitation: 'Schedule C / Schedule SE',
+      category: 'unsupported',
+    })
+  }
+
+  return items
+}
+
+function validateQBIDeductionGap(model: TaxReturn): FederalValidationItem[] {
+  // QBI deduction (Form 8995/8995-A) is relevant for:
+  // - Self-employment income (Schedule C)
+  // - Rental real estate (if elected safe harbor)
+  // - Partnership/S-corp K-1 income
+  const hasScheduleE = (model.scheduleEProperties ?? []).length > 0
+  const hasMiscIncome = (model.form1099MISCs ?? []).some(f => f.box3 > 60_000) // $600
+
+  if (!hasScheduleE && !hasMiscIncome) return []
+
   return [{
-    code: 'PHASE1_LIMITATIONS',
+    code: 'UNSUPPORTED_QBI_DEDUCTION',
     severity: 'info',
-    message: 'Federal Gap Closure Phase 1 supports: W-2 wages, investment income, retirement distributions, Social Security benefits, rental income (Schedule E), capital gains (Schedule D), and common credits/deductions. Not yet supported: self-employment (Schedule C/SE), farm income (Schedule F), Premium Tax Credit (Form 8962), foreign tax credit (Form 1116).',
+    message: 'Qualified Business Income (QBI) deduction (IRC §199A) is not yet implemented. If you have qualified business income from sole proprietorship, partnership, S-corp, or elected rental real estate, you may be entitled to a deduction of up to 20% of QBI on Form 1040, Line 13. This is currently $0 — consult a tax professional.',
+    irsCitation: 'Form 8995 / IRC §199A',
+    category: 'unsupported',
+  }]
+}
+
+function validateK1Gap(_model: TaxReturn): FederalValidationItem[] {
+  // K-1 income from partnerships (Form 1065) and S-corps (Form 1120-S)
+  // is not in the data model. Emit an informational message about this limitation.
+  return [{
+    code: 'UNSUPPORTED_K1_INCOME',
+    severity: 'info',
+    message: 'Schedule K-1 income from partnerships (Form 1065), S-corporations (Form 1120-S), and trusts/estates (Form 1041) is not yet supported. If you received K-1 forms, the associated income, deductions, and credits are not included in this return.',
+    irsCitation: 'Schedule K-1 (Form 1065/1120-S/1041)',
+    category: 'unsupported',
+  }]
+}
+
+function validateUnsupportedSchedules(_model: TaxReturn): FederalValidationItem[] {
+  return [{
+    code: 'PHASE2_LIMITATIONS',
+    severity: 'info',
+    message: 'Federal Gap Closure Phase 2 supports: W-2 wages, investment income, retirement distributions, Social Security benefits (including MFS lived-apart exception), rental income (Schedule E), capital gains (Schedule D), Premium Tax Credit (Form 8962), and common credits/deductions. Not yet supported: self-employment (Schedule C/SE), farm income (Schedule F), foreign tax credit (Form 1116), K-1 passthrough income.',
     irsCitation: 'Form 1040',
     category: 'unsupported',
   }]
@@ -162,13 +224,15 @@ export function validateFederalReturn(
   _result?: Form1040Result,
 ): FederalValidationResult {
   const items: FederalValidationItem[] = [
-    ...validateSelfEmployment(model),
     ...validateFormSSA1099(model),
     ...validatePremiumTaxCredit(model),
     ...validateMFSSocialSecurity(model),
     ...validateSeniorDeduction(model),
     ...validateDependentFiler(model),
     ...validateForm1099RCodes(model),
+    ...validateSelfEmploymentGap(model),
+    ...validateQBIDeductionGap(model),
+    ...validateK1Gap(model),
     ...validateUnsupportedSchedules(model),
   ]
 

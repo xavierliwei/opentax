@@ -201,6 +201,23 @@ export interface Form1099SA {
   box2: number    // Earnings on excess contributions (cents)
 }
 
+// ── 1095-A (Health Insurance Marketplace Statement) ────────────
+
+export interface Form1095AMonthlyRow {
+  month: number               // 1–12
+  enrollmentPremium: number   // Column A — Monthly enrollment premium (cents)
+  slcspPremium: number        // Column B — Monthly SLCSP premium (cents)
+  advancePTC: number          // Column C — Monthly advance payment of PTC (cents)
+}
+
+export interface Form1095A {
+  id: string
+  marketplaceName: string
+  policyNumber?: string
+  recipientName: string
+  rows: Form1095AMonthlyRow[]  // up to 12 monthly rows
+}
+
 // ── SSA-1099 (Social Security Benefit Statement) ───────────────
 
 export interface FormSSA1099 {
@@ -488,6 +505,7 @@ export interface TaxReturn {
   form1099Gs: Form1099G[]
   form1099Rs: Form1099R[]
   formSSA1099s: FormSSA1099[]
+  form1095As: Form1095A[]
 
   // RSU data
   rsuVestEvents: RSUVestEvent[]
@@ -514,6 +532,9 @@ export interface TaxReturn {
     taxpayerBlind: boolean
     spouseAge65: boolean
     spouseBlind: boolean
+    // MFS lived-apart flag — affects Social Security taxability thresholds
+    // If true and filing MFS, use single-like base amounts per IRC §86(c)(1)(C)
+    mfsLivedApartAllYear?: boolean
   }
   credits: Credit[]
 
@@ -575,6 +596,7 @@ export function emptyTaxReturn(taxYear: number): TaxReturn {
     form1099Gs: [],
     form1099Rs: [],
     formSSA1099s: [],
+    form1095As: [],
     rsuVestEvents: [],
     isoExercises: [],
     scheduleEProperties: [],

@@ -522,7 +522,10 @@ export function computeLine16(
 }
 
 // ── Line 17 — Amount from Schedule 2, Part I, line 4 ──────────
-// Alternative Minimum Tax (Form 6251)
+// Schedule 2, Part I includes:
+//   Line 1: Alternative Minimum Tax (Form 6251)
+//   Line 2: Excess advance PTC repayment (Form 8962)
+//   Line 3: Sum (→ Form 1040, Line 17)
 
 export function computeLine17(
   taxableIncome: number,
@@ -532,6 +535,7 @@ export function computeLine17(
   isoExercises: TaxReturn['isoExercises'],
   qualifiedDividends: number,
   netLTCG: number,
+  excessAPTCRepayment: number = 0,
 ): { traced: TracedValue; amtResult: AMTResult } {
   const amtResult = computeAMT(
     taxableIncome, regularTax, filingStatus,
@@ -539,8 +543,13 @@ export function computeLine17(
     qualifiedDividends, netLTCG,
   )
 
-  const traced = amtResult.amt > 0
-    ? tracedFromComputation(amtResult.amt, 'form1040.line17', ['amt.amt'], 'Form 1040, Line 17')
+  const total = amtResult.amt + excessAPTCRepayment
+  const inputs: string[] = []
+  if (amtResult.amt > 0) inputs.push('amt.amt')
+  if (excessAPTCRepayment > 0) inputs.push('ptc.excessAPTCRepayment')
+
+  const traced = total > 0
+    ? tracedFromComputation(total, 'form1040.line17', inputs, 'Form 1040, Line 17')
     : tracedZero('form1040.line17', 'Form 1040, Line 17')
 
   return { traced, amtResult }
@@ -1118,12 +1127,14 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   let line6b: TracedValue
 
   if (grossSSBenefits > 0) {
+    const mfsLivedApart = model.deductions.mfsLivedApartAllYear ?? false
     socialSecurityResult = computeTaxableSocialSecurity(
       grossSSBenefits,
       otherIncomeExclSS,
       taxExemptInterest,
       model.filingStatus,
       ssaFederalWithheld,
+      mfsLivedApart,
     )
     line6b = computeLine6b(socialSecurityResult)
   } else {
@@ -1181,6 +1192,10 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   const line14 = computeLine14(line12, line13)
   const line15 = computeLine15(line11, line14)
 
+  // ── Refundable credits (early — PTC needs AGI, excess APTC flows to Line 17) ──
+  const refundableCreditsResult = computeRefundableCredits(model, line11.amount)
+  const excessAPTCRepayment = refundableCreditsResult.excessAPTCRepayment
+
   // ── Tax ─────────────────────────────────────────────────
   const line16 = computeLine16(line15.amount, line3a.amount, scheduleD, model.filingStatus)
 
@@ -1190,6 +1205,7 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     line15.amount, line16.amount, model.filingStatus,
     saltDeduction, model.isoExercises ?? [],
     line3a.amount, netLTCG,
+    excessAPTCRepayment,
   )
 
   const line18 = computeLine18(line16, line17)
@@ -1300,8 +1316,8 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
 
   const line29 = computeLine29(educationCredit)
 
-  // Line 31 — Other refundable credits (excess SS withholding, etc.)
-  const refundableCreditsResult = computeRefundableCredits(model)
+  // Line 31 — Other refundable credits (excess SS withholding, PTC, etc.)
+  // (refundableCreditsResult already computed above, before Line 17)
   const line31 = computeLine31(refundableCreditsResult)
   const line32 = computeLine32(line27, line28, line29, line31)
   const line33 = computeLine33(line25, line26, line32)

@@ -194,6 +194,8 @@ export const NODE_LABELS: Record<string, string> = {
 
   // Line 31 refundable credits detail
   'refundableCredit.excessSSWithholding': 'Excess Social Security tax withheld',
+  'refundableCredit.premiumTaxCredit': 'Premium Tax Credit (Form 8962)',
+  'ptc.excessAPTCRepayment': 'Excess advance PTC repayment (Form 8962)',
 
   // AMT (Form 6251)
   'amt.amti': 'Alternative minimum taxable income (AMTI)',
@@ -831,6 +833,38 @@ export function collectAllValues(
     }
   }
 
+  // 1095-As
+  for (const f of (model.form1095As ?? [])) {
+    const totalPremium = f.rows.reduce((s, r) => s + r.enrollmentPremium, 0)
+    const totalAPTC = f.rows.reduce((s, r) => s + r.advancePTC, 0)
+    if (totalPremium > 0) {
+      values.set(`1095a:${f.id}:premium`, {
+        amount: totalPremium,
+        source: {
+          kind: 'document',
+          documentType: '1095-A',
+          documentId: f.id,
+          field: 'Annual enrollment premium',
+          description: `1095-A from ${f.marketplaceName} (Annual enrollment premium)`,
+        },
+        confidence: 1.0,
+      })
+    }
+    if (totalAPTC > 0) {
+      values.set(`1095a:${f.id}:aptc`, {
+        amount: totalAPTC,
+        source: {
+          kind: 'document',
+          documentType: '1095-A',
+          documentId: f.id,
+          field: 'Advance PTC',
+          description: `1095-A from ${f.marketplaceName} (Advance PTC)`,
+        },
+        confidence: 1.0,
+      })
+    }
+  }
+
   // Social Security detail nodes
   if (form1040.socialSecurityResult && form1040.socialSecurityResult.grossBenefits > 0) {
     const ss = form1040.socialSecurityResult
@@ -866,6 +900,15 @@ export function collectAllValues(
         `refundableCredit.${item.creditId}`,
         [],
         item.description,
+      ))
+    }
+    // Excess APTC repayment (flows to Line 17, not Line 31)
+    if (form1040.refundableCreditsResult.excessAPTCRepayment > 0) {
+      values.set('ptc.excessAPTCRepayment', tracedFromComputation(
+        form1040.refundableCreditsResult.excessAPTCRepayment,
+        'ptc.excessAPTCRepayment',
+        [],
+        'Excess advance PTC repayment (Form 8962)',
       ))
     }
   }
@@ -1185,6 +1228,23 @@ export function resolveDocumentRef(
       label: `SSA-1099 for ${f.recipientName} (${boxLabel(field)})`,
       amount,
     }
+  }
+
+  // 1095-A: 1095a:{id}:{field}
+  m = refId.match(/^1095a:(.+?):(.+)$/)
+  if (m) {
+    const f = (model.form1095As ?? []).find(f => f.id === m![1])
+    if (!f) return { label: `Unknown 1095-A (${m[1]})`, amount: 0 }
+    const field = m[2]
+    if (field === 'premium') {
+      const total = f.rows.reduce((s, r) => s + r.enrollmentPremium, 0)
+      return { label: `1095-A from ${f.marketplaceName} (Annual enrollment premium)`, amount: total }
+    }
+    if (field === 'aptc') {
+      const total = f.rows.reduce((s, r) => s + r.advancePTC, 0)
+      return { label: `1095-A from ${f.marketplaceName} (Advance PTC)`, amount: total }
+    }
+    return { label: `1095-A from ${f.marketplaceName} (${field})`, amount: 0 }
   }
 
   // 1099-G: 1099g:{id}:{field}

@@ -17,6 +17,8 @@
 
 import type { TaxReturn } from '../../model/types'
 import { SS_WAGE_BASE, SS_TAX_RATE } from './constants'
+import { computePremiumTaxCredit } from './premiumTaxCredit'
+import type { PremiumTaxCreditResult } from './premiumTaxCredit'
 
 // ── Provider interface ─────────────────────────────────────────
 
@@ -32,6 +34,8 @@ export interface RefundableCreditsResult {
   items: RefundableCreditItem[]
   totalLine31: number      // sum of all items (cents)
   warnings: RefundableCreditWarning[]
+  premiumTaxCredit: PremiumTaxCreditResult | null  // Form 8962 detail (null if no 1095-A)
+  excessAPTCRepayment: number  // cents — excess APTC to repay (flows to Schedule 2, not Line 31)
 }
 
 export interface RefundableCreditWarning {
@@ -62,16 +66,45 @@ export function computeExcessSSWithholding(model: TaxReturn): RefundableCreditIt
   }
 }
 
-// ── Premium Tax Credit placeholder ─────────────────────────────
-// Form 8962 — ACA marketplace premium reconciliation.
-// Not implemented in Phase 1; emits a validation warning when
-// the taxpayer has marketplace coverage indicators.
+// ── Premium Tax Credit (Form 8962) ──────────────────────────────
+// ACA marketplace premium reconciliation.
+// Computes PTC based on Form 1095-A data and reconciles with APTC.
+// Credit portion flows to Line 31; repayment flows to Schedule 2.
 
-export function checkPremiumTaxCredit(_model: TaxReturn): RefundableCreditWarning | null {
-  // Phase 1: Form 8962 is not implemented.
-  // Check for indicators that PTC might apply (Form 1095-A data would go here).
-  // For now, there's no Form 1095-A in the model, so this is a framework hook.
-  return null
+export function computePTC(
+  model: TaxReturn,
+  agi: number,
+): { credit: RefundableCreditItem | null; ptcResult: PremiumTaxCreditResult | null; repayment: number } {
+  const forms = model.form1095As ?? []
+  if (forms.length === 0) {
+    return { credit: null, ptcResult: null, repayment: 0 }
+  }
+
+  const hasSpouse = model.filingStatus === 'mfj'
+  const ptcResult = computePremiumTaxCredit(
+    forms,
+    agi,
+    model.filingStatus,
+    model.dependents.length,
+    hasSpouse,
+  )
+
+  let credit: RefundableCreditItem | null = null
+  if (ptcResult.creditAmount > 0) {
+    credit = {
+      creditId: 'premiumTaxCredit',
+      description: 'Premium Tax Credit (Form 8962)',
+      amount: ptcResult.creditAmount,
+      irsCitation: 'Schedule 3, Line 9',
+      formRef: 'Form 8962',
+    }
+  }
+
+  return {
+    credit,
+    ptcResult,
+    repayment: ptcResult.repaymentAmount,
+  }
 }
 
 // ── Main computation ──────────────────────────────────────────
@@ -81,8 +114,11 @@ export function checkPremiumTaxCredit(_model: TaxReturn): RefundableCreditWarnin
  *
  * Aggregates all implemented credit providers and collects warnings
  * for unsupported credit scenarios.
+ *
+ * @param model  Tax return model
+ * @param agi    Adjusted gross income (cents) — needed for PTC computation
  */
-export function computeRefundableCredits(model: TaxReturn): RefundableCreditsResult {
+export function computeRefundableCredits(model: TaxReturn, agi: number = 0): RefundableCreditsResult {
   const items: RefundableCreditItem[] = []
   const warnings: RefundableCreditWarning[] = []
 
@@ -90,14 +126,14 @@ export function computeRefundableCredits(model: TaxReturn): RefundableCreditsRes
   const excessSS = computeExcessSSWithholding(model)
   if (excessSS) items.push(excessSS)
 
-  // 2. Premium Tax Credit (placeholder — not implemented)
-  const ptcWarning = checkPremiumTaxCredit(model)
-  if (ptcWarning) warnings.push(ptcWarning)
+  // 2. Premium Tax Credit (Form 8962) — ACA marketplace reconciliation
+  const { credit: ptcCredit, ptcResult, repayment: excessAPTCRepayment } = computePTC(model, agi)
+  if (ptcCredit) items.push(ptcCredit)
 
   // Framework: add additional credit providers here as they are implemented.
   // Each provider returns a RefundableCreditItem or null.
 
   const totalLine31 = items.reduce((sum, item) => sum + item.amount, 0)
 
-  return { items, totalLine31, warnings }
+  return { items, totalLine31, warnings, premiumTaxCredit: ptcResult, excessAPTCRepayment }
 }
