@@ -5,9 +5,9 @@
  *
  * IRS attachment sequence order:
  *   Form 1040 (00) → Schedule 1 (02) → Schedule 2 (05) → Schedule 3 (06)
- *   → Schedule A (07) → Schedule B (08) → Schedule D (12)
- *   → Form 8949 (12A) → Schedule E (13) → Form 8863 (18) → Form 6251 (32)
- *   → Form 8812 (47) → Form 8889 (52)
+ *   → Schedule A (07) → Schedule B (08) → Schedule C (09) → Schedule D (12)
+ *   → Form 8949 (12A) → Schedule E (13) → Schedule SE (17)
+ *   → Form 8863 (18) → Form 6251 (32) → Form 8812 (47) → Form 8889 (52)
  */
 
 import { PDFDocument } from 'pdf-lib'
@@ -32,6 +32,8 @@ import { fillForm8863 } from './fillers/form8863Filler'
 import { fillForm6251 } from './fillers/form6251Filler'
 import { fillForm8889 } from './fillers/form8889Filler'
 import { fillScheduleE } from './fillers/scheduleEFiller'
+import { fillScheduleC } from './fillers/scheduleCFiller'
+import { fillScheduleSE } from './fillers/scheduleSEFiller'
 import { generateCoverSheet } from './fillers/coverSheet'
 import { tracedZero } from '../model/traced'
 
@@ -66,7 +68,8 @@ export async function compileFilingPackage(
 
   const needsSchedule2 =
     (result.amtResult !== null && result.amtResult.amt > 0) ||
-    (result.hsaResult !== null && (result.hsaResult.distributionPenalty + result.hsaResult.excessPenalty) > 0)
+    (result.hsaResult !== null && (result.hsaResult.distributionPenalty + result.hsaResult.excessPenalty) > 0) ||
+    (result.scheduleSEResult !== null && result.scheduleSEResult.totalSETax > 0)
 
   const needsSchedule3 =
     result.line20.amount > 0 ||
@@ -84,6 +87,12 @@ export async function compileFilingPackage(
     result.amtResult !== null && result.amtResult.amt > 0
 
   const needsScheduleE = result.scheduleE !== null
+
+  const needsScheduleC = result.scheduleCResult !== null &&
+    result.scheduleCResult.businesses.length > 0
+
+  const needsScheduleSE = result.scheduleSEResult !== null &&
+    result.scheduleSEResult.totalSETax > 0
 
   const needsForm8889 = result.hsaResult !== null
 
@@ -118,6 +127,7 @@ export async function compileFilingPackage(
       templates.f1040s2, taxReturn,
       result.amtResult,
       result.hsaResult,
+      result.scheduleSEResult,
     )
     filledDocs.push({
       doc: sch2Doc,
@@ -156,6 +166,26 @@ export async function compileFilingPackage(
     })
   }
 
+  // Schedule C (sequence 09) — one per business
+  if (needsScheduleC) {
+    const businesses = taxReturn.scheduleCBusinesses ?? []
+    for (let i = 0; i < result.scheduleCResult!.businesses.length; i++) {
+      const biz = result.scheduleCResult!.businesses[i]
+      const bizInput = businesses[i]
+      const schCDoc = await fillScheduleC(templates.f1040sc, taxReturn, bizInput, biz)
+      filledDocs.push({
+        doc: schCDoc,
+        summary: {
+          formId: businesses.length > 1
+            ? `Schedule C (${biz.businessName})`
+            : 'Schedule C',
+          sequenceNumber: '09',
+          pageCount: schCDoc.getPageCount(),
+        },
+      })
+    }
+  }
+
   // Schedule D (sequence 12)
   if (needsScheduleD) {
     const schDDoc = await fillScheduleD(templates.f1040sd, taxReturn, result.scheduleD!)
@@ -186,6 +216,15 @@ export async function compileFilingPackage(
     filledDocs.push({
       doc: schEDoc,
       summary: { formId: 'Schedule E', sequenceNumber: '13', pageCount: schEDoc.getPageCount() },
+    })
+  }
+
+  // Schedule SE (sequence 17)
+  if (needsScheduleSE) {
+    const schSEDoc = await fillScheduleSE(templates.f1040sse, taxReturn, result.scheduleSEResult!)
+    filledDocs.push({
+      doc: schSEDoc,
+      summary: { formId: 'Schedule SE', sequenceNumber: '17', pageCount: schSEDoc.getPageCount() },
     })
   }
 

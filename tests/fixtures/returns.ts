@@ -7,7 +7,7 @@
 
 import { emptyTaxReturn } from '../../src/model/types'
 import { cents } from '../../src/model/traced'
-import type { TaxReturn, W2, Form1099INT, Form1099DIV, FormSSA1099, CapitalTransaction, Dependent, ScheduleEProperty } from '../../src/model/types'
+import type { TaxReturn, W2, Form1099INT, Form1099DIV, FormSSA1099, CapitalTransaction, Dependent, ScheduleEProperty, ScheduleC } from '../../src/model/types'
 
 // ── Helper: make a W-2 with defaults ───────────────────────────
 
@@ -1373,5 +1373,175 @@ export function rentalLossReturn(): TaxReturn {
         // Disallowed: -$5,000 carryforward
       }),
     ],
+  }
+}
+
+// ── Helper: make a ScheduleC business with defaults ──────────────
+
+export function makeScheduleC(
+  overrides: Partial<ScheduleC> & { id: string; businessName: string },
+): ScheduleC {
+  return {
+    principalBusinessCode: '541511',
+    accountingMethod: 'cash',
+    grossReceipts: 0,
+    returns: 0,
+    costOfGoodsSold: 0,
+    advertising: 0,
+    carAndTruck: 0,
+    commissions: 0,
+    contractLabor: 0,
+    depreciation: 0,
+    insurance: 0,
+    mortgageInterest: 0,
+    otherInterest: 0,
+    legal: 0,
+    officeExpense: 0,
+    rent: 0,
+    repairs: 0,
+    supplies: 0,
+    taxes: 0,
+    travel: 0,
+    meals: 0,
+    utilities: 0,
+    wages: 0,
+    otherExpenses: 0,
+    ...overrides,
+  }
+}
+
+// ── Fixture: sole proprietor with Schedule C profit ──────────────
+
+export function scheduleCProfitReturn(): TaxReturn {
+  return {
+    ...emptyTaxReturn(2025),
+    scheduleCBusinesses: [
+      makeScheduleC({
+        id: 'biz-1',
+        businessName: 'Acme Consulting',
+        principalBusinessCode: '541611',
+        grossReceipts: cents(120000),   // $120,000 revenue
+        returns: cents(2000),           // $2,000 refunds
+        costOfGoodsSold: 0,
+        advertising: cents(1500),       // Line 8
+        carAndTruck: cents(3000),       // Line 9
+        contractLabor: cents(5000),     // Line 11
+        insurance: cents(2400),         // Line 15
+        officeExpense: cents(1800),     // Line 18
+        supplies: cents(800),           // Line 22
+        taxes: cents(1200),             // Line 23
+        travel: cents(4000),            // Line 24a
+        meals: cents(3000),             // Line 24b ($1,500 deductible at 50%)
+        utilities: cents(600),          // Line 25
+        // Total deductible expenses: $1500+3000+5000+2400+1800+800+1200+4000+1500+600 = $21,800
+        // Gross income: $120,000 - $2,000 = $118,000
+        // Net profit: $118,000 - $21,800 = $96,200
+      }),
+    ],
+    // SE tax: $96,200 × 92.35% = $88,841
+    // SS tax: min($88,841, $176,100) × 12.4% = $11,016
+    // Medicare: $88,841 × 2.9% = $2,576
+    // Total SE: $13,592
+    // Deductible half: $6,796
+  }
+}
+
+// ── Fixture: sole proprietor with Schedule C loss ──────────────
+
+export function scheduleCLossReturn(): TaxReturn {
+  return {
+    ...emptyTaxReturn(2025),
+    w2s: [
+      makeW2({
+        id: 'w2-1',
+        employerName: 'Day Job Inc',
+        box1: cents(60000),
+        box2: cents(7000),
+      }),
+    ],
+    scheduleCBusinesses: [
+      makeScheduleC({
+        id: 'biz-loss',
+        businessName: 'Startup LLC',
+        principalBusinessCode: '511210',
+        grossReceipts: cents(5000),
+        advertising: cents(3000),
+        contractLabor: cents(8000),
+        officeExpense: cents(2000),
+        supplies: cents(1500),
+        // Total expenses: $14,500
+        // Net loss: $5,000 - $14,500 = -$9,500
+      }),
+    ],
+    // No SE tax (net loss)
+  }
+}
+
+// ── Fixture: W-2 worker with side business (Schedule C + SE) ──────
+
+export function w2PlusSideBizReturn(): TaxReturn {
+  return {
+    ...emptyTaxReturn(2025),
+    w2s: [
+      makeW2({
+        id: 'w2-1',
+        employerName: 'BigCorp',
+        box1: cents(85000),
+        box2: cents(12000),
+        box3: cents(85000),  // SS wages for SE coordination
+        box4: cents(5270),   // 6.2% of $85K
+        box5: cents(85000),
+        box6: cents(1233),
+      }),
+    ],
+    scheduleCBusinesses: [
+      makeScheduleC({
+        id: 'biz-side',
+        businessName: 'Weekend Freelance',
+        principalBusinessCode: '541511',
+        grossReceipts: cents(25000),
+        contractLabor: cents(2000),
+        officeExpense: cents(500),
+        supplies: cents(300),
+        // Total expenses: $2,800
+        // Net profit: $25,000 - $2,800 = $22,200
+      }),
+    ],
+    // SE: net earnings = $22,200 × 92.35% = $20,502
+    // SS room = $176,100 - $85,000 = $91,100 > $20,502 → all subject to SS
+    // SS tax = $20,502 × 12.4% = $2,542
+    // Medicare = $20,502 × 2.9% = $595
+    // Total SE: $3,137
+    // Deductible half: $1,569
+  }
+}
+
+// ── Fixture: multiple Schedule C businesses ──────────────────────
+
+export function multipleScheduleCReturn(): TaxReturn {
+  return {
+    ...emptyTaxReturn(2025),
+    scheduleCBusinesses: [
+      makeScheduleC({
+        id: 'biz-consult',
+        businessName: 'Consulting Co',
+        principalBusinessCode: '541611',
+        grossReceipts: cents(80000),
+        contractLabor: cents(10000),
+        travel: cents(5000),
+        // Net profit: $80,000 - $15,000 = $65,000
+      }),
+      makeScheduleC({
+        id: 'biz-design',
+        businessName: 'Design Studio',
+        principalBusinessCode: '541430',
+        grossReceipts: cents(40000),
+        supplies: cents(5000),
+        advertising: cents(2000),
+        officeExpense: cents(1500),
+        // Net profit: $40,000 - $8,500 = $31,500
+      }),
+    ],
+    // Combined net: $65,000 + $31,500 = $96,500
   }
 }

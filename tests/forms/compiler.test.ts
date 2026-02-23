@@ -19,6 +19,10 @@ import {
   activeTraderReturn,
   allCategoriesReturn,
   rentalPropertyReturn,
+  scheduleCProfitReturn,
+  scheduleCLossReturn,
+  w2PlusSideBizReturn,
+  multipleScheduleCReturn,
 } from '../fixtures/returns'
 import { cents } from '../../src/model/traced'
 import { computeForm1040 } from '../../src/rules/2025/form1040'
@@ -44,6 +48,8 @@ beforeAll(() => {
     f6251: new Uint8Array(readFileSync(join(dir, 'f6251.pdf'))),
     f8889: new Uint8Array(readFileSync(join(dir, 'f8889.pdf'))),
     f1040se: new Uint8Array(readFileSync(join(dir, 'f1040se.pdf'))),
+    f1040sc: new Uint8Array(readFileSync(join(dir, 'f1040sc.pdf'))),
+    f1040sse: new Uint8Array(readFileSync(join(dir, 'f1040sse.pdf'))),
   }
 })
 
@@ -274,5 +280,121 @@ describe('compileFilingPackage', () => {
       expect(result.summary.amountOwed).toBe(expected.line37.amount)
       expect(result.summary.refund).toBe(0)
     }
+  })
+
+  // ── Schedule C / SE Tests ─────────────────────────────────────
+
+  it('includes Schedule C, SE, Schedule 1, and Schedule 2 for profitable sole proprietor', async () => {
+    const taxReturn = scheduleCProfitReturn()
+    taxReturn.taxpayer.firstName = 'Ian'
+    taxReturn.taxpayer.lastName = 'Freelancer'
+    taxReturn.taxpayer.ssn = '111222333'
+
+    const result = await compileFilingPackage(taxReturn, templates)
+
+    const formIds = result.formsIncluded.map(f => f.formId)
+    expect(formIds).toContain('Schedule C')
+    expect(formIds).toContain('Schedule SE')
+    expect(formIds).toContain('Schedule 1')   // C income flows through Sch 1
+    expect(formIds).toContain('Schedule 2')   // SE tax flows through Sch 2
+
+    // Schedule C should have correct sequence number
+    const schC = result.formsIncluded.find(f => f.formId === 'Schedule C')
+    expect(schC).toBeDefined()
+    expect(schC!.sequenceNumber).toBe('09')
+
+    // Schedule SE should have correct sequence number
+    const schSE = result.formsIncluded.find(f => f.formId === 'Schedule SE')
+    expect(schSE).toBeDefined()
+    expect(schSE!.sequenceNumber).toBe('17')
+
+    // Summary should include Schedule C income in AGI
+    const expected = computeForm1040(taxReturn)
+    expect(result.summary.agi).toBe(expected.line11.amount)
+  })
+
+  it('includes Schedule C but not SE when business has a net loss', async () => {
+    const taxReturn = scheduleCLossReturn()
+    taxReturn.taxpayer.firstName = 'Jill'
+    taxReturn.taxpayer.lastName = 'Startup'
+    taxReturn.taxpayer.ssn = '444555666'
+
+    const result = await compileFilingPackage(taxReturn, templates)
+
+    const formIds = result.formsIncluded.map(f => f.formId)
+    expect(formIds).toContain('Schedule C')
+    expect(formIds).not.toContain('Schedule SE')  // No SE tax on losses
+    expect(formIds).toContain('Schedule 1')       // Loss flows through Sch 1
+  })
+
+  it('includes Schedule C/SE for W-2 worker with side business', async () => {
+    const taxReturn = w2PlusSideBizReturn()
+    taxReturn.taxpayer.firstName = 'Kevin'
+    taxReturn.taxpayer.lastName = 'Moonlighter'
+    taxReturn.taxpayer.ssn = '777888999'
+
+    const result = await compileFilingPackage(taxReturn, templates)
+
+    const formIds = result.formsIncluded.map(f => f.formId)
+    expect(formIds).toContain('Form 1040')
+    expect(formIds).toContain('Schedule C')
+    expect(formIds).toContain('Schedule SE')
+    expect(formIds).toContain('Schedule 1')
+    expect(formIds).toContain('Schedule 2')
+
+    // AGI should include both W-2 wages and Schedule C income
+    const expected = computeForm1040(taxReturn)
+    expect(result.summary.agi).toBe(expected.line11.amount)
+    expect(result.summary.agi).toBeGreaterThan(cents(85000))
+  })
+
+  it('includes separate Schedule C for each business', async () => {
+    const taxReturn = multipleScheduleCReturn()
+    taxReturn.taxpayer.firstName = 'Lisa'
+    taxReturn.taxpayer.lastName = 'Multi'
+    taxReturn.taxpayer.ssn = '111333555'
+
+    const result = await compileFilingPackage(taxReturn, templates)
+
+    const schCForms = result.formsIncluded.filter(f => f.formId.startsWith('Schedule C'))
+    expect(schCForms).toHaveLength(2)
+    expect(schCForms[0].formId).toBe('Schedule C (Consulting Co)')
+    expect(schCForms[1].formId).toBe('Schedule C (Design Studio)')
+    // Both should have sequence 09
+    expect(schCForms[0].sequenceNumber).toBe('09')
+    expect(schCForms[1].sequenceNumber).toBe('09')
+  })
+
+  it('Schedule C/SE forms are in correct attachment sequence order', async () => {
+    const taxReturn = scheduleCProfitReturn()
+    taxReturn.taxpayer.firstName = 'Mark'
+    taxReturn.taxpayer.lastName = 'Order'
+    taxReturn.taxpayer.ssn = '999888777'
+
+    const result = await compileFilingPackage(taxReturn, templates)
+
+    const seqNumbers = result.formsIncluded.map(f => f.sequenceNumber)
+    // Verify ascending order
+    for (let i = 1; i < seqNumbers.length; i++) {
+      expect(seqNumbers[i] >= seqNumbers[i - 1]).toBe(true)
+    }
+
+    // Schedule C (09) should appear after Schedule 1 (02) and before Schedule SE (17)
+    const schCIdx = result.formsIncluded.findIndex(f => f.formId === 'Schedule C')
+    const schSEIdx = result.formsIncluded.findIndex(f => f.formId === 'Schedule SE')
+    expect(schCIdx).toBeLessThan(schSEIdx)
+  })
+
+  it('does not include Schedule C when no businesses exist', async () => {
+    const taxReturn = simpleW2Return()
+    taxReturn.taxpayer.firstName = 'No'
+    taxReturn.taxpayer.lastName = 'Business'
+    taxReturn.taxpayer.ssn = '000111222'
+
+    const result = await compileFilingPackage(taxReturn, templates)
+
+    const formIds = result.formsIncluded.map(f => f.formId)
+    expect(formIds).not.toContain('Schedule C')
+    expect(formIds).not.toContain('Schedule SE')
   })
 })

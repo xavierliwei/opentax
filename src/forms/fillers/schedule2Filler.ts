@@ -2,13 +2,14 @@
  * Schedule 2 (Additional Taxes) PDF filler.
  *
  * Part I: AMT (from Form 6251) → Form 1040 Line 17
- * Part II: HSA penalties and other taxes → Form 1040 Line 23
+ * Part II: SE tax, HSA penalties, and other taxes → Form 1040 Line 23
  */
 
 import { PDFDocument } from 'pdf-lib'
 import type { TaxReturn } from '../../model/types'
 import type { AMTResult } from '../../rules/2025/amt'
 import type { HSAResult } from '../../rules/2025/hsaDeduction'
+import type { ScheduleSEResult } from '../../rules/2025/scheduleSE'
 import { SCH2_HEADER, SCH2_PART1, SCH2_PART2 } from '../mappings/schedule2Fields'
 import { setTextField, setDollarField, formatSSN } from '../helpers'
 
@@ -17,6 +18,7 @@ export async function fillSchedule2(
   taxReturn: TaxReturn,
   amtResult: AMTResult | null,
   hsaResult: HSAResult | null,
+  scheduleSEResult?: ScheduleSEResult | null,
   options: { flatten?: boolean } = {},
 ): Promise<PDFDocument> {
   const { flatten = true } = options
@@ -39,6 +41,13 @@ export async function fillSchedule2(
 
   // Part II — Other Taxes
   let partIITotal = 0
+
+  // Line 6 — Self-employment tax from Schedule SE
+  if (scheduleSEResult && scheduleSEResult.totalSETax > 0) {
+    setDollarField(form, SCH2_PART2.line6, scheduleSEResult.totalSETax)
+    partIITotal += scheduleSEResult.totalSETax
+  }
+
   if (hsaResult) {
     const hsaPenalty = hsaResult.distributionPenalty + hsaResult.excessPenalty
     if (hsaPenalty > 0) {
