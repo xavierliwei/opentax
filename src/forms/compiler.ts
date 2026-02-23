@@ -6,7 +6,8 @@
  * IRS attachment sequence order:
  *   Form 1040 (00) → Schedule 1 (02) → Schedule 2 (05) → Schedule 3 (06)
  *   → Schedule A (07) → Schedule B (08) → Schedule C (09) → Schedule D (12)
- *   → Form 8949 (12A) → Schedule E (13) → Schedule SE (17) → Form 8863 (18)
+ *   → Form 8949 (12A) → Schedule E (13) → Schedule SE (17)
+ *   → Form 8863 (18) → Form 1116 (19)
  *   → Form 6251 (32) → Form 8812 (47) → Form 8889 (52)
  *   → Form 8995 (55) / Form 8995-A (55A)
  */
@@ -32,6 +33,7 @@ import { fillForm8812 } from './fillers/form8812Filler'
 import { fillForm8863 } from './fillers/form8863Filler'
 import { fillForm6251 } from './fillers/form6251Filler'
 import { fillForm8889 } from './fillers/form8889Filler'
+import { fillForm1116 } from './fillers/form1116Filler'
 import { fillScheduleE } from './fillers/scheduleEFiller'
 import { fillScheduleC } from './fillers/scheduleCFiller'
 import { fillScheduleSE } from './fillers/scheduleSEFiller'
@@ -96,6 +98,11 @@ export async function compileFilingPackage(
 
   const needsScheduleSE = result.scheduleSEResult !== null &&
     result.scheduleSEResult.totalSETax > 0
+
+  const needsForm1116 =
+    result.foreignTaxCreditResult !== null &&
+    result.foreignTaxCreditResult.applicable &&
+    !result.foreignTaxCreditResult.directCreditElection
 
   const needsForm8889 = result.hsaResult !== null
 
@@ -246,6 +253,15 @@ export async function compileFilingPackage(
     filledDocs.push({
       doc: f8863Doc,
       summary: { formId: 'Form 8863', sequenceNumber: '18', pageCount: f8863Doc.getPageCount() },
+    })
+  }
+
+  // Form 1116 (sequence 19)
+  if (needsForm1116) {
+    const f1116Doc = await fillForm1116(templates.f1116, taxReturn, result.foreignTaxCreditResult!)
+    filledDocs.push({
+      doc: f1116Doc,
+      summary: { formId: 'Form 1116', sequenceNumber: '19', pageCount: f1116Doc.getPageCount() },
     })
   }
 

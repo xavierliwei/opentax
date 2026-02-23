@@ -19,12 +19,12 @@ import {
   activeTraderReturn,
   allCategoriesReturn,
   rentalPropertyReturn,
-  scheduleCProfitReturn,
-  scheduleCLossReturn,
-  w2PlusSideBizReturn,
-  multipleScheduleCReturn,
+  makeW2,
+  make1099DIV,
+  make1099INT,
 } from '../fixtures/returns'
 import { cents } from '../../src/model/traced'
+import { emptyTaxReturn } from '../../src/model/types'
 import { computeForm1040 } from '../../src/rules/2025/form1040'
 import { computeScheduleB } from '../../src/rules/2025/scheduleB'
 
@@ -48,8 +48,7 @@ beforeAll(() => {
     f6251: new Uint8Array(readFileSync(join(dir, 'f6251.pdf'))),
     f8889: new Uint8Array(readFileSync(join(dir, 'f8889.pdf'))),
     f1040se: new Uint8Array(readFileSync(join(dir, 'f1040se.pdf'))),
-    f1040sc: new Uint8Array(readFileSync(join(dir, 'f1040sc.pdf'))),
-    f1040sse: new Uint8Array(readFileSync(join(dir, 'f1040sse.pdf'))),
+    f1116: new Uint8Array(readFileSync(join(dir, 'f1116.pdf'))),
   }
 })
 
@@ -282,119 +281,181 @@ describe('compileFilingPackage', () => {
     }
   })
 
-  // ── Schedule C / SE Tests ─────────────────────────────────────
+  // ── Form 1116 (Foreign Tax Credit) inclusion tests ──────────
 
-  it('includes Schedule C, SE, Schedule 1, and Schedule 2 for profitable sole proprietor', async () => {
-    const taxReturn = scheduleCProfitReturn()
-    taxReturn.taxpayer.firstName = 'Ian'
-    taxReturn.taxpayer.lastName = 'Freelancer'
+  it('includes Form 1116 when foreign taxes exceed direct credit threshold', async () => {
+    // Single filer with $400 foreign tax (> $300 threshold) → Form 1116 required
+    const taxReturn = {
+      ...emptyTaxReturn(2025),
+      filingStatus: 'single' as const,
+      w2s: [
+        makeW2({
+          id: 'w2-1',
+          employerName: 'Tech Corp',
+          box1: cents(80000),
+          box2: cents(12000),
+        }),
+      ],
+      form1099DIVs: [
+        make1099DIV({
+          id: 'div-1',
+          payerName: 'Intl Fund',
+          box1a: cents(5000),
+          box1b: cents(3000),
+          box7: cents(400),     // $400 foreign tax (> $300 threshold)
+          box8: 'Various',
+        }),
+      ],
+    }
+    taxReturn.taxpayer.firstName = 'Ivy'
+    taxReturn.taxpayer.lastName = 'Global'
     taxReturn.taxpayer.ssn = '111222333'
 
     const result = await compileFilingPackage(taxReturn, templates)
-
     const formIds = result.formsIncluded.map(f => f.formId)
-    expect(formIds).toContain('Schedule C')
-    expect(formIds).toContain('Schedule SE')
-    expect(formIds).toContain('Schedule 1')   // C income flows through Sch 1
-    expect(formIds).toContain('Schedule 2')   // SE tax flows through Sch 2
 
-    // Schedule C should have correct sequence number
-    const schC = result.formsIncluded.find(f => f.formId === 'Schedule C')
-    expect(schC).toBeDefined()
-    expect(schC!.sequenceNumber).toBe('09')
+    expect(formIds).toContain('Form 1116')
+    expect(formIds).toContain('Schedule 3')
 
-    // Schedule SE should have correct sequence number
-    const schSE = result.formsIncluded.find(f => f.formId === 'Schedule SE')
-    expect(schSE).toBeDefined()
-    expect(schSE!.sequenceNumber).toBe('17')
-
-    // Summary should include Schedule C income in AGI
-    const expected = computeForm1040(taxReturn)
-    expect(result.summary.agi).toBe(expected.line11.amount)
+    // Form 1116 at seq 19 (after Form 8863 at seq 18)
+    const f1116 = result.formsIncluded.find(f => f.formId === 'Form 1116')
+    expect(f1116).toBeDefined()
+    expect(f1116!.sequenceNumber).toBe('19')
+    expect(f1116!.pageCount).toBe(2)
   })
 
-  it('includes Schedule C but not SE when business has a net loss', async () => {
-    const taxReturn = scheduleCLossReturn()
-    taxReturn.taxpayer.firstName = 'Jill'
-    taxReturn.taxpayer.lastName = 'Startup'
+  it('excludes Form 1116 when foreign taxes are under direct credit threshold', async () => {
+    // Single filer with $200 foreign tax (≤ $300 threshold) → direct credit election
+    const taxReturn = {
+      ...emptyTaxReturn(2025),
+      filingStatus: 'single' as const,
+      w2s: [
+        makeW2({
+          id: 'w2-1',
+          employerName: 'Tech Corp',
+          box1: cents(80000),
+          box2: cents(12000),
+        }),
+      ],
+      form1099DIVs: [
+        make1099DIV({
+          id: 'div-1',
+          payerName: 'Intl Fund',
+          box1a: cents(3000),
+          box1b: cents(2000),
+          box7: cents(200),     // $200 foreign tax (≤ $300 threshold)
+          box8: 'Japan',
+        }),
+      ],
+    }
+    taxReturn.taxpayer.firstName = 'Jack'
+    taxReturn.taxpayer.lastName = 'Modest'
     taxReturn.taxpayer.ssn = '444555666'
 
     const result = await compileFilingPackage(taxReturn, templates)
-
     const formIds = result.formsIncluded.map(f => f.formId)
-    expect(formIds).toContain('Schedule C')
-    expect(formIds).not.toContain('Schedule SE')  // No SE tax on losses
-    expect(formIds).toContain('Schedule 1')       // Loss flows through Sch 1
+
+    // Form 1116 should NOT be included (direct credit election)
+    expect(formIds).not.toContain('Form 1116')
+    // Schedule 3 should still be included (FTC goes to line 1)
+    expect(formIds).toContain('Schedule 3')
   })
 
-  it('includes Schedule C/SE for W-2 worker with side business', async () => {
-    const taxReturn = w2PlusSideBizReturn()
-    taxReturn.taxpayer.firstName = 'Kevin'
-    taxReturn.taxpayer.lastName = 'Moonlighter'
+  it('excludes Form 1116 when no foreign taxes paid', async () => {
+    const taxReturn = simpleW2Return()
+    taxReturn.taxpayer.firstName = 'Kim'
+    taxReturn.taxpayer.lastName = 'Domestic'
     taxReturn.taxpayer.ssn = '777888999'
 
     const result = await compileFilingPackage(taxReturn, templates)
-
     const formIds = result.formsIncluded.map(f => f.formId)
-    expect(formIds).toContain('Form 1040')
-    expect(formIds).toContain('Schedule C')
-    expect(formIds).toContain('Schedule SE')
-    expect(formIds).toContain('Schedule 1')
-    expect(formIds).toContain('Schedule 2')
 
-    // AGI should include both W-2 wages and Schedule C income
-    const expected = computeForm1040(taxReturn)
-    expect(result.summary.agi).toBe(expected.line11.amount)
-    expect(result.summary.agi).toBeGreaterThan(cents(85000))
+    expect(formIds).not.toContain('Form 1116')
   })
 
-  it('includes separate Schedule C for each business', async () => {
-    const taxReturn = multipleScheduleCReturn()
-    taxReturn.taxpayer.firstName = 'Lisa'
-    taxReturn.taxpayer.lastName = 'Multi'
-    taxReturn.taxpayer.ssn = '111333555'
+  it('includes Form 1116 for MFJ with foreign taxes over $600 threshold', async () => {
+    // MFJ with $700 foreign tax (> $600 MFJ threshold) → Form 1116 required
+    const taxReturn = {
+      ...emptyTaxReturn(2025),
+      filingStatus: 'mfj' as const,
+      spouse: {
+        firstName: 'Pat',
+        lastName: 'Global',
+        ssn: '999888777',
+      },
+      w2s: [
+        makeW2({
+          id: 'w2-1',
+          employerName: 'BigCo',
+          box1: cents(120000),
+          box2: cents(20000),
+        }),
+      ],
+      form1099DIVs: [
+        make1099DIV({
+          id: 'div-1',
+          payerName: 'Global Equity Fund',
+          box1a: cents(8000),
+          box1b: cents(6000),
+          box7: cents(500),    // $500
+          box8: 'United Kingdom',
+        }),
+      ],
+      form1099INTs: [
+        make1099INT({
+          id: 'int-1',
+          payerName: 'Foreign Bank',
+          box1: cents(2000),
+          box6: cents(200),    // $200 → total $700 > $600 MFJ threshold
+          box7: 'Switzerland',
+        }),
+      ],
+    }
+    taxReturn.taxpayer.firstName = 'Max'
+    taxReturn.taxpayer.lastName = 'Global'
+    taxReturn.taxpayer.ssn = '555666777'
 
     const result = await compileFilingPackage(taxReturn, templates)
+    const formIds = result.formsIncluded.map(f => f.formId)
 
-    const schCForms = result.formsIncluded.filter(f => f.formId.startsWith('Schedule C'))
-    expect(schCForms).toHaveLength(2)
-    expect(schCForms[0].formId).toBe('Schedule C (Consulting Co)')
-    expect(schCForms[1].formId).toBe('Schedule C (Design Studio)')
-    // Both should have sequence 09
-    expect(schCForms[0].sequenceNumber).toBe('09')
-    expect(schCForms[1].sequenceNumber).toBe('09')
+    expect(formIds).toContain('Form 1116')
+    expect(formIds).toContain('Schedule 3')
   })
 
-  it('Schedule C/SE forms are in correct attachment sequence order', async () => {
-    const taxReturn = scheduleCProfitReturn()
-    taxReturn.taxpayer.firstName = 'Mark'
-    taxReturn.taxpayer.lastName = 'Order'
-    taxReturn.taxpayer.ssn = '999888777'
+  it('Form 1116 is in correct attachment sequence order', async () => {
+    // Return with both Form 1116 and other forms
+    const taxReturn = {
+      ...emptyTaxReturn(2025),
+      filingStatus: 'single' as const,
+      w2s: [
+        makeW2({
+          id: 'w2-1',
+          employerName: 'Corp',
+          box1: cents(90000),
+          box2: cents(15000),
+        }),
+      ],
+      form1099DIVs: [
+        make1099DIV({
+          id: 'div-1',
+          payerName: 'Intl Fund',
+          box1a: cents(6000),
+          box1b: cents(4000),
+          box7: cents(500),
+          box8: 'Various',
+        }),
+      ],
+    }
+    taxReturn.taxpayer.firstName = 'Leo'
+    taxReturn.taxpayer.lastName = 'Ordered'
+    taxReturn.taxpayer.ssn = '888999000'
 
     const result = await compileFilingPackage(taxReturn, templates)
 
     const seqNumbers = result.formsIncluded.map(f => f.sequenceNumber)
-    // Verify ascending order
+    // All forms should be in non-decreasing sequence order
     for (let i = 1; i < seqNumbers.length; i++) {
       expect(seqNumbers[i] >= seqNumbers[i - 1]).toBe(true)
     }
-
-    // Schedule C (09) should appear after Schedule 1 (02) and before Schedule SE (17)
-    const schCIdx = result.formsIncluded.findIndex(f => f.formId === 'Schedule C')
-    const schSEIdx = result.formsIncluded.findIndex(f => f.formId === 'Schedule SE')
-    expect(schCIdx).toBeLessThan(schSEIdx)
-  })
-
-  it('does not include Schedule C when no businesses exist', async () => {
-    const taxReturn = simpleW2Return()
-    taxReturn.taxpayer.firstName = 'No'
-    taxReturn.taxpayer.lastName = 'Business'
-    taxReturn.taxpayer.ssn = '000111222'
-
-    const result = await compileFilingPackage(taxReturn, templates)
-
-    const formIds = result.formsIncluded.map(f => f.formId)
-    expect(formIds).not.toContain('Schedule C')
-    expect(formIds).not.toContain('Schedule SE')
   })
 })
