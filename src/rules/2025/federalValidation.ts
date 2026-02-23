@@ -332,8 +332,8 @@ function validateForeignTaxCredit(model: TaxReturn): FederalValidationItem[] {
   const items: FederalValidationItem[] = []
 
   // Check if there are foreign taxes paid
-  const foreignTaxDIV = model.form1099DIVs.reduce((s, f) => s + f.box7, 0)
-  const foreignTaxINT = model.form1099INTs.reduce((s, f) => s + f.box6, 0)
+  const foreignTaxDIV = model.form1099DIVs.reduce((s, f) => s + (f.box7 ?? 0), 0)
+  const foreignTaxINT = model.form1099INTs.reduce((s, f) => s + (f.box6 ?? 0), 0)
   const totalForeignTax = foreignTaxDIV + foreignTaxINT
 
   if (totalForeignTax <= 0) return items

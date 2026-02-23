@@ -109,8 +109,9 @@ export function computeForeignTaxCredit(
   const countries = new Set<string>()
 
   for (const div of model.form1099DIVs) {
-    if (div.box7 > 0) {
-      foreignTaxDIV += div.box7
+    const divForeignTax = div.box7 ?? 0
+    if (divForeignTax > 0) {
+      foreignTaxDIV += divForeignTax
       // Foreign-source income = gross dividends from this payer
       // (IRS treats the full ordinary dividend as the gross foreign-source amount
       // when foreign tax is paid, per Form 1116 instructions)
@@ -123,8 +124,9 @@ export function computeForeignTaxCredit(
   let foreignSourceINT = 0
 
   for (const int of model.form1099INTs) {
-    if (int.box6 > 0) {
-      foreignTaxINT += int.box6
+    const intForeignTax = int.box6 ?? 0
+    if (intForeignTax > 0) {
+      foreignTaxINT += intForeignTax
       // Foreign-source income = interest income from this payer
       foreignSourceINT += int.box1
       if (int.box7) countries.add(int.box7)

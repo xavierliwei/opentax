@@ -590,17 +590,17 @@ describe('FTC validation', () => {
     expect(ftcItems).toHaveLength(0)
   })
 
-  it('updated PHASE4_LIMITATIONS message mentions FTC support', () => {
+  it('updated SUPPORTED_SCOPE message mentions FTC support', () => {
     const model: TaxReturn = {
       ...emptyTaxReturn(2025),
       w2s: [makeW2({ id: 'w2-1', employerName: 'Acme', box1: cents(50000), box2: cents(5000) })],
     }
 
     const result = computeForm1040(model)
-    const phaseItem = result.validation?.items.find(i => i.code === 'PHASE4_LIMITATIONS')
+    const scopeItem = result.validation?.items.find(i => i.code === 'SUPPORTED_SCOPE')
 
-    expect(phaseItem).toBeDefined()
-    expect(phaseItem!.message).toContain('Foreign Tax Credit (Form 1116')
+    expect(scopeItem).toBeDefined()
+    expect(scopeItem!.message).toContain('Foreign Tax Credit (Form 1116')
   })
 })
 

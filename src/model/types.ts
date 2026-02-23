@@ -126,7 +126,7 @@ export interface Form1099INT {
   box2: number    // Early withdrawal penalty (cents)
   box3: number    // Interest on U.S. savings bonds and Treasury obligations (cents)
   box4: number    // Federal income tax withheld (cents)
-  box6: number    // Foreign tax paid (cents)
+  box6?: number   // Foreign tax paid (cents)
   box7?: string   // Foreign country or U.S. possession
   box8: number    // Tax-exempt interest (cents)
 }
@@ -144,7 +144,7 @@ export interface Form1099DIV {
   box3: number    // Nondividend distributions (cents)
   box4: number    // Federal income tax withheld (cents)
   box5: number    // Section 199A dividends (cents)
-  box7: number    // Foreign tax paid (cents)
+  box7?: number   // Foreign tax paid (cents)
   box8?: string   // Foreign country or U.S. possession
   box11: number   // Exempt-interest dividends (cents)
 }

@@ -301,7 +301,7 @@ describe('ReviewPage — Phase 4 enhancements', () => {
     expect(screen.getByText(/1 marketplace statement/)).toBeDefined()
   })
 
-  it('shows validation errors at top when K-1 present', () => {
+  it('shows K-1 review summary and does not show blocking K-1 errors for supported core income', () => {
     useTaxStore.getState().addScheduleK1({
       id: 'k1-val',
       entityType: 's-corp',
@@ -313,8 +313,8 @@ describe('ReviewPage — Phase 4 enhancements', () => {
     })
 
     renderWithRouter(<ReviewPage />, { route: '/review' })
-    expect(screen.getByTestId('validation-errors')).toBeDefined()
-    expect(screen.getByTestId('validation-K1_INCOME_NOT_COMPUTED')).toBeDefined()
+    expect(screen.queryByTestId('validation-errors')).toBeNull()
+    expect(screen.getByTestId('review-schedule-k1')).toBeDefined()
   })
 
   it('shows Line 13 QBI deduction when Schedule C present', () => {
