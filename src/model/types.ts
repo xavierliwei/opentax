@@ -201,6 +201,18 @@ export interface Form1099SA {
   box2: number    // Earnings on excess contributions (cents)
 }
 
+// ── SSA-1099 (Social Security Benefit Statement) ───────────────
+
+export interface FormSSA1099 {
+  id: string
+  recipientName: string
+  owner?: 'taxpayer' | 'spouse'  // whose benefits (MFJ returns); defaults to 'taxpayer'
+  box3: number    // Benefits paid (cents)
+  box4: number    // Benefits repaid (cents)
+  box5: number    // Net benefits: Box 3 − Box 4 (cents) — goes to Form 1040 Line 6a
+  box6: number    // Voluntary federal income tax withheld (cents) — goes to Line 25
+}
+
 // ── HSA Info ─────────────────────────────────────────────────
 
 export interface HSAInfo {
@@ -475,6 +487,7 @@ export interface TaxReturn {
   form1099MISCs: Form1099MISC[]
   form1099Gs: Form1099G[]
   form1099Rs: Form1099R[]
+  formSSA1099s: FormSSA1099[]
 
   // RSU data
   rsuVestEvents: RSUVestEvent[]
@@ -561,6 +574,7 @@ export function emptyTaxReturn(taxYear: number): TaxReturn {
     form1099MISCs: [],
     form1099Gs: [],
     form1099Rs: [],
+    formSSA1099s: [],
     rsuVestEvents: [],
     isoExercises: [],
     scheduleEProperties: [],
