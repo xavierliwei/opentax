@@ -132,9 +132,9 @@ describe('ScheduleK1Page', () => {
     expect(screen.getByText('Schedule K-1 (Passthrough Income)')).toBeDefined()
   })
 
-  it('shows important warning about K-1 limitations', () => {
+  it('shows info about K-1 computation', () => {
     renderWithRouter(<ScheduleK1Page />, { route: '/interview/schedule-k1' })
-    expect(screen.getByText(/K-1 income does not flow into your Form 1040 yet/)).toBeDefined()
+    expect(screen.getByText(/K-1 income is included in your tax computation/)).toBeDefined()
   })
 
   it('shows empty message when no K-1s', () => {
@@ -169,12 +169,12 @@ describe('ScheduleK1Page', () => {
     expect(useTaxStore.getState().taxReturn.scheduleK1s).toHaveLength(0)
   })
 
-  it('shows per-card computation warning', async () => {
+  it('shows guaranteed payments field for partnerships', async () => {
     const user = userEvent.setup()
     renderWithRouter(<ScheduleK1Page />, { route: '/interview/schedule-k1' })
     await user.click(screen.getByRole('button', { name: /add k-1/i }))
 
-    expect(screen.getByText(/K-1 income is captured but NOT yet computed/)).toBeDefined()
+    expect(screen.getByText(/Guaranteed payments/)).toBeDefined()
   })
 
   it('shows entity type selector with three options', async () => {

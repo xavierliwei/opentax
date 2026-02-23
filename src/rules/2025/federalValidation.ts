@@ -269,11 +269,16 @@ function validateK1(model: TaxReturn): FederalValidationItem[] {
     s + k.ordinaryIncome + k.rentalIncome + k.interestIncome +
     k.dividendIncome + k.shortTermCapitalGain + k.longTermCapitalGain, 0)
 
+  const totalGP = k1s.reduce((s, k) => s + (k.guaranteedPayments ?? 0), 0)
+  const totalSE = k1s.reduce((s, k) => s + (k.selfEmploymentEarnings ?? 0), 0)
+
   // K-1 income is now computed — emit info about what's included
+  const gpNote = totalGP > 0 ? `, guaranteed payments ($${(totalGP / 100).toFixed(0)}) → Schedule 1 Line 5 + SE tax` : ''
+  const seNote = totalSE > 0 ? `, Box 14 SE earnings ($${(totalSE / 100).toFixed(0)}) → Schedule SE` : ''
   items.push({
     code: 'K1_INCOME_COMPUTED',
     severity: 'info',
-    message: `${k1s.length} Schedule K-1 form${k1s.length > 1 ? 's' : ''} with total passthrough income of $${(totalAllIncome / 100).toFixed(0)} included in return. Ordinary/rental income → Schedule 1 Line 5, interest → Line 2b, dividends → Line 3b, capital gains → Schedule D, QBI → Form 8995.`,
+    message: `${k1s.length} Schedule K-1 form${k1s.length > 1 ? 's' : ''} with total passthrough income of $${(totalAllIncome / 100).toFixed(0)} included in return. Ordinary/rental income → Schedule 1 Line 5, interest → Line 2b, dividends → Line 3b, capital gains → Schedule D, QBI → Form 8995${gpNote}${seNote}.`,
     irsCitation: 'Schedule K-1 (Form 1065/1120-S/1041)',
     category: 'compliance',
   })
@@ -290,37 +295,54 @@ function validateK1(model: TaxReturn): FederalValidationItem[] {
     })
   }
 
-  // Warn about rental income PAL limitations not applied
+  // Warn about rental losses with PAL guardrail applied
   const totalRentalLoss = k1s.reduce((s, k) => s + Math.min(0, k.rentalIncome), 0)
   if (totalRentalLoss < 0) {
     items.push({
-      code: 'K1_RENTAL_LOSS_NO_PAL',
+      code: 'K1_RENTAL_LOSS_PAL_GUARDRAIL',
       severity: 'warning',
-      message: `K-1 rental loss of $${(Math.abs(totalRentalLoss) / 100).toFixed(0)} is included without passive activity loss limitations. Actual deductibility depends on at-risk and passive activity rules (IRC §465/§469) which require basis tracking not yet modeled. The loss may be overstated.`,
-      irsCitation: 'IRC §469, Form 8582',
+      message: `K-1 rental loss of $${(Math.abs(totalRentalLoss) / 100).toFixed(0)} is subject to a conservative PAL guardrail: the $25,000 special allowance (IRC §469(i)) is applied, phased out between $100K–$150K AGI, and shared with Schedule E Part I losses. Full passive activity loss rules (basis tracking, at-risk limits, material participation) are not yet modeled. The allowed loss may differ from a full Form 8582 computation.`,
+      irsCitation: 'IRC §469(i), Form 8582',
       category: 'accuracy',
     })
   }
 
-  // Warn about SE income not computed from partnership K-1s
-  const partnershipOrdinary = k1s
-    .filter(k => k.entityType === 'partnership')
-    .reduce((s, k) => s + k.ordinaryIncome, 0)
-  if (partnershipOrdinary > 0) {
+  // SE tax handling for partnership K-1s
+  const partnershipsWithSE = k1s.filter(k => k.entityType === 'partnership' && (k.selfEmploymentEarnings ?? 0) > 0)
+  const partnershipsWithGP = k1s.filter(k => k.entityType === 'partnership' && (k.guaranteedPayments ?? 0) > 0)
+  const partnershipsWithoutSE = k1s.filter(
+    k => k.entityType === 'partnership' && k.ordinaryIncome > 0 &&
+      (k.selfEmploymentEarnings ?? 0) === 0 && (k.guaranteedPayments ?? 0) === 0,
+  )
+
+  if (partnershipsWithSE.length > 0 || partnershipsWithGP.length > 0) {
+    const seTotal = partnershipsWithSE.reduce((s, k) => s + (k.selfEmploymentEarnings ?? 0), 0)
+    const gpTotal = partnershipsWithGP.reduce((s, k) => s + (k.guaranteedPayments ?? 0), 0)
+    items.push({
+      code: 'K1_PARTNERSHIP_SE_COMPUTED',
+      severity: 'info',
+      message: `Partnership SE tax computed: Box 14 SE earnings of $${(seTotal / 100).toFixed(0)} and guaranteed payments of $${(gpTotal / 100).toFixed(0)} are included in Schedule SE. Guaranteed payments are always subject to SE tax per IRC §1402(a).`,
+      irsCitation: 'Schedule SE, K-1 Box 14, IRC §1402(a)',
+      category: 'compliance',
+    })
+  }
+
+  if (partnershipsWithoutSE.length > 0) {
+    const ordinaryWithoutSE = partnershipsWithoutSE.reduce((s, k) => s + k.ordinaryIncome, 0)
     items.push({
       code: 'K1_PARTNERSHIP_SE_NOT_COMPUTED',
       severity: 'warning',
-      message: `Partnership ordinary income of $${(partnershipOrdinary / 100).toFixed(0)} may be subject to self-employment tax depending on your participation (general partner vs. limited partner). SE tax on K-1 partnership income is not yet computed. Consult IRS instructions for Schedule K-1 (Form 1065) Box 14.`,
-      irsCitation: 'Schedule SE, K-1 Box 14',
+      message: `Partnership ordinary income of $${(ordinaryWithoutSE / 100).toFixed(0)} from ${partnershipsWithoutSE.length} K-1(s) may be subject to SE tax (general partners), but no Box 14 Code A (SE earnings) or Box 4 (guaranteed payments) were entered. Limited partners are generally exempt from SE tax on ordinary income. If you are a general partner, enter Box 14 Code A to compute SE tax. Consult IRS Schedule K-1 (Form 1065) instructions.`,
+      irsCitation: 'Schedule SE, K-1 Box 14, IRC §1402(a)(13)',
       category: 'accuracy',
     })
   }
 
-  // Unsupported K-1 items warning (guaranteed payments, foreign taxes, AMT, etc.)
+  // Unsupported K-1 items warning
   items.push({
     code: 'K1_UNSUPPORTED_BOXES',
     severity: 'info',
-    message: 'K-1 computation supports: Box 1 (ordinary income), Box 2 (rental), Box 5 (interest), Box 6a (dividends), Box 8/9a (capital gains), and Box 20 Code Z / Box 17 Code V (QBI). Not yet supported: guaranteed payments (Box 4), royalties, foreign taxes (Box 16), AMT items, tax-exempt income, and other code-specific items. Review your K-1 for items requiring manual adjustment.',
+    message: 'K-1 computation supports: Box 1 (ordinary income), Box 2 (rental), Box 4 (guaranteed payments), Box 5 (interest), Box 6a (dividends), Box 8/9a (capital gains), Box 14 Code A (SE earnings), and Box 20 Code Z / Box 17 Code V (QBI). K-1 rental losses are limited by a conservative $25K PAL guardrail. Not yet supported: royalties, foreign taxes (Box 16), AMT items, tax-exempt income, and other code-specific items. Review your K-1 for items requiring manual adjustment.',
     irsCitation: 'Schedule K-1',
     category: 'unsupported',
   })
@@ -374,7 +396,7 @@ function validateUnsupportedSchedules(_model: TaxReturn): FederalValidationItem[
   return [{
     code: 'SUPPORTED_SCOPE',
     severity: 'info',
-    message: 'Supported: W-2 wages, self-employment (Schedule C/SE), QBI deduction (Form 8995 with partial 8995-A above-threshold handling), investment income, retirement distributions (1099-R), Social Security benefits (SSA-1099), rental income (Schedule E), capital gains (Schedule D/8949), Premium Tax Credit (Form 8962/1095-A), Foreign Tax Credit (Form 1116 passive category), K-1 passthrough income core flows (ordinary, rental, interest, dividends, capital gains), HSA (Form 8889), education credits, energy credits, and common deductions. Not yet supported: farm income (Schedule F), general-category FTC, FTC carryover, K-1 SE tax (partnership Box 14), K-1 guaranteed payments (Box 4), passive activity loss limits for K-1 rental losses, and full complex Form 8995-A/SSTB edge cases.',
+    message: 'Supported: W-2 wages, self-employment (Schedule C/SE), QBI deduction (Form 8995 with partial 8995-A above-threshold handling), investment income, retirement distributions (1099-R), Social Security benefits (SSA-1099), rental income (Schedule E), capital gains (Schedule D/8949), Premium Tax Credit (Form 8962/1095-A), Foreign Tax Credit (Form 1116 passive category), K-1 passthrough income (ordinary, rental, interest, dividends, capital gains, guaranteed payments, Box 14 SE earnings), K-1 rental loss PAL guardrail, HSA (Form 8889), education credits, energy credits, and common deductions. Not yet supported: farm income (Schedule F), general-category FTC, FTC carryover, full Form 8582 passive activity loss computation, and full complex Form 8995-A/SSTB edge cases.',
     irsCitation: 'Form 1040',
     category: 'unsupported',
   }]

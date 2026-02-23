@@ -27,7 +27,7 @@ import { cents } from '../../src/model/traced'
 import { emptyTaxReturn } from '../../src/model/types'
 import type { ScheduleK1, ScheduleC } from '../../src/model/types'
 import { computeForm1040 } from '../../src/rules/2025/form1040'
-import { computeK1Aggregate } from '../../src/rules/2025/scheduleK1'
+import { computeK1Aggregate, computeK1RentalPAL } from '../../src/rules/2025/scheduleK1'
 import { makeW2, make1099INT, make1099DIV, makeScheduleEProperty, makeTransaction } from '../fixtures/returns'
 
 // ── Helpers ──────────────────────────────────────────────────────
@@ -652,7 +652,7 @@ describe('K-1 Validation Warnings', () => {
     expect(item!.severity).toBe('warning')
   })
 
-  it('emits K1_RENTAL_LOSS_NO_PAL warning for rental losses', () => {
+  it('emits K1_RENTAL_LOSS_PAL_GUARDRAIL warning for rental losses', () => {
     const model = {
       ...emptyTaxReturn(2025),
       scheduleK1s: [
@@ -661,7 +661,7 @@ describe('K-1 Validation Warnings', () => {
     }
 
     const result = computeForm1040(model)
-    const item = result.validation!.items.find(i => i.code === 'K1_RENTAL_LOSS_NO_PAL')
+    const item = result.validation!.items.find(i => i.code === 'K1_RENTAL_LOSS_PAL_GUARDRAIL')
     expect(item).toBeDefined()
     expect(item!.severity).toBe('warning')
   })
@@ -739,7 +739,7 @@ describe('K-1 Validation Warnings', () => {
     }
 
     const result = computeForm1040(model)
-    const item = result.validation!.items.find(i => i.code === 'K1_RENTAL_LOSS_NO_PAL')
+    const item = result.validation!.items.find(i => i.code === 'K1_RENTAL_LOSS_PAL_GUARDRAIL')
     expect(item).toBeUndefined()
   })
 })
@@ -903,5 +903,592 @@ describe('K-1 Edge Cases', () => {
     expect(result.scheduleD).not.toBeNull()
     expect(result.scheduleD!.line5.amount).toBe(cents(2000))
     expect(result.scheduleD!.line7.amount).toBe(cents(2000))
+  })
+})
+
+// ══════════════════════════════════════════════════════════════════════
+// Phase 5 Track D — K-1 Advanced: Guaranteed Payments, SE Tax, PAL
+// ══════════════════════════════════════════════════════════════════════
+
+describe('K-1 Guaranteed Payments (Box 4)', () => {
+  it('guaranteed payments flow to Schedule 1 Line 5', () => {
+    const model = {
+      ...emptyTaxReturn(2025),
+      w2s: [makeW2({ id: 'w2', employerName: 'Emp', box1: cents(50000), box2: cents(5000) })],
+      scheduleK1s: [
+        makeK1({
+          id: 'k1-1',
+          entityName: 'LP',
+          entityType: 'partnership',
+          guaranteedPayments: cents(30000),
+        }),
+      ],
+    }
+
+    const result = computeForm1040(model)
+    expect(result.schedule1).not.toBeNull()
+    // Guaranteed payments are part of passthrough income → Schedule 1 Line 5
+    expect(result.schedule1!.line5.amount).toBe(cents(30000))
+    expect(result.line8.amount).toBe(cents(30000))
+    expect(result.line9.amount).toBe(cents(50000) + cents(30000))
+  })
+
+  it('guaranteed payments are subject to SE tax', () => {
+    const model = {
+      ...emptyTaxReturn(2025),
+      scheduleK1s: [
+        makeK1({
+          id: 'k1-1',
+          entityName: 'LP',
+          entityType: 'partnership',
+          guaranteedPayments: cents(60000),
+        }),
+      ],
+    }
+
+    const result = computeForm1040(model)
+    expect(result.scheduleSEResult).not.toBeNull()
+    // SE Line 2 should include guaranteed payments
+    expect(result.scheduleSEResult!.line2.amount).toBe(cents(60000))
+    expect(result.scheduleSEResult!.totalSETax).toBeGreaterThan(0)
+    // Deductible half reduces AGI
+    expect(result.scheduleSEResult!.deductibleHalfCents).toBeGreaterThan(0)
+  })
+
+  it('guaranteed payments + ordinary income combined', () => {
+    const model = {
+      ...emptyTaxReturn(2025),
+      w2s: [makeW2({ id: 'w2', employerName: 'Emp', box1: cents(50000), box2: cents(5000) })],
+      scheduleK1s: [
+        makeK1({
+          id: 'k1-1',
+          entityName: 'LP',
+          entityType: 'partnership',
+          ordinaryIncome: cents(40000),
+          guaranteedPayments: cents(20000),
+        }),
+      ],
+    }
+
+    const result = computeForm1040(model)
+    // Both flow to Schedule 1 Line 5
+    expect(result.schedule1!.line5.amount).toBe(cents(60000))
+    // Only guaranteed payments subject to SE tax (ordinary income requires Box 14)
+    expect(result.scheduleSEResult).not.toBeNull()
+    expect(result.scheduleSEResult!.line2.amount).toBe(cents(20000))
+  })
+
+  it('S-corp K-1 does not have guaranteed payments field', () => {
+    // S-corps don't have guaranteed payments; ensure it's ignored
+    const model = {
+      ...emptyTaxReturn(2025),
+      scheduleK1s: [
+        makeK1({
+          id: 'k1-1',
+          entityName: 'S-Corp',
+          entityType: 's-corp',
+          ordinaryIncome: cents(80000),
+          // guaranteedPayments should be undefined for S-corps
+        }),
+      ],
+    }
+
+    const result = computeForm1040(model)
+    expect(result.scheduleSEResult).toBeNull()
+    expect(result.k1Result!.totalGuaranteedPayments).toBe(0)
+  })
+})
+
+describe('K-1 Partnership SE Tax (Box 14 Code A)', () => {
+  it('Box 14 SE earnings flow to Schedule SE', () => {
+    const model = {
+      ...emptyTaxReturn(2025),
+      scheduleK1s: [
+        makeK1({
+          id: 'k1-1',
+          entityName: 'General Partnership',
+          entityType: 'partnership',
+          ordinaryIncome: cents(80000),
+          selfEmploymentEarnings: cents(80000),
+        }),
+      ],
+    }
+
+    const result = computeForm1040(model)
+    expect(result.scheduleSEResult).not.toBeNull()
+    // SE Line 2 = Box 14 SE earnings ($80K)
+    expect(result.scheduleSEResult!.line2.amount).toBe(cents(80000))
+    // Net SE = $80K × 0.9235 = $73,880
+    expect(result.scheduleSEResult!.netSEEarnings).toBe(Math.round(cents(80000) * 0.9235))
+    // Total SE tax > 0
+    expect(result.scheduleSEResult!.totalSETax).toBeGreaterThan(0)
+  })
+
+  it('Box 14 SE earnings + guaranteed payments combined for SE tax', () => {
+    const model = {
+      ...emptyTaxReturn(2025),
+      scheduleK1s: [
+        makeK1({
+          id: 'k1-1',
+          entityName: 'GP',
+          entityType: 'partnership',
+          ordinaryIncome: cents(50000),
+          guaranteedPayments: cents(20000),
+          selfEmploymentEarnings: cents(50000),
+        }),
+      ],
+    }
+
+    const result = computeForm1040(model)
+    expect(result.scheduleSEResult).not.toBeNull()
+    // SE Line 2 = SE earnings ($50K) + guaranteed payments ($20K) = $70K
+    expect(result.scheduleSEResult!.line2.amount).toBe(cents(70000))
+  })
+
+  it('Box 14 SE earnings combined with Schedule C profit', () => {
+    const model = {
+      ...emptyTaxReturn(2025),
+      scheduleCBusinesses: [
+        makeScheduleC({ id: 'biz-1', grossReceipts: cents(40000), supplies: cents(5000) }),
+      ],
+      scheduleK1s: [
+        makeK1({
+          id: 'k1-1',
+          entityName: 'GP',
+          entityType: 'partnership',
+          ordinaryIncome: cents(30000),
+          selfEmploymentEarnings: cents(30000),
+        }),
+      ],
+    }
+
+    const result = computeForm1040(model)
+    expect(result.scheduleSEResult).not.toBeNull()
+    // SE Line 2 = Schedule C ($35K) + K-1 SE ($30K) = $65K
+    expect(result.scheduleSEResult!.line2.amount).toBe(cents(35000) + cents(30000))
+  })
+
+  it('no SE tax when partnership has no Box 14 and no guaranteed payments', () => {
+    const model = {
+      ...emptyTaxReturn(2025),
+      scheduleK1s: [
+        makeK1({
+          id: 'k1-1',
+          entityName: 'Limited LP',
+          entityType: 'partnership',
+          ordinaryIncome: cents(50000),
+          // No selfEmploymentEarnings, no guaranteedPayments
+        }),
+      ],
+    }
+
+    const result = computeForm1040(model)
+    // Limited partner with no Box 14 → no SE tax
+    expect(result.scheduleSEResult).toBeNull()
+  })
+
+  it('SE deductible half reduces AGI', () => {
+    const model = {
+      ...emptyTaxReturn(2025),
+      filingStatus: 'single' as const,
+      scheduleK1s: [
+        makeK1({
+          id: 'k1-1',
+          entityName: 'GP',
+          entityType: 'partnership',
+          ordinaryIncome: cents(100000),
+          selfEmploymentEarnings: cents(100000),
+        }),
+      ],
+    }
+
+    const result = computeForm1040(model)
+    const seHalf = result.scheduleSEResult!.deductibleHalfCents
+    expect(seHalf).toBeGreaterThan(0)
+    // Line 9 = passthrough $100K, AGI = Line 9 - SE deductible half
+    expect(result.line11.amount).toBe(result.line9.amount - seHalf)
+  })
+})
+
+describe('K-1 Rental Loss PAL Guardrail (Unit)', () => {
+  it('positive rental income — no PAL applied', () => {
+    const result = computeK1RentalPAL(cents(10000), cents(80000), 'single')
+    expect(result.palApplied).toBe(false)
+    expect(result.allowedRentalIncome).toBe(cents(10000))
+    expect(result.disallowedLoss).toBe(0)
+  })
+
+  it('rental loss below $25K allowance — full loss allowed (low AGI)', () => {
+    const result = computeK1RentalPAL(cents(-15000), cents(80000), 'single')
+    expect(result.palApplied).toBe(true)
+    expect(result.allowedRentalIncome).toBe(cents(-15000))
+    expect(result.disallowedLoss).toBe(0)
+  })
+
+  it('rental loss exceeds $25K allowance — capped at $25K (low AGI)', () => {
+    const result = computeK1RentalPAL(cents(-40000), cents(80000), 'single')
+    expect(result.palApplied).toBe(true)
+    expect(result.allowedRentalIncome).toBe(cents(-25000))
+    expect(result.disallowedLoss).toBe(cents(-15000))
+  })
+
+  it('AGI phaseout — $125K AGI → $12,500 allowance', () => {
+    // $125K AGI → excess = $25K → reduction = $25K * ($25K/$50K) = $12,500
+    // allowance = $25K - $12.5K = $12,500
+    const result = computeK1RentalPAL(cents(-20000), cents(125000), 'single')
+    expect(result.palApplied).toBe(true)
+    expect(result.allowedRentalIncome).toBe(cents(-12500))
+    expect(result.disallowedLoss).toBe(cents(-7500))
+  })
+
+  it('AGI above $150K — no allowance', () => {
+    const result = computeK1RentalPAL(cents(-20000), cents(160000), 'single')
+    expect(result.palApplied).toBe(true)
+    expect(result.allowedRentalIncome).toBe(0)
+    expect(result.disallowedLoss).toBe(cents(-20000))
+  })
+
+  it('MFS — always $0 allowance', () => {
+    const result = computeK1RentalPAL(cents(-10000), cents(50000), 'mfs')
+    expect(result.palApplied).toBe(true)
+    expect(result.allowedRentalIncome).toBe(0)
+    expect(result.disallowedLoss).toBe(cents(-10000))
+  })
+
+  it('shared allowance with Schedule E — Schedule E uses part', () => {
+    // Schedule E used $15K of the $25K allowance → only $10K left for K-1
+    const result = computeK1RentalPAL(cents(-20000), cents(80000), 'single', cents(15000))
+    expect(result.palApplied).toBe(true)
+    expect(result.allowedRentalIncome).toBe(cents(-10000))
+    expect(result.disallowedLoss).toBe(cents(-10000))
+  })
+
+  it('shared allowance — Schedule E used entire $25K', () => {
+    const result = computeK1RentalPAL(cents(-10000), cents(80000), 'single', cents(25000))
+    expect(result.palApplied).toBe(true)
+    expect(result.allowedRentalIncome).toBe(0)
+    expect(result.disallowedLoss).toBe(cents(-10000))
+  })
+})
+
+describe('K-1 Rental Loss PAL Guardrail (Integration)', () => {
+  it('K-1 rental loss limited by PAL in Form 1040 flow', () => {
+    const model = {
+      ...emptyTaxReturn(2025),
+      filingStatus: 'single' as const,
+      w2s: [makeW2({ id: 'w2', employerName: 'Emp', box1: cents(80000), box2: cents(10000) })],
+      scheduleK1s: [
+        makeK1({
+          id: 'k1-1',
+          entityName: 'LP',
+          rentalIncome: cents(-40000),
+        }),
+      ],
+    }
+
+    const result = computeForm1040(model)
+    expect(result.k1RentalPAL).not.toBeNull()
+    expect(result.k1RentalPAL!.palApplied).toBe(true)
+    // Gross rental loss = -$40K, allowance = $25K (AGI $80K, below phaseout)
+    expect(result.k1RentalPAL!.grossRentalIncome).toBe(cents(-40000))
+    expect(result.k1RentalPAL!.allowedRentalIncome).toBe(cents(-25000))
+    // Schedule 1 Line 5 gets PAL-limited amount
+    expect(result.schedule1!.line5.amount).toBe(cents(-25000))
+  })
+
+  it('K-1 rental loss + Schedule E rental loss share $25K allowance', () => {
+    const model = {
+      ...emptyTaxReturn(2025),
+      filingStatus: 'single' as const,
+      w2s: [makeW2({ id: 'w2', employerName: 'Emp', box1: cents(80000), box2: cents(10000) })],
+      scheduleEProperties: [
+        makeScheduleEProperty({
+          id: 'prop-1',
+          rentsReceived: cents(12000),
+          mortgageInterest: cents(15000),
+          taxes: cents(5000),
+          insurance: cents(2000),
+        }),
+      ],
+      scheduleK1s: [
+        makeK1({
+          id: 'k1-1',
+          entityName: 'LP',
+          rentalIncome: cents(-20000),
+        }),
+      ],
+    }
+
+    const result = computeForm1040(model)
+    // Schedule E: $12K - $22K = -$10K loss → PAL allows $10K (under $25K)
+    expect(result.scheduleE).not.toBeNull()
+    expect(result.scheduleE!.line26.amount).toBe(cents(-10000))
+
+    // K-1 rental PAL: $25K total allowance - $10K used by Schedule E = $15K remaining
+    // K-1 loss = -$20K, allowed = -$15K
+    expect(result.k1RentalPAL).not.toBeNull()
+    expect(result.k1RentalPAL!.allowedRentalIncome).toBe(cents(-15000))
+
+    // Schedule 1 Line 5 = Schedule E (-$10K) + K-1 PAL-limited (-$15K) = -$25K
+    expect(result.schedule1!.line5.amount).toBe(cents(-10000) + cents(-15000))
+  })
+
+  it('high AGI eliminates PAL allowance for K-1 rental loss', () => {
+    const model = {
+      ...emptyTaxReturn(2025),
+      filingStatus: 'single' as const,
+      w2s: [makeW2({ id: 'w2', employerName: 'Emp', box1: cents(200000), box2: cents(30000) })],
+      scheduleK1s: [
+        makeK1({
+          id: 'k1-1',
+          entityName: 'LP',
+          rentalIncome: cents(-20000),
+        }),
+      ],
+    }
+
+    const result = computeForm1040(model)
+    expect(result.k1RentalPAL).not.toBeNull()
+    expect(result.k1RentalPAL!.palApplied).toBe(true)
+    // AGI ~$200K, well above $150K phaseout → $0 allowance
+    expect(result.k1RentalPAL!.allowedRentalIncome).toBe(0)
+    // No passthrough income after PAL → no Schedule 1 needed (or line 5 = 0)
+    // Line 8 should be $0 (no other income from Schedule 1)
+    expect(result.line8.amount).toBe(0)
+  })
+
+  it('K-1 rental profit flows through without PAL', () => {
+    const model = {
+      ...emptyTaxReturn(2025),
+      w2s: [makeW2({ id: 'w2', employerName: 'Emp', box1: cents(50000), box2: cents(5000) })],
+      scheduleK1s: [
+        makeK1({
+          id: 'k1-1',
+          entityName: 'LP',
+          rentalIncome: cents(15000),
+        }),
+      ],
+    }
+
+    const result = computeForm1040(model)
+    // No PAL applied for profits
+    expect(result.k1RentalPAL).toBeNull()
+    expect(result.schedule1!.line5.amount).toBe(cents(15000))
+  })
+})
+
+describe('K-1 Aggregate with New Fields', () => {
+  it('aggregates guaranteed payments and SE earnings', () => {
+    const result = computeK1Aggregate([
+      makeK1({
+        id: 'k1-1',
+        entityName: 'GP1',
+        entityType: 'partnership',
+        ordinaryIncome: cents(30000),
+        guaranteedPayments: cents(20000),
+        selfEmploymentEarnings: cents(30000),
+      }),
+      makeK1({
+        id: 'k1-2',
+        entityName: 'GP2',
+        entityType: 'partnership',
+        ordinaryIncome: cents(40000),
+        guaranteedPayments: cents(10000),
+        selfEmploymentEarnings: cents(40000),
+      }),
+    ])
+
+    expect(result.totalGuaranteedPayments).toBe(cents(30000))
+    expect(result.totalSEEarnings).toBe(cents(70000))
+    // Passthrough = ordinary + rental + guaranteed payments
+    expect(result.totalPassthroughIncome).toBe(cents(70000) + cents(30000))
+    expect(result.entities[0].guaranteedPayments).toBe(cents(20000))
+    expect(result.entities[0].selfEmploymentEarnings).toBe(cents(30000))
+  })
+
+  it('handles K-1 without optional fields (backward compatible)', () => {
+    const result = computeK1Aggregate([
+      makeK1({
+        id: 'k1-1',
+        entityName: 'LP',
+        ordinaryIncome: cents(50000),
+        // No guaranteedPayments or selfEmploymentEarnings
+      }),
+    ])
+
+    expect(result.totalGuaranteedPayments).toBe(0)
+    expect(result.totalSEEarnings).toBe(0)
+    expect(result.totalPassthroughIncome).toBe(cents(50000))
+  })
+})
+
+describe('K-1 Validation — Phase 5 Updates', () => {
+  it('emits K1_PARTNERSHIP_SE_COMPUTED when Box 14 SE earnings provided', () => {
+    const model = {
+      ...emptyTaxReturn(2025),
+      scheduleK1s: [
+        makeK1({
+          id: 'k1-1',
+          entityName: 'GP',
+          entityType: 'partnership',
+          ordinaryIncome: cents(50000),
+          selfEmploymentEarnings: cents(50000),
+        }),
+      ],
+    }
+
+    const result = computeForm1040(model)
+    const item = result.validation!.items.find(i => i.code === 'K1_PARTNERSHIP_SE_COMPUTED')
+    expect(item).toBeDefined()
+    expect(item!.severity).toBe('info')
+  })
+
+  it('emits K1_PARTNERSHIP_SE_COMPUTED when guaranteed payments provided', () => {
+    const model = {
+      ...emptyTaxReturn(2025),
+      scheduleK1s: [
+        makeK1({
+          id: 'k1-1',
+          entityName: 'GP',
+          entityType: 'partnership',
+          guaranteedPayments: cents(30000),
+        }),
+      ],
+    }
+
+    const result = computeForm1040(model)
+    const item = result.validation!.items.find(i => i.code === 'K1_PARTNERSHIP_SE_COMPUTED')
+    expect(item).toBeDefined()
+  })
+
+  it('emits K1_PARTNERSHIP_SE_NOT_COMPUTED only when no Box 14 and no GP', () => {
+    const model = {
+      ...emptyTaxReturn(2025),
+      scheduleK1s: [
+        makeK1({
+          id: 'k1-1',
+          entityName: 'LP',
+          entityType: 'partnership',
+          ordinaryIncome: cents(50000),
+          // No selfEmploymentEarnings, no guaranteedPayments
+        }),
+      ],
+    }
+
+    const result = computeForm1040(model)
+    const item = result.validation!.items.find(i => i.code === 'K1_PARTNERSHIP_SE_NOT_COMPUTED')
+    expect(item).toBeDefined()
+    expect(item!.severity).toBe('warning')
+  })
+
+  it('does NOT emit SE_NOT_COMPUTED when Box 14 is provided', () => {
+    const model = {
+      ...emptyTaxReturn(2025),
+      scheduleK1s: [
+        makeK1({
+          id: 'k1-1',
+          entityName: 'GP',
+          entityType: 'partnership',
+          ordinaryIncome: cents(50000),
+          selfEmploymentEarnings: cents(50000),
+        }),
+      ],
+    }
+
+    const result = computeForm1040(model)
+    const item = result.validation!.items.find(i => i.code === 'K1_PARTNERSHIP_SE_NOT_COMPUTED')
+    expect(item).toBeUndefined()
+  })
+
+  it('K1_UNSUPPORTED_BOXES mentions Box 4 and Box 14 as supported', () => {
+    const model = {
+      ...emptyTaxReturn(2025),
+      scheduleK1s: [
+        makeK1({ id: 'k1-1', entityName: 'LP', ordinaryIncome: cents(10000) }),
+      ],
+    }
+
+    const result = computeForm1040(model)
+    const item = result.validation!.items.find(i => i.code === 'K1_UNSUPPORTED_BOXES')
+    expect(item).toBeDefined()
+    expect(item!.message).toContain('Box 4')
+    expect(item!.message).toContain('Box 14')
+  })
+})
+
+describe('K-1 Full Flow — Phase 5 Comprehensive', () => {
+  it('partnership general partner: ordinary + GP + SE + rental loss', () => {
+    const model = {
+      ...emptyTaxReturn(2025),
+      filingStatus: 'single' as const,
+      w2s: [makeW2({ id: 'w2', employerName: 'Emp', box1: cents(60000), box2: cents(7000) })],
+      scheduleK1s: [
+        makeK1({
+          id: 'k1-1',
+          entityName: 'ABC Partners',
+          entityType: 'partnership',
+          ordinaryIncome: cents(50000),
+          guaranteedPayments: cents(25000),
+          rentalIncome: cents(-10000),
+          interestIncome: cents(2000),
+          selfEmploymentEarnings: cents(50000),
+          section199AQBI: cents(50000),
+        }),
+      ],
+    }
+
+    const result = computeForm1040(model)
+
+    // Interest → Line 2b
+    expect(result.line2b.amount).toBe(cents(2000))
+
+    // Passthrough income: ordinary ($50K) + GP ($25K) + rental (-$10K PAL-limited)
+    // Rental: -$10K, AGI ~$137K approx, phaseout: $25K - ($37K * $25K / $50K) = ~$6,500
+    // But exact PAL depends on prelim AGI → just check it's limited
+    expect(result.k1RentalPAL).not.toBeNull()
+    expect(result.k1RentalPAL!.palApplied).toBe(true)
+    expect(result.k1RentalPAL!.allowedRentalIncome).toBeGreaterThanOrEqual(cents(-10000))
+    expect(result.k1RentalPAL!.allowedRentalIncome).toBeLessThanOrEqual(0)
+
+    // SE tax computed on GP ($25K) + Box 14 ($50K) = $75K
+    expect(result.scheduleSEResult).not.toBeNull()
+    expect(result.scheduleSEResult!.line2.amount).toBe(cents(75000))
+    expect(result.scheduleSEResult!.totalSETax).toBeGreaterThan(0)
+
+    // QBI deduction active
+    expect(result.qbiResult).not.toBeNull()
+
+    // Total tax > 0
+    expect(result.line24.amount).toBeGreaterThan(0)
+  })
+
+  it('limited partner: no SE tax, rental loss PAL-limited', () => {
+    const model = {
+      ...emptyTaxReturn(2025),
+      filingStatus: 'mfj' as const,
+      w2s: [
+        makeW2({ id: 'w2', employerName: 'Emp', box1: cents(120000), box2: cents(18000) }),
+      ],
+      scheduleK1s: [
+        makeK1({
+          id: 'k1-1',
+          entityName: 'RE Fund LP',
+          entityType: 'partnership',
+          ordinaryIncome: cents(10000),
+          rentalIncome: cents(-30000),
+          // No SE earnings, no guaranteed payments (limited partner)
+        }),
+      ],
+    }
+
+    const result = computeForm1040(model)
+    // No SE tax for limited partner
+    expect(result.scheduleSEResult).toBeNull()
+    // PAL applied to rental loss
+    expect(result.k1RentalPAL).not.toBeNull()
+    expect(result.k1RentalPAL!.palApplied).toBe(true)
+    // $25K allowance available (AGI ~$130K, within phaseout range for MFJ: $100K-$150K)
+    // Exact allowance depends on the computed prelim AGI
+    expect(result.k1RentalPAL!.allowedRentalIncome).toBeGreaterThanOrEqual(cents(-25000))
   })
 })

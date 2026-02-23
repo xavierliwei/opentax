@@ -74,8 +74,8 @@ import { computeForeignTaxCredit } from './foreignTaxCredit'
 import type { ForeignTaxCreditResult } from './foreignTaxCredit'
 import { validateFederalReturn } from './federalValidation'
 import type { FederalValidationResult } from './federalValidation'
-import { computeK1Aggregate } from './scheduleK1'
-import type { K1AggregateResult } from './scheduleK1'
+import { computeK1Aggregate, computeK1RentalPAL } from './scheduleK1'
+import type { K1AggregateResult, K1RentalPALResult } from './scheduleK1'
 
 // ── Line 1a — Wages, salaries, tips ────────────────────────────
 // Sum of all W-2 Box 1 values.
@@ -1088,6 +1088,9 @@ export interface Form1040Result {
   // K-1 aggregate result (passthrough entity income)
   k1Result: K1AggregateResult | null
 
+  // K-1 rental PAL guardrail result (null if no K-1 rental losses)
+  k1RentalPAL: K1RentalPALResult | null
+
   // Foreign Tax Credit detail (Form 1116)
   foreignTaxCreditResult: ForeignTaxCreditResult | null
 
@@ -1134,10 +1137,16 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     ? computeAllScheduleC(model.scheduleCBusinesses)
     : null
 
-  // Schedule SE (compute if there is SE income)
+  // Schedule SE (compute if there is SE income from Schedule C or K-1 Box 14)
   const w2SSWages = model.w2s.reduce((sum, w) => sum + w.box3, 0)
-  const scheduleSEResult = (scheduleCResult && scheduleCResult.totalNetProfitCents > 0)
-    ? computeScheduleSE(scheduleCResult.totalNetProfitCents, w2SSWages, model.filingStatus)
+  const scheduleCNetProfit = scheduleCResult?.totalNetProfitCents ?? 0
+  const k1SEEarnings = k1Result?.totalSEEarnings ?? 0
+  const k1GuaranteedPayments = k1Result?.totalGuaranteedPayments ?? 0
+  // Guaranteed payments are always subject to SE tax (IRC §1402(a))
+  const totalK1SE = k1SEEarnings + k1GuaranteedPayments
+  const hasSEIncome = scheduleCNetProfit > 0 || totalK1SE > 0
+  const scheduleSEResult = hasSEIncome
+    ? computeScheduleSE(scheduleCNetProfit, w2SSWages, model.filingStatus, totalK1SE)
     : null
 
   // Schedule E (compute if there are rental properties)
@@ -1158,6 +1167,39 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     scheduleE = computeScheduleE(model.scheduleEProperties, model.filingStatus, prelimAGI)
   }
 
+  // K-1 Rental PAL guardrail — apply after Schedule E so we can coordinate the shared $25K allowance
+  let k1RentalPAL: K1RentalPALResult | null = null
+  let k1ResultForSchedule1 = k1Result
+  if (k1Result && k1Result.totalRentalIncome < 0) {
+    // Compute PAL-limited K-1 rental income, sharing the $25K allowance with Schedule E
+    const scheduleEPALUsed = scheduleE
+      ? Math.abs(Math.min(0, scheduleE.line25.amount))  // how much of the $25K Schedule E consumed
+      : 0
+    // Preliminary AGI for K-1 PAL (same proxy as Schedule E uses)
+    const prelimLine1a = hasScheduleEProperties ? 0 : computeLine1a(model).amount  // avoid recomputing if already done
+    const palAGI = hasScheduleEProperties
+      ? (computeLine1a(model).amount + computeLine2b(model, k1Result.totalInterest).amount +
+         computeLine3b(model, k1Result.totalDividends).amount +
+         computeLine7(scheduleD?.line21).amount + (scheduleCResult?.totalNetProfitCents ?? 0) +
+         k1Result.totalPassthroughIncome)
+      : (prelimLine1a + computeLine2b(model, k1Result.totalInterest).amount +
+         computeLine3b(model, k1Result.totalDividends).amount +
+         computeLine7(scheduleD?.line21).amount + (scheduleCResult?.totalNetProfitCents ?? 0) +
+         k1Result.totalPassthroughIncome)
+    k1RentalPAL = computeK1RentalPAL(
+      k1Result.totalRentalIncome,
+      palAGI,
+      model.filingStatus,
+      scheduleEPALUsed,
+    )
+    // Create an adjusted K-1 result with PAL-limited rental income for Schedule 1
+    k1ResultForSchedule1 = {
+      ...k1Result,
+      totalRentalIncome: k1RentalPAL.allowedRentalIncome,
+      totalPassthroughIncome: k1Result.totalOrdinaryIncome + k1RentalPAL.allowedRentalIncome + k1Result.totalGuaranteedPayments,
+    }
+  }
+
   // Schedule 1 (compute if there is 1099-MISC income, 1099-G income, Schedule E, Schedule C, or K-1 passthrough)
   const has1099MISCIncome = (model.form1099MISCs ?? []).some(
     f => f.box1 > 0 || f.box2 > 0 || f.box3 > 0,
@@ -1165,10 +1207,10 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   const has1099GIncome = (model.form1099Gs ?? []).some(
     f => f.box1 > 0 || f.box2 > 0,
   )
-  const hasK1Passthrough = (k1Result?.totalPassthroughIncome ?? 0) !== 0
-  const needSchedule1 = has1099MISCIncome || has1099GIncome || hasScheduleEProperties || hasScheduleC || hasK1Passthrough
+  const hasK1Passthrough = (k1ResultForSchedule1?.totalPassthroughIncome ?? 0) !== 0
+  const needSchedule1 = has1099MISCIncome || has1099GIncome || hasScheduleEProperties || hasScheduleC || hasK1Passthrough || hasSEIncome
   const schedule1 = needSchedule1
-    ? computeSchedule1(model, scheduleE ?? undefined, scheduleCResult ?? undefined, scheduleSEResult ?? undefined, k1Result ?? undefined)
+    ? computeSchedule1(model, scheduleE ?? undefined, scheduleCResult ?? undefined, scheduleSEResult ?? undefined, k1ResultForSchedule1 ?? undefined)
     : null
 
   // ── HSA (computed early — no dependency on Line 9) ──────
@@ -1480,6 +1522,7 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     scheduleSEResult,
     qbiResult,
     k1Result,
+    k1RentalPAL,
     foreignTaxCreditResult: foreignTaxCreditResult.applicable ? foreignTaxCreditResult : null,
     validation,
     schedule1, scheduleA, scheduleD, scheduleE,

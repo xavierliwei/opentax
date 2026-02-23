@@ -36,24 +36,14 @@ function K1Card({ k1 }: { k1: ScheduleK1 }) {
   const update = (fields: Partial<ScheduleK1>) => updateScheduleK1(k1.id, fields)
 
   const totalIncome =
-    k1.ordinaryIncome + k1.rentalIncome + k1.interestIncome +
-    k1.dividendIncome + k1.shortTermCapitalGain + k1.longTermCapitalGain
+    k1.ordinaryIncome + k1.rentalIncome + (k1.guaranteedPayments ?? 0) +
+    k1.interestIncome + k1.dividendIncome +
+    k1.shortTermCapitalGain + k1.longTermCapitalGain
+
+  const isPartnership = k1.entityType === 'partnership'
 
   return (
     <div className="flex flex-col gap-4">
-      {/* K-1 computation warning */}
-      <div className="bg-red-50 border border-red-200 rounded-md px-3 py-2">
-        <p className="text-xs text-red-800 font-medium">
-          K-1 income is captured but NOT yet computed in your tax return.
-        </p>
-        <p className="text-xs text-red-700 mt-1">
-          The income amounts below are recorded for reference and validation, but they do NOT flow
-          into your Form 1040. Do not file this return without professional review if K-1 income
-          is a significant part of your taxes. Section 199A QBI from K-1 does flow to the QBI
-          deduction if you are below the threshold.
-        </p>
-      </div>
-
       {/* Entity Info */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
@@ -118,7 +108,7 @@ function K1Card({ k1 }: { k1: ScheduleK1 }) {
         <h4 className="text-sm font-medium text-gray-700 mb-2">
           Income Items
           <InfoTooltip
-            explanation="Enter the key income amounts from your K-1. Box numbers differ by entity type — refer to the K-1 you received. These amounts are captured for tracking but are not yet computed in the return."
+            explanation="Enter the key income amounts from your K-1. Box numbers differ by entity type. These amounts flow into your Form 1040: ordinary/rental income to Schedule 1 Line 5, interest to Line 2b, dividends to Line 3b, capital gains to Schedule D."
             pubName="IRS Schedule K-1 Instructions"
             pubUrl="https://www.irs.gov/forms-pubs/about-schedule-k-1-form-1065"
           />
@@ -136,6 +126,20 @@ function K1Card({ k1 }: { k1: ScheduleK1 }) {
             onChange={(v) => update({ rentalIncome: v })}
             helperText={k1.entityType === 'partnership' ? 'Box 2 (Form 1065)' : 'Box 2'}
           />
+          {isPartnership && (
+            <CurrencyInput
+              label={<>Guaranteed payments
+                <InfoTooltip
+                  explanation="Guaranteed payments to a partner for services or capital use. These are reported on Schedule 1 Line 5 and are always subject to self-employment tax, regardless of limited/general partner status."
+                  pubName="K-1 Box 4 / IRC §707(c)"
+                  pubUrl="https://www.irs.gov/forms-pubs/about-schedule-k-1-form-1065"
+                />
+              </>}
+              value={k1.guaranteedPayments ?? 0}
+              onChange={(v) => update({ guaranteedPayments: v })}
+              helperText="Box 4 (Form 1065)"
+            />
+          )}
           <CurrencyInput
             label="Interest income"
             value={k1.interestIncome}
@@ -161,12 +165,34 @@ function K1Card({ k1 }: { k1: ScheduleK1 }) {
         </div>
       </div>
 
+      {/* Partnership SE earnings */}
+      {isPartnership && (
+        <div>
+          <h4 className="text-sm font-medium text-gray-700 mb-2">
+            Self-Employment
+            <InfoTooltip
+              explanation="If you are a general partner, your K-1 Box 14 Code A reports your net SE earnings subject to self-employment tax. Limited partners generally have $0 here. If left blank, SE tax is not computed for this K-1 (conservative)."
+              pubName="K-1 Box 14 / Schedule SE"
+              pubUrl="https://www.irs.gov/forms-pubs/about-schedule-k-1-form-1065"
+            />
+          </h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <CurrencyInput
+              label="SE earnings (Box 14, Code A)"
+              value={k1.selfEmploymentEarnings ?? 0}
+              onChange={(v) => update({ selfEmploymentEarnings: v })}
+              helperText="Leave at $0 if you are a limited partner."
+            />
+          </div>
+        </div>
+      )}
+
       {/* QBI and Distributions */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <CurrencyInput
           label={<>Section 199A QBI
             <InfoTooltip
-              explanation="Qualified Business Income for the Section 199A deduction. For partnerships, this is typically Box 20 Code Z. For S-corps, Box 17 Code V. This amount flows to the QBI deduction computation even though K-1 income is not yet fully computed."
+              explanation="Qualified Business Income for the Section 199A deduction. For partnerships, this is typically Box 20 Code Z. For S-corps, Box 17 Code V. This amount flows to the QBI deduction computation."
               pubName="IRC §199A / Form 8995"
               pubUrl="https://www.irs.gov/forms-pubs/about-form-8995"
             />
@@ -204,18 +230,18 @@ export function ScheduleK1Page() {
       <h1 className="text-2xl font-bold text-gray-900">Schedule K-1 (Passthrough Income)</h1>
       <p className="mt-1 text-sm text-gray-600">
         Enter Schedule K-1 forms received from partnerships, S corporations, or trusts/estates.
-        K-1 income is captured for tracking but full tax computation for passthrough income is
-        not yet supported.
+        K-1 income flows into your Form 1040 (ordinary/rental to Schedule 1, interest, dividends,
+        capital gains, and QBI to their respective lines).
       </p>
 
-      <div className="mt-4 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
-        <p className="text-xs text-amber-800 font-medium">
-          Important: K-1 income does not flow into your Form 1040 yet.
+      <div className="mt-4 bg-blue-50 border border-blue-200 rounded-md px-3 py-2">
+        <p className="text-xs text-blue-800 font-medium">
+          K-1 income is included in your tax computation.
         </p>
-        <p className="text-xs text-amber-700 mt-1">
-          Recording your K-1 data ensures it is not overlooked and enables QBI deduction tracking.
-          Full K-1 tax computation (Schedules E Part II, passive activity rules, at-risk limitations)
-          will be added in a future update. Do not file without professional review.
+        <p className="text-xs text-blue-700 mt-1">
+          Partnerships: guaranteed payments (Box 4) and Box 14 Code A SE earnings are subject to
+          self-employment tax. Rental losses are limited by a $25K PAL guardrail. Full basis tracking
+          and at-risk rules are not yet modeled — consult a tax professional for complex situations.
         </p>
       </div>
 

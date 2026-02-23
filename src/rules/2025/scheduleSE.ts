@@ -56,19 +56,28 @@ export interface ScheduleSEResult {
  * @param scheduleCNetProfit - Total net profit/loss from all Schedule C businesses (cents)
  * @param w2SocialSecurityWages - Total W-2 Box 3 wages (cents) — reduces SS tax base
  * @param filingStatus - For Additional Medicare Tax threshold (informational)
+ * @param k1SEEarnings - Total K-1 Box 14 Code A self-employment earnings (cents, optional)
  */
 export function computeScheduleSE(
   scheduleCNetProfit: number,
   w2SocialSecurityWages: number,
   _filingStatus: FilingStatus,
+  k1SEEarnings: number = 0,
 ): ScheduleSEResult {
-  // Line 2 — Net profit from Schedule C (combined)
-  const line2 = scheduleCNetProfit > 0
-    ? tracedFromComputation(scheduleCNetProfit, 'scheduleSE.line2', ['scheduleC.totalNetProfit'], 'Schedule SE, Line 2')
+  // Line 2 — Net SE income: Schedule C net profit + K-1 Box 14 Code A SE earnings
+  // Per IRS Schedule SE instructions, partnership SE earnings (from K-1 Box 14)
+  // are combined with Schedule C net profit on Line 2.
+  const combinedSEIncome = scheduleCNetProfit + k1SEEarnings
+  const line2Inputs: string[] = []
+  if (scheduleCNetProfit !== 0) line2Inputs.push('scheduleC.totalNetProfit')
+  if (k1SEEarnings !== 0) line2Inputs.push('k1.totalSEEarnings')
+
+  const line2 = combinedSEIncome > 0
+    ? tracedFromComputation(combinedSEIncome, 'scheduleSE.line2', line2Inputs, 'Schedule SE, Line 2')
     : tracedZero('scheduleSE.line2', 'Schedule SE, Line 2')
 
-  // If net profit ≤ 0, no SE tax is due
-  if (scheduleCNetProfit <= 0) {
+  // If combined net SE income ≤ 0, no SE tax is due
+  if (combinedSEIncome <= 0) {
     const zero = tracedZero('scheduleSE.line3', 'Schedule SE, Line 3')
     return {
       line2,
@@ -86,7 +95,7 @@ export function computeScheduleSE(
 
   // Line 3 — Net SE earnings: line2 × 92.35%
   // The 92.35% factor simulates the employer-equivalent deduction
-  const netSEEarnings = Math.round(scheduleCNetProfit * SE_NET_EARNINGS_FACTOR)
+  const netSEEarnings = Math.round(combinedSEIncome * SE_NET_EARNINGS_FACTOR)
   const line3 = tracedFromComputation(
     netSEEarnings,
     'scheduleSE.line3',

@@ -325,6 +325,14 @@ export interface ScheduleK1 {
   section199AW2Wages?: number     // cents — Entity's allocable share of W-2 wages (Box 20 Code AA / Box 17 Code W)
   section199AUBIA?: number        // cents — Entity's allocable share of UBIA (Box 20 Code AB / Box 17 Code X)
 
+  // Guaranteed payments (Box 4, Form 1065) — partnerships only
+  guaranteedPayments?: number     // cents — reported on Schedule 1 as other income + SE tax
+
+  // Self-employment earnings (Box 14, Code A, Form 1065) — partnerships only
+  // If provided, used to compute SE tax. If not provided, SE tax is not computed
+  // for the K-1 (conservative). Limited partners typically have $0 here.
+  selfEmploymentEarnings?: number // cents — net SE income from this partnership
+
   // Distributions and basis
   distributions: number           // For reference, not directly used in computation yet
 }
