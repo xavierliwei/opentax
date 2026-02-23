@@ -7,7 +7,7 @@
 
 import { emptyTaxReturn } from '../../src/model/types'
 import { cents } from '../../src/model/traced'
-import type { TaxReturn, W2, Form1099INT, Form1099DIV, FormSSA1099, CapitalTransaction, Dependent, ScheduleEProperty, ScheduleC } from '../../src/model/types'
+import type { TaxReturn, W2, Form1099INT, Form1099DIV, FormSSA1099, CapitalTransaction, Dependent, ScheduleEProperty, ScheduleC, ScheduleK1 } from '../../src/model/types'
 
 // ── Helper: make a W-2 with defaults ───────────────────────────
 
@@ -1376,15 +1376,14 @@ export function rentalLossReturn(): TaxReturn {
   }
 }
 
-// ── Helper: make a ScheduleC business with defaults ──────────────
+// ── Helper: make a ScheduleC with defaults ──────────────────────
 
 export function makeScheduleC(
-  overrides: Partial<ScheduleC> & { id: string; businessName: string },
+  overrides: Partial<ScheduleC> & { id: string; businessName: string; grossReceipts: number },
 ): ScheduleC {
   return {
-    principalBusinessCode: '541511',
+    principalBusinessCode: '541990',
     accountingMethod: 'cash',
-    grossReceipts: 0,
     returns: 0,
     costOfGoodsSold: 0,
     advertising: 0,
@@ -1410,138 +1409,212 @@ export function makeScheduleC(
   }
 }
 
-// ── Fixture: sole proprietor with Schedule C profit ──────────────
+// ── Helper: make a ScheduleK1 with defaults ─────────────────────
 
-export function scheduleCProfitReturn(): TaxReturn {
+export function makeScheduleK1(
+  overrides: Partial<ScheduleK1> & { id: string; entityName: string },
+): ScheduleK1 {
   return {
-    ...emptyTaxReturn(2025),
-    scheduleCBusinesses: [
-      makeScheduleC({
-        id: 'biz-1',
-        businessName: 'Acme Consulting',
-        principalBusinessCode: '541611',
-        grossReceipts: cents(120000),   // $120,000 revenue
-        returns: cents(2000),           // $2,000 refunds
-        costOfGoodsSold: 0,
-        advertising: cents(1500),       // Line 8
-        carAndTruck: cents(3000),       // Line 9
-        contractLabor: cents(5000),     // Line 11
-        insurance: cents(2400),         // Line 15
-        officeExpense: cents(1800),     // Line 18
-        supplies: cents(800),           // Line 22
-        taxes: cents(1200),             // Line 23
-        travel: cents(4000),            // Line 24a
-        meals: cents(3000),             // Line 24b ($1,500 deductible at 50%)
-        utilities: cents(600),          // Line 25
-        // Total deductible expenses: $1500+3000+5000+2400+1800+800+1200+4000+1500+600 = $21,800
-        // Gross income: $120,000 - $2,000 = $118,000
-        // Net profit: $118,000 - $21,800 = $96,200
-      }),
-    ],
-    // SE tax: $96,200 × 92.35% = $88,841
-    // SS tax: min($88,841, $176,100) × 12.4% = $11,016
-    // Medicare: $88,841 × 2.9% = $2,576
-    // Total SE: $13,592
-    // Deductible half: $6,796
+    entityType: 'partnership',
+    entityEin: '00-0000000',
+    ordinaryIncome: 0,
+    rentalIncome: 0,
+    interestIncome: 0,
+    dividendIncome: 0,
+    shortTermCapitalGain: 0,
+    longTermCapitalGain: 0,
+    section199AQBI: 0,
+    distributions: 0,
+    ...overrides,
   }
 }
 
-// ── Fixture: sole proprietor with Schedule C loss ──────────────
+// ── Fixture: Schedule C with QBI below threshold (Form 8995) ─────
+// Single filer with $80K wages + $50K Schedule C net profit.
+// Taxable income ≈ $115K (below $191,950 threshold) → simplified path.
 
-export function scheduleCLossReturn(): TaxReturn {
+export function qbiSimplifiedReturn(): TaxReturn {
   return {
     ...emptyTaxReturn(2025),
+    filingStatus: 'single',
+    taxpayer: {
+      firstName: 'Quinn',
+      lastName: 'Business',
+      ssn: '111222333',
+      address: { street: '100 QBI Lane', city: 'Anytown', state: 'CA', zip: '90210' },
+    },
     w2s: [
       makeW2({
         id: 'w2-1',
-        employerName: 'Day Job Inc',
+        employerName: 'DayCorp',
+        box1: cents(80000),
+        box2: cents(10000),
+      }),
+    ],
+    scheduleCBusinesses: [
+      makeScheduleC({
+        id: 'biz-1',
+        businessName: 'Quinn Consulting LLC',
+        businessEin: '12-9999999',
+        grossReceipts: cents(70000),
+        contractLabor: cents(10000),
+        supplies: cents(5000),
+        officeExpense: cents(5000),
+        // Net profit: $70,000 - $20,000 = $50,000
+      }),
+    ],
+    // Total QBI = $50,000
+    // AGI = $80,000 + $50,000 - SE deduction ≈ $126,470
+    // Standard deduction = $15,750
+    // Taxable income before QBI ≈ $110,720 (below $191,950)
+    // → Form 8995 simplified path
+    // QBI deduction = min(20% × $50K, 20% × TI) = $10,000
+  }
+}
+
+// ── Fixture: K-1 QBI below threshold (Form 8995) ─────────────────
+// Single filer with K-1 passthrough QBI, below threshold.
+
+export function qbiK1SimplifiedReturn(): TaxReturn {
+  return {
+    ...emptyTaxReturn(2025),
+    filingStatus: 'single',
+    taxpayer: {
+      firstName: 'Kay',
+      lastName: 'Partner',
+      ssn: '222333444',
+      address: { street: '200 K1 Ave', city: 'Anytown', state: 'CA', zip: '90210' },
+    },
+    w2s: [
+      makeW2({
+        id: 'w2-1',
+        employerName: 'PartnerCo',
         box1: cents(60000),
         box2: cents(7000),
       }),
     ],
-    scheduleCBusinesses: [
-      makeScheduleC({
-        id: 'biz-loss',
-        businessName: 'Startup LLC',
-        principalBusinessCode: '511210',
-        grossReceipts: cents(5000),
-        advertising: cents(3000),
-        contractLabor: cents(8000),
-        officeExpense: cents(2000),
-        supplies: cents(1500),
-        // Total expenses: $14,500
-        // Net loss: $5,000 - $14,500 = -$9,500
+    scheduleK1s: [
+      makeScheduleK1({
+        id: 'k1-1',
+        entityName: 'Alpha Partners LP',
+        entityEin: '55-1234567',
+        entityType: 'partnership',
+        section199AQBI: cents(40000),
+        ordinaryIncome: cents(40000),
       }),
     ],
-    // No SE tax (net loss)
+    // Total QBI = $40,000
+    // AGI = $60,000 + $40,000 = $100,000
+    // Standard deduction = $15,750
+    // Taxable income before QBI ≈ $84,250 (below threshold)
+    // → Form 8995 simplified path
   }
 }
 
-// ── Fixture: W-2 worker with side business (Schedule C + SE) ──────
+// ── Fixture: above-threshold QBI with businesses (Form 8995-A) ────
+// High-income MFJ filer with Schedule C and K-1 QBI above threshold.
+// Has per-business W-2 wages and UBIA for Form 8995-A computation.
 
-export function w2PlusSideBizReturn(): TaxReturn {
+export function qbiAboveThresholdReturn(): TaxReturn {
   return {
     ...emptyTaxReturn(2025),
+    filingStatus: 'mfj',
+    taxpayer: {
+      firstName: 'Alex',
+      lastName: 'HighIncome',
+      ssn: '333444555',
+      address: { street: '300 Wealth Blvd', city: 'Anytown', state: 'CA', zip: '90210' },
+    },
+    spouse: {
+      firstName: 'Jordan',
+      lastName: 'HighIncome',
+      ssn: '333444556',
+      address: { street: '300 Wealth Blvd', city: 'Anytown', state: 'CA', zip: '90210' },
+    },
     w2s: [
       makeW2({
         id: 'w2-1',
         employerName: 'BigCorp',
-        box1: cents(85000),
-        box2: cents(12000),
-        box3: cents(85000),  // SS wages for SE coordination
-        box4: cents(5270),   // 6.2% of $85K
-        box5: cents(85000),
-        box6: cents(1233),
+        box1: cents(350000),
+        box2: cents(80000),
       }),
     ],
     scheduleCBusinesses: [
       makeScheduleC({
-        id: 'biz-side',
-        businessName: 'Weekend Freelance',
-        principalBusinessCode: '541511',
-        grossReceipts: cents(25000),
-        contractLabor: cents(2000),
-        officeExpense: cents(500),
-        supplies: cents(300),
-        // Total expenses: $2,800
-        // Net profit: $25,000 - $2,800 = $22,200
+        id: 'biz-1',
+        businessName: 'Alex Tech Consulting',
+        businessEin: '44-5678901',
+        grossReceipts: cents(200000),
+        contractLabor: cents(30000),
+        supplies: cents(10000),
+        rent: cents(10000),
+        // Net profit: $200,000 - $50,000 = $150,000
+        qbiW2Wages: cents(60000),
+        qbiUBIA: cents(100000),
       }),
     ],
-    // SE: net earnings = $22,200 × 92.35% = $20,502
-    // SS room = $176,100 - $85,000 = $91,100 > $20,502 → all subject to SS
-    // SS tax = $20,502 × 12.4% = $2,542
-    // Medicare = $20,502 × 2.9% = $595
-    // Total SE: $3,137
-    // Deductible half: $1,569
+    scheduleK1s: [
+      makeScheduleK1({
+        id: 'k1-1',
+        entityName: 'Beta Ventures LLC',
+        entityEin: '66-7890123',
+        entityType: 'partnership',
+        section199AQBI: cents(80000),
+        ordinaryIncome: cents(80000),
+        section199AW2Wages: cents(40000),
+        section199AUBIA: cents(50000),
+      }),
+    ],
+    // Total QBI = $150,000 + $80,000 = $230,000
+    // AGI = $350,000 + $150,000 + $80,000 - SE deduction ≈ $569,400
+    // MFJ standard deduction = $31,500
+    // Taxable income before QBI ≈ $537,900 (above $383,900 MFJ threshold)
+    // → Form 8995-A above-threshold path
   }
 }
 
-// ── Fixture: multiple Schedule C businesses ──────────────────────
+// ── Fixture: above-threshold with SSTB (Form 8995-A) ─────────────
+// High-income single filer with an SSTB that gets excluded.
 
-export function multipleScheduleCReturn(): TaxReturn {
+export function qbiSSTBAboveThresholdReturn(): TaxReturn {
   return {
     ...emptyTaxReturn(2025),
-    scheduleCBusinesses: [
-      makeScheduleC({
-        id: 'biz-consult',
-        businessName: 'Consulting Co',
-        principalBusinessCode: '541611',
-        grossReceipts: cents(80000),
-        contractLabor: cents(10000),
-        travel: cents(5000),
-        // Net profit: $80,000 - $15,000 = $65,000
-      }),
-      makeScheduleC({
-        id: 'biz-design',
-        businessName: 'Design Studio',
-        principalBusinessCode: '541430',
-        grossReceipts: cents(40000),
-        supplies: cents(5000),
-        advertising: cents(2000),
-        officeExpense: cents(1500),
-        // Net profit: $40,000 - $8,500 = $31,500
+    filingStatus: 'single',
+    taxpayer: {
+      firstName: 'Sara',
+      lastName: 'Doctor',
+      ssn: '444555666',
+      address: { street: '400 Med Way', city: 'Anytown', state: 'CA', zip: '90210' },
+    },
+    w2s: [
+      makeW2({
+        id: 'w2-1',
+        employerName: 'Hospital Corp',
+        box1: cents(250000),
+        box2: cents(50000),
       }),
     ],
-    // Combined net: $65,000 + $31,500 = $96,500
+    scheduleCBusinesses: [
+      makeScheduleC({
+        id: 'biz-sstb',
+        businessName: 'Dr. Sara Medical Consulting',
+        businessEin: '77-8901234',
+        grossReceipts: cents(120000),
+        insurance: cents(5000),
+        supplies: cents(5000),
+        // Net profit: $110,000
+        isSSTB: true,
+        qbiW2Wages: cents(20000),
+        qbiUBIA: cents(30000),
+      }),
+    ],
+    // Total QBI = $110,000
+    // AGI = $250,000 + $110,000 - SE deduction ≈ $352,225
+    // Standard deduction = $15,750
+    // Taxable income before QBI ≈ $336,475
+    // Single threshold = $191,950, phaseout range = $50,000
+    // Fully above = $191,950 + $50,000 = $241,950
+    // $336,475 > $241,950 → fully above phase-in
+    // SSTB → QBI excluded, deduction = $0
   }
 }

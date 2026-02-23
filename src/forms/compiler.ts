@@ -6,8 +6,9 @@
  * IRS attachment sequence order:
  *   Form 1040 (00) → Schedule 1 (02) → Schedule 2 (05) → Schedule 3 (06)
  *   → Schedule A (07) → Schedule B (08) → Schedule C (09) → Schedule D (12)
- *   → Form 8949 (12A) → Schedule E (13) → Schedule SE (17)
- *   → Form 8863 (18) → Form 6251 (32) → Form 8812 (47) → Form 8889 (52)
+ *   → Form 8949 (12A) → Schedule E (13) → Schedule SE (17) → Form 8863 (18)
+ *   → Form 6251 (32) → Form 8812 (47) → Form 8889 (52)
+ *   → Form 8995 (55) / Form 8995-A (55A)
  */
 
 import { PDFDocument } from 'pdf-lib'
@@ -34,6 +35,8 @@ import { fillForm8889 } from './fillers/form8889Filler'
 import { fillScheduleE } from './fillers/scheduleEFiller'
 import { fillScheduleC } from './fillers/scheduleCFiller'
 import { fillScheduleSE } from './fillers/scheduleSEFiller'
+import { fillForm8995 } from './fillers/form8995Filler'
+import { fillForm8995A } from './fillers/form8995aFiller'
 import { generateCoverSheet } from './fillers/coverSheet'
 import { tracedZero } from '../model/traced'
 
@@ -95,6 +98,15 @@ export async function compileFilingPackage(
     result.scheduleSEResult.totalSETax > 0
 
   const needsForm8889 = result.hsaResult !== null
+
+  // Form 8995 (simplified) vs Form 8995-A (above-threshold):
+  // Include when QBI deduction is claimed (line 13 > 0) OR when the computation
+  // was triggered (qbiResult exists) — even if deduction is $0 due to limitations,
+  // the form documents why.
+  const needsForm8995 =
+    result.qbiResult !== null && result.qbiResult.simplifiedPath
+  const needsForm8995A =
+    result.qbiResult !== null && !result.qbiResult.simplifiedPath
 
   // ── Fill forms (in IRS attachment sequence order) ──────────
   const filledDocs: Array<{ doc: PDFDocument; summary: FormSummary }> = []
@@ -261,6 +273,24 @@ export async function compileFilingPackage(
     filledDocs.push({
       doc: f8889Doc,
       summary: { formId: 'Form 8889', sequenceNumber: '52', pageCount: f8889Doc.getPageCount() },
+    })
+  }
+
+  // Form 8995 (sequence 55) — simplified QBI deduction
+  if (needsForm8995) {
+    const f8995Doc = await fillForm8995(taxReturn, result.qbiResult!)
+    filledDocs.push({
+      doc: f8995Doc,
+      summary: { formId: 'Form 8995', sequenceNumber: '55', pageCount: f8995Doc.getPageCount() },
+    })
+  }
+
+  // Form 8995-A (sequence 55A) — above-threshold QBI deduction
+  if (needsForm8995A) {
+    const f8995ADoc = await fillForm8995A(taxReturn, result.qbiResult!)
+    filledDocs.push({
+      doc: f8995ADoc,
+      summary: { formId: 'Form 8995-A', sequenceNumber: '55A', pageCount: f8995ADoc.getPageCount() },
     })
   }
 
