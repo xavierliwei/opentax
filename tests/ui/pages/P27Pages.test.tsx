@@ -97,8 +97,8 @@ describe('DeductionsPage', () => {
 
   it('shows standard deduction amount for single filer', () => {
     renderWithRouter(<DeductionsPage />, { route: '/interview/deductions' })
-    // Standard deduction for single is $15,000 (shown in radio + comparison)
-    expect(screen.getAllByText('$15,000').length).toBeGreaterThanOrEqual(1)
+    // Standard deduction for single in 2025 is $15,750 (shown in radio + comparison)
+    expect(screen.getAllByText('$15,750').length).toBeGreaterThanOrEqual(1)
   })
 
   it('switches to itemized and shows fields', async () => {

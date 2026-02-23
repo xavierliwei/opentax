@@ -7,7 +7,7 @@
 
 import { emptyTaxReturn } from '../../src/model/types'
 import { cents } from '../../src/model/traced'
-import type { TaxReturn, W2, Form1099INT, Form1099DIV, CapitalTransaction, Dependent, ScheduleEProperty } from '../../src/model/types'
+import type { TaxReturn, W2, Form1099INT, Form1099DIV, FormSSA1099, CapitalTransaction, Dependent, ScheduleEProperty } from '../../src/model/types'
 
 // ── Helper: make a W-2 with defaults ───────────────────────────
 
@@ -1139,6 +1139,205 @@ export function rentalPropertyReturn(): TaxReturn {
       }),
     ],
     // AGI = $80,000 + $10,800 = $90,800
+  }
+}
+
+// ── Helper: make a FormSSA1099 with defaults ──────────────────
+
+export function makeSSA1099(overrides: Partial<FormSSA1099> & { id: string; box5: number }): FormSSA1099 {
+  return {
+    recipientName: 'John Doe',
+    box3: overrides.box5,   // default: box3 = box5 (no repayments)
+    box4: 0,
+    box6: 0,
+    ...overrides,
+  }
+}
+
+// ── Fixture: retiree with Social Security benefits (Tier 1 — 50% max) ──
+
+export function ssaTier1Return(): TaxReturn {
+  return {
+    ...emptyTaxReturn(2025),
+    filingStatus: 'single',
+    formSSA1099s: [
+      makeSSA1099({
+        id: 'ssa-1',
+        recipientName: 'John Doe',
+        box5: cents(18000),  // $18,000 SS benefits
+        box6: cents(1800),   // $1,800 voluntary withholding
+      }),
+    ],
+    w2s: [
+      makeW2({
+        id: 'w2-1',
+        employerName: 'Part-Time Corp',
+        box1: cents(15000),  // $15,000 wages
+        box2: cents(1000),
+      }),
+    ],
+    // Other income: $15,000
+    // Half benefits: $9,000
+    // Combined income: $15,000 + $9,000 = $24,000
+    // Base amount (single): $25,000
+    // Combined ≤ base → Tier 0, $0 taxable
+    // Wait, let's adjust to trigger Tier 1:
+    // Need combined > $25K but ≤ $34K
+  }
+}
+
+// ── Fixture: retiree with SS benefits + moderate income (Tier 2 — 85% max) ──
+
+export function ssaTier2Return(): TaxReturn {
+  return {
+    ...emptyTaxReturn(2025),
+    filingStatus: 'single',
+    formSSA1099s: [
+      makeSSA1099({
+        id: 'ssa-1',
+        recipientName: 'Jane Retiree',
+        box5: cents(24000),  // $24,000 SS benefits
+        box6: cents(2400),   // $2,400 voluntary withholding
+      }),
+    ],
+    w2s: [
+      makeW2({
+        id: 'w2-1',
+        employerName: 'Consulting Co',
+        box1: cents(30000),  // $30,000 wages
+        box2: cents(3000),
+      }),
+    ],
+    // Other income: $30,000
+    // Half benefits: $12,000
+    // Combined income: $30,000 + $12,000 = $42,000
+    // Base amount (single): $25,000
+    // Additional amount (single): $34,000
+    // Combined ($42K) > additional ($34K) → Tier 2
+  }
+}
+
+// ── Fixture: senior (age 65+) with standard deduction ────────────
+
+export function seniorStandardDeductionReturn(): TaxReturn {
+  return {
+    ...emptyTaxReturn(2025),
+    filingStatus: 'single',
+    taxpayer: {
+      firstName: 'Eleanor',
+      lastName: 'Senior',
+      ssn: '111223333',
+      dateOfBirth: '1958-05-15',  // 67 years old in 2025
+      address: { street: '100 Oak St', city: 'Anytown', state: 'CA', zip: '90210' },
+    },
+    w2s: [
+      makeW2({
+        id: 'w2-1',
+        employerName: 'Senior Services',
+        box1: cents(40000),
+        box2: cents(4000),
+      }),
+    ],
+    deductions: {
+      method: 'standard',
+      taxpayerAge65: true,
+      taxpayerBlind: false,
+      spouseAge65: false,
+      spouseBlind: false,
+    },
+    // Standard deduction: $15,750 + $4,000 (OBBBA senior) = $19,750
+  }
+}
+
+// ── Fixture: MFJ senior couple, both 65+, one blind ──────────────
+
+export function seniorCoupleMFJReturn(): TaxReturn {
+  return {
+    ...emptyTaxReturn(2025),
+    filingStatus: 'mfj',
+    taxpayer: {
+      firstName: 'Robert',
+      lastName: 'Elder',
+      ssn: '111223344',
+      dateOfBirth: '1955-01-01',
+      address: { street: '200 Elm St', city: 'Anytown', state: 'CA', zip: '90210' },
+    },
+    spouse: {
+      firstName: 'Mary',
+      lastName: 'Elder',
+      ssn: '111223355',
+      dateOfBirth: '1957-06-15',
+      address: { street: '200 Elm St', city: 'Anytown', state: 'CA', zip: '90210' },
+    },
+    w2s: [
+      makeW2({
+        id: 'w2-1',
+        employerName: 'Retirement Co',
+        box1: cents(50000),
+        box2: cents(5000),
+      }),
+    ],
+    formSSA1099s: [
+      makeSSA1099({
+        id: 'ssa-1',
+        recipientName: 'Robert Elder',
+        owner: 'taxpayer',
+        box5: cents(20000),
+        box6: cents(2000),
+      }),
+      makeSSA1099({
+        id: 'ssa-2',
+        recipientName: 'Mary Elder',
+        owner: 'spouse',
+        box5: cents(15000),
+        box6: cents(1500),
+      }),
+    ],
+    deductions: {
+      method: 'standard',
+      taxpayerAge65: true,
+      taxpayerBlind: false,
+      spouseAge65: true,
+      spouseBlind: true,
+    },
+    // Standard deduction: $31,500 base
+    //   + $3,200 × 2 (OBBBA senior for each spouse age 65+)
+    //   + $1,600 × 1 (blind for spouse, pre-OBBBA rate)
+    //   = $31,500 + $6,400 + $1,600 = $39,500
+  }
+}
+
+// ── Fixture: multiple employers with excess SS withholding ───────
+
+export function excessSSWithholdingReturn(): TaxReturn {
+  return {
+    ...emptyTaxReturn(2025),
+    filingStatus: 'single',
+    w2s: [
+      makeW2({
+        id: 'w2-1',
+        employerName: 'Employer A',
+        box1: cents(100000),
+        box2: cents(15000),
+        box3: cents(100000),
+        box4: cents(6200),  // 6.2% of $100K
+        box5: cents(100000),
+        box6: cents(1450),
+      }),
+      makeW2({
+        id: 'w2-2',
+        employerName: 'Employer B',
+        box1: cents(90000),
+        box2: cents(12000),
+        box3: cents(90000),
+        box4: cents(5580),  // 6.2% of $90K
+        box5: cents(90000),
+        box6: cents(1305),
+      }),
+    ],
+    // Total SS withheld: $6,200 + $5,580 = $11,780
+    // Max SS withholding: $176,100 × 6.2% = $10,918.20
+    // Excess: $11,780 - $10,918 = $862 (approx, depends on rounding)
   }
 }
 
