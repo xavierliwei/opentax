@@ -328,11 +328,53 @@ function validateK1(model: TaxReturn): FederalValidationItem[] {
   return items
 }
 
+function validateForeignTaxCredit(model: TaxReturn): FederalValidationItem[] {
+  const items: FederalValidationItem[] = []
+
+  // Check if there are foreign taxes paid
+  const foreignTaxDIV = model.form1099DIVs.reduce((s, f) => s + f.box7, 0)
+  const foreignTaxINT = model.form1099INTs.reduce((s, f) => s + f.box6, 0)
+  const totalForeignTax = foreignTaxDIV + foreignTaxINT
+
+  if (totalForeignTax <= 0) return items
+
+  // Informational: FTC is being computed
+  const threshold = model.filingStatus === 'mfj' ? 60_000 : 30_000
+  const directElection = totalForeignTax <= threshold
+  items.push({
+    code: 'FTC_COMPUTED',
+    severity: 'info',
+    message: `Foreign Tax Credit computed: $${(totalForeignTax / 100).toFixed(2)} in foreign taxes paid on passive category income (1099-DIV Box 7: $${(foreignTaxDIV / 100).toFixed(2)}, 1099-INT Box 6: $${(foreignTaxINT / 100).toFixed(2)}).${directElection ? ' Direct credit election applies (no Form 1116 required).' : ' Form 1116 is required (foreign taxes exceed direct credit threshold).'}`,
+    irsCitation: 'Form 1116 / IRC §901',
+    category: 'compliance',
+  })
+
+  // Warning: carryforward/carryback not supported
+  items.push({
+    code: 'FTC_NO_CARRYOVER',
+    severity: 'warning',
+    message: 'Foreign tax credit carryback (1 year) and carryforward (10 years) are not yet supported. If your foreign taxes exceed the limitation, the excess is shown but not tracked across years. You may be able to carry excess credits to other tax years — consult a tax professional.',
+    irsCitation: 'IRC §904(c)',
+    category: 'unsupported',
+  })
+
+  // Warning: only passive category supported
+  items.push({
+    code: 'FTC_PASSIVE_ONLY',
+    severity: 'warning',
+    message: 'Only passive category foreign income (portfolio dividends and interest) is supported. General category income (foreign wages, business income), Section 901(j) sanctioned country income, treaty-based re-sourcing, and foreign branch income are not computed. If you have non-passive foreign income, consult a tax professional.',
+    irsCitation: 'Form 1116, Part I',
+    category: 'unsupported',
+  })
+
+  return items
+}
+
 function validateUnsupportedSchedules(_model: TaxReturn): FederalValidationItem[] {
   return [{
     code: 'PHASE4_LIMITATIONS',
     severity: 'info',
-    message: 'Federal Gap Closure Phase 4 supports: W-2 wages, self-employment (Schedule C/SE), QBI deduction (Form 8995 simplified), investment income, retirement distributions, Social Security benefits, rental income (Schedule E), capital gains (Schedule D), Premium Tax Credit (Form 8962), K-1 passthrough income (ordinary, rental, interest, dividends, capital gains), and common credits/deductions. Not yet supported: farm income (Schedule F), foreign tax credit (Form 1116), K-1 SE tax (partnership Box 14), K-1 guaranteed payments (Box 4), passive activity loss limitations for K-1 rental losses, Form 8995-A (complex QBI limitations).',
+    message: 'Federal Gap Closure Phase 4 supports: W-2 wages, self-employment (Schedule C/SE), QBI deduction (Form 8995 simplified), investment income, retirement distributions, Social Security benefits, rental income (Schedule E), capital gains (Schedule D), Premium Tax Credit (Form 8962), K-1 passthrough income (ordinary, rental, interest, dividends, capital gains), Foreign Tax Credit (Form 1116, passive category), and common credits/deductions. Not yet supported: farm income (Schedule F), general category FTC, FTC carryover, K-1 SE tax (partnership Box 14), K-1 guaranteed payments (Box 4), passive activity loss limitations for K-1 rental losses, and full Form 8995-A complex QBI limitations.',
     irsCitation: 'Form 1040',
     category: 'unsupported',
   }]
@@ -358,6 +400,7 @@ export function validateFederalReturn(
     ...validateSelfEmployment(model),
     ...validateQBIDeduction(model),
     ...validateK1(model),
+    ...validateForeignTaxCredit(model),
     ...validateUnsupportedSchedules(model),
   ]
 

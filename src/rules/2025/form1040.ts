@@ -70,6 +70,8 @@ import { computeSeniorDeduction } from './seniorDeduction'
 import type { SeniorDeductionResult } from './seniorDeduction'
 import { computeRefundableCredits } from './refundableCredits'
 import type { RefundableCreditsResult } from './refundableCredits'
+import { computeForeignTaxCredit } from './foreignTaxCredit'
+import type { ForeignTaxCreditResult } from './foreignTaxCredit'
 import { validateFederalReturn } from './federalValidation'
 import type { FederalValidationResult } from './federalValidation'
 import { computeK1Aggregate } from './scheduleK1'
@@ -1086,6 +1088,9 @@ export interface Form1040Result {
   // K-1 aggregate result (passthrough entity income)
   k1Result: K1AggregateResult | null
 
+  // Foreign Tax Credit detail (Form 1116)
+  foreignTaxCreditResult: ForeignTaxCreditResult | null
+
   // Federal validation warnings
   validation: FederalValidationResult | null
 
@@ -1336,6 +1341,9 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     : tracedZero('form1040.line19', 'Form 1040, Line 19')
 
   // ── Other non-refundable credits (Line 20) ────────────────
+  // Foreign Tax Credit (Form 1116) — Schedule 3, Part I, Line 1
+  const foreignTaxCreditResult = computeForeignTaxCredit(model, line15.amount, line16.amount)
+
   const dependentCareCredit = model.dependentCare
     ? computeDependentCareCredit(model.dependentCare, model.dependents, line11.amount, earnedIncome)
     : null
@@ -1353,12 +1361,14 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     : null
 
   const line20amount =
+    (foreignTaxCreditResult.creditAmount) +
     (dependentCareCredit?.creditAmount ?? 0) +
     (saversCredit?.creditAmount ?? 0) +
     (energyCreditResult?.totalCredit ?? 0) +
     (educationCredit?.totalNonRefundable ?? 0)
 
   const line20inputs: string[] = []
+  if (foreignTaxCreditResult.creditAmount > 0) line20inputs.push('credits.foreignTaxCredit')
   if (dependentCareCredit && dependentCareCredit.creditAmount > 0) line20inputs.push('credits.dependentCare')
   if (saversCredit && saversCredit.creditAmount > 0) line20inputs.push('credits.savers')
   if (energyCreditResult && energyCreditResult.totalCredit > 0) line20inputs.push('credits.energy')
@@ -1470,6 +1480,7 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     scheduleSEResult,
     qbiResult,
     k1Result,
+    foreignTaxCreditResult: foreignTaxCreditResult.applicable ? foreignTaxCreditResult : null,
     validation,
     schedule1, scheduleA, scheduleD, scheduleE,
   }

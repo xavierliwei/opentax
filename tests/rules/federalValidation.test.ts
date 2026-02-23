@@ -12,7 +12,7 @@ import { emptyTaxReturn } from '../../src/model/types'
 import { makeW2, makeSSA1099 } from '../fixtures/returns'
 
 describe('validateFederalReturn', () => {
-  it('returns phase 3 limitations info for any return', () => {
+  it('returns phase limitations info for any return', () => {
     const model = {
       ...emptyTaxReturn(2025),
       w2s: [

@@ -29,6 +29,12 @@ export async function fillSchedule3(
   // Part I — Nonrefundable Credits
   let totalNonrefundable = 0
 
+  // Line 1: Foreign tax credit (Form 1116)
+  if (result.foreignTaxCreditResult) {
+    setDollarField(form, SCH3_PART1.line1, result.foreignTaxCreditResult.creditAmount)
+    totalNonrefundable += result.foreignTaxCreditResult.creditAmount
+  }
+
   // Line 2: Dependent care credit (Form 2441)
   if (result.dependentCareCredit) {
     setDollarField(form, SCH3_PART1.line2, result.dependentCareCredit.creditAmount)

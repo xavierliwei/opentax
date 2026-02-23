@@ -207,6 +207,7 @@ export function OCRUpload({ formType: expectedFormType }: OCRUploadProps) {
             box2: Number(fieldValues.get('box2')) || 0,
             box3: Number(fieldValues.get('box3')) || 0,
             box4: Number(fieldValues.get('box4')) || 0,
+            box6: Number(fieldValues.get('box6')) || 0,
             box8: Number(fieldValues.get('box8')) || 0,
           }
           addForm1099INT(form)
@@ -222,6 +223,7 @@ export function OCRUpload({ formType: expectedFormType }: OCRUploadProps) {
             box3: 0,
             box4: Number(fieldValues.get('box4')) || 0,
             box5: Number(fieldValues.get('box5')) || 0,
+            box7: Number(fieldValues.get('box7')) || 0,
             box11: Number(fieldValues.get('box11')) || 0,
           }
           addForm1099DIV(form)

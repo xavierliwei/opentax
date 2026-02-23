@@ -38,6 +38,7 @@ export function make1099INT(overrides: Partial<Form1099INT> & { id: string; paye
     box2: 0,
     box3: 0,
     box4: 0,
+    box6: 0,
     box8: 0,
     ...overrides,
   }
@@ -52,6 +53,7 @@ export function make1099DIV(overrides: Partial<Form1099DIV> & { id: string; paye
     box3: 0,
     box4: 0,
     box5: 0,
+    box7: 0,
     box11: 0,
     ...overrides,
   }
