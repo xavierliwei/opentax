@@ -72,6 +72,8 @@ import { computeRefundableCredits } from './refundableCredits'
 import type { RefundableCreditsResult } from './refundableCredits'
 import { validateFederalReturn } from './federalValidation'
 import type { FederalValidationResult } from './federalValidation'
+import { computeK1Aggregate } from './scheduleK1'
+import type { K1AggregateResult } from './scheduleK1'
 
 // ── Line 1a — Wages, salaries, tips ────────────────────────────
 // Sum of all W-2 Box 1 values.
@@ -120,11 +122,16 @@ export function computeLine2a(model: TaxReturn): TracedValue {
 }
 
 // ── Line 2b — Taxable interest ─────────────────────────────────
-// Sum of all 1099-INT Box 1 values.
+// Sum of all 1099-INT Box 1 values + K-1 interest income.
 
-export function computeLine2b(model: TaxReturn): TracedValue {
+export function computeLine2b(model: TaxReturn, k1Interest: number = 0): TracedValue {
   const inputIds = model.form1099INTs.map(f => `1099int:${f.id}:box1`)
-  const total = model.form1099INTs.reduce((sum, f) => sum + f.box1, 0)
+  let total = model.form1099INTs.reduce((sum, f) => sum + f.box1, 0)
+
+  if (k1Interest !== 0) {
+    total += k1Interest
+    inputIds.push('k1.totalInterest')
+  }
 
   return tracedFromComputation(
     total,
@@ -137,6 +144,9 @@ export function computeLine2b(model: TaxReturn): TracedValue {
 // ── Line 3a — Qualified dividends ──────────────────────────────
 // Sum of all 1099-DIV Box 1b values.
 // (Informational — used in QDCG worksheet, not added to total income.)
+// Note: K-1 dividends are NOT added here because the K-1 data model does
+// not yet capture the qualified/ordinary dividend breakdown. All K-1
+// dividends flow to Line 3b as ordinary dividends (conservative).
 
 export function computeLine3a(model: TaxReturn): TracedValue {
   const inputIds = model.form1099DIVs.map(f => `1099div:${f.id}:box1b`)
@@ -151,11 +161,16 @@ export function computeLine3a(model: TaxReturn): TracedValue {
 }
 
 // ── Line 3b — Ordinary dividends ───────────────────────────────
-// Sum of all 1099-DIV Box 1a values.
+// Sum of all 1099-DIV Box 1a values + K-1 dividend income.
 
-export function computeLine3b(model: TaxReturn): TracedValue {
+export function computeLine3b(model: TaxReturn, k1Dividends: number = 0): TracedValue {
   const inputIds = model.form1099DIVs.map(f => `1099div:${f.id}:box1a`)
-  const total = model.form1099DIVs.reduce((sum, f) => sum + f.box1a, 0)
+  let total = model.form1099DIVs.reduce((sum, f) => sum + f.box1a, 0)
+
+  if (k1Dividends !== 0) {
+    total += k1Dividends
+    inputIds.push('k1.totalDividends')
+  }
 
   return tracedFromComputation(
     total,
@@ -663,6 +678,7 @@ export function computeNIIT(
   agi: number,
   netCapitalGain: number,
   scheduleEIncome: number,
+  k1Result?: K1AggregateResult | null,
 ): NIITResult {
   const threshold = NIIT_THRESHOLD[model.filingStatus]
   const magiExcess = Math.max(0, agi - threshold)
@@ -671,17 +687,19 @@ export function computeNIIT(
     return { nii: 0, magiExcess: 0, niitAmount: 0 }
   }
 
-  // Taxable interest (sum of 1099-INT box 1)
+  // Taxable interest (sum of 1099-INT box 1 + K-1 interest)
   const taxableInterest = model.form1099INTs.reduce((s, f) => s + f.box1, 0)
+    + (k1Result?.totalInterest ?? 0)
 
-  // Ordinary dividends (sum of 1099-DIV box 1a)
+  // Ordinary dividends (sum of 1099-DIV box 1a + K-1 dividends)
   const ordinaryDividends = model.form1099DIVs.reduce((s, f) => s + f.box1a, 0)
+    + (k1Result?.totalDividends ?? 0)
 
-  // Net capital gain (from Schedule D line 21, already computed — passed in)
+  // Net capital gain (from Schedule D line 21, already includes K-1 cap gains)
   const capGain = Math.max(0, netCapitalGain)
 
-  // Rental/royalty income from Schedule E (net, can be negative)
-  const rentalIncome = Math.max(0, scheduleEIncome)
+  // Rental/royalty income from Schedule E + K-1 rental income (net, can be negative)
+  const rentalIncome = Math.max(0, scheduleEIncome + (k1Result?.totalRentalIncome ?? 0))
 
   // Other investment income from 1099-MISC (rents box 1, royalties box 2)
   const miscInvestmentIncome = (model.form1099MISCs ?? []).reduce(
@@ -1065,6 +1083,9 @@ export interface Form1040Result {
   // QBI deduction detail (IRC §199A)
   qbiResult: QBIDeductionResult | null
 
+  // K-1 aggregate result (passthrough entity income)
+  k1Result: K1AggregateResult | null
+
   // Federal validation warnings
   validation: FederalValidationResult | null
 
@@ -1084,11 +1105,23 @@ export interface Form1040Result {
  * Automatically computes Schedule D when capital activity exists.
  */
 export function computeForm1040(model: TaxReturn): Form1040Result {
-  // Schedule D (compute if there are capital transactions or cap gain distributions)
+  // K-1 aggregate (compute if there are K-1 forms)
+  const k1s = model.scheduleK1s ?? []
+  const hasK1 = k1s.length > 0
+  const k1Result = hasK1 ? computeK1Aggregate(k1s) : null
+
+  // Schedule D (compute if there are capital transactions, cap gain distributions, or K-1 cap gains)
   const hasCapitalActivity =
     model.capitalTransactions.length > 0 ||
-    model.form1099DIVs.some(f => f.box2a > 0)
-  const scheduleD = hasCapitalActivity ? computeScheduleD(model) : null
+    model.form1099DIVs.some(f => f.box2a > 0) ||
+    (k1Result !== null && (k1Result.totalSTCapitalGain !== 0 || k1Result.totalLTCapitalGain !== 0))
+  const scheduleD = hasCapitalActivity
+    ? computeScheduleD(
+        model,
+        k1Result?.totalSTCapitalGain ?? 0,
+        k1Result?.totalLTCapitalGain ?? 0,
+      )
+    : null
 
   // Schedule C (compute if there are sole proprietorship businesses)
   const hasScheduleC = (model.scheduleCBusinesses ?? []).length > 0
@@ -1109,26 +1142,28 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   // We'll use line9 without Schedule E contribution as a proxy.
   let scheduleE: ScheduleEResult | null = null
   if (hasScheduleEProperties) {
-    // Preliminary AGI: wages + interest + dividends + cap gains + Schedule C (no Schedule E yet)
+    // Preliminary AGI: wages + interest + dividends + cap gains + Schedule C + K-1 (no Schedule E yet)
     const prelimLine1a = computeLine1a(model)
-    const prelimLine2b = computeLine2b(model)
-    const prelimLine3b = computeLine3b(model)
+    const prelimLine2b = computeLine2b(model, k1Result?.totalInterest ?? 0)
+    const prelimLine3b = computeLine3b(model, k1Result?.totalDividends ?? 0)
     const prelimLine7 = computeLine7(scheduleD?.line21)
     const schedCIncome = scheduleCResult?.totalNetProfitCents ?? 0
-    const prelimAGI = prelimLine1a.amount + prelimLine2b.amount + prelimLine3b.amount + prelimLine7.amount + schedCIncome
+    const k1PassthroughIncome = k1Result?.totalPassthroughIncome ?? 0
+    const prelimAGI = prelimLine1a.amount + prelimLine2b.amount + prelimLine3b.amount + prelimLine7.amount + schedCIncome + k1PassthroughIncome
     scheduleE = computeScheduleE(model.scheduleEProperties, model.filingStatus, prelimAGI)
   }
 
-  // Schedule 1 (compute if there is 1099-MISC income, 1099-G income, Schedule E, or Schedule C)
+  // Schedule 1 (compute if there is 1099-MISC income, 1099-G income, Schedule E, Schedule C, or K-1 passthrough)
   const has1099MISCIncome = (model.form1099MISCs ?? []).some(
     f => f.box1 > 0 || f.box2 > 0 || f.box3 > 0,
   )
   const has1099GIncome = (model.form1099Gs ?? []).some(
     f => f.box1 > 0 || f.box2 > 0,
   )
-  const needSchedule1 = has1099MISCIncome || has1099GIncome || hasScheduleEProperties || hasScheduleC
+  const hasK1Passthrough = (k1Result?.totalPassthroughIncome ?? 0) !== 0
+  const needSchedule1 = has1099MISCIncome || has1099GIncome || hasScheduleEProperties || hasScheduleC || hasK1Passthrough
   const schedule1 = needSchedule1
-    ? computeSchedule1(model, scheduleE ?? undefined, scheduleCResult ?? undefined, scheduleSEResult ?? undefined)
+    ? computeSchedule1(model, scheduleE ?? undefined, scheduleCResult ?? undefined, scheduleSEResult ?? undefined, k1Result ?? undefined)
     : null
 
   // ── HSA (computed early — no dependency on Line 9) ──────
@@ -1138,9 +1173,9 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   const line1a = computeLine1a(model)
   const line1z = computeLine1z(line1a)
   const line2a = computeLine2a(model)
-  const line2b = computeLine2b(model)
+  const line2b = computeLine2b(model, k1Result?.totalInterest ?? 0)
   const line3a = computeLine3a(model)
-  const line3b = computeLine3b(model)
+  const line3b = computeLine3b(model, k1Result?.totalDividends ?? 0)
   const line4a = computeLine4a(model)
   const line4b = computeLine4b(model)
   const line5a = computeLine5a(model)
@@ -1313,7 +1348,7 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   // NIIT (Form 8960): 3.8% on lesser of NII or MAGI excess
   const netCapitalGain = scheduleD?.line21.amount ?? line7.amount
   const scheduleENetIncome = scheduleE?.line26.amount ?? 0
-  const niitResult = computeNIIT(model, line11.amount, netCapitalGain, scheduleENetIncome)
+  const niitResult = computeNIIT(model, line11.amount, netCapitalGain, scheduleENetIncome, k1Result)
 
   // Additional Medicare Tax (Form 8959): 0.9% on wages above threshold
   const additionalMedicareTaxResult = computeAdditionalMedicareTax(model)
@@ -1407,6 +1442,7 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     scheduleCResult,
     scheduleSEResult,
     qbiResult,
+    k1Result,
     validation,
     schedule1, scheduleA, scheduleD, scheduleE,
   }

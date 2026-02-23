@@ -126,10 +126,12 @@ export const NODE_LABELS: Record<string, string> = {
   // Schedule D
   'scheduleD.line1a': 'Short-term gain/loss (Box A)',
   'scheduleD.line1b': 'Short-term gain/loss (Box B)',
+  'scheduleD.line5': 'Short-term capital gains from K-1 entities',
   'scheduleD.line6': 'Short-term capital loss carryover from prior year',
   'scheduleD.line7': 'Net short-term capital gain or (loss)',
   'scheduleD.line8a': 'Long-term gain/loss (Box D)',
   'scheduleD.line8b': 'Long-term gain/loss (Box E)',
+  'scheduleD.line12': 'Long-term capital gains from K-1 entities',
   'scheduleD.line13': 'Capital gain distributions',
   'scheduleD.line14': 'Long-term capital loss carryover from prior year',
   'scheduleD.line15': 'Net long-term capital gain or (loss)',
@@ -651,10 +653,12 @@ export function collectAllValues(
     const sd = form1040.scheduleD
     add(sd.line1a)
     add(sd.line1b)
+    add(sd.line5)
     add(sd.line6)
     add(sd.line7)
     add(sd.line8a)
     add(sd.line8b)
+    add(sd.line12)
     add(sd.line13)
     add(sd.line14)
     add(sd.line15)

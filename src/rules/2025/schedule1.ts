@@ -19,6 +19,7 @@ import { tracedFromComputation, tracedZero } from '../../model/traced'
 import type { ScheduleEResult } from './scheduleE'
 import type { ScheduleCAggregateResult } from './scheduleC'
 import type { ScheduleSEResult } from './scheduleSE'
+import type { K1AggregateResult } from './scheduleK1'
 
 // ── Result type ──────────────────────────────────────────────────
 
@@ -39,6 +40,7 @@ export function computeSchedule1(
   scheduleE?: ScheduleEResult,
   scheduleCAggregate?: ScheduleCAggregateResult,
   scheduleSEResult?: ScheduleSEResult,
+  k1Aggregate?: K1AggregateResult,
 ): Schedule1Result {
   const forms = model.form1099MISCs ?? []
   const form1099Gs = model.form1099Gs ?? []
@@ -75,17 +77,27 @@ export function computeSchedule1(
     line3 = tracedZero('schedule1.line3', 'Schedule 1, Line 3')
   }
 
-  // Line 5 — rents and royalties
-  // If Schedule E is provided, it takes precedence (proper computation).
-  // Otherwise fallback to 1099-MISC box1 + box2 (simplified proxy).
-  let line5: TracedValue
-  if (scheduleE) {
-    line5 = scheduleE.line26.amount !== 0
-      ? tracedFromComputation(scheduleE.line26.amount, 'schedule1.line5', ['scheduleE.line26'], 'Schedule 1, Line 5')
-      : tracedZero('schedule1.line5', 'Schedule 1, Line 5')
-  } else {
-    const line5Inputs: string[] = []
-    let line5Total = 0
+  // Line 5 — rents, royalties, partnerships, S-corps, trusts
+  // Includes: Schedule E Part I (rental properties), K-1 passthrough income
+  // (ordinary + rental), and fallback 1099-MISC rents/royalties.
+  let line5Total = 0
+  const line5Inputs: string[] = []
+
+  // Schedule E Part I (rental properties)
+  if (scheduleE && scheduleE.line26.amount !== 0) {
+    line5Total += scheduleE.line26.amount
+    line5Inputs.push('scheduleE.line26')
+  }
+
+  // K-1 passthrough income (ordinary + rental) — Schedule E Part II
+  const k1Passthrough = k1Aggregate?.totalPassthroughIncome ?? 0
+  if (k1Passthrough !== 0) {
+    line5Total += k1Passthrough
+    line5Inputs.push('k1.totalPassthroughIncome')
+  }
+
+  // Fallback: 1099-MISC rents/royalties (only if no Schedule E)
+  if (!scheduleE && !k1Aggregate) {
     for (const f of forms) {
       if (f.box1 > 0) {
         line5Total += f.box1
@@ -96,10 +108,11 @@ export function computeSchedule1(
         line5Inputs.push(`1099misc:${f.id}:box2`)
       }
     }
-    line5 = line5Total > 0
-      ? tracedFromComputation(line5Total, 'schedule1.line5', line5Inputs, 'Schedule 1, Line 5')
-      : tracedZero('schedule1.line5', 'Schedule 1, Line 5')
   }
+
+  const line5: TracedValue = line5Total !== 0
+    ? tracedFromComputation(line5Total, 'schedule1.line5', line5Inputs, 'Schedule 1, Line 5')
+    : tracedZero('schedule1.line5', 'Schedule 1, Line 5')
 
   // Line 7 — Unemployment compensation (1099-G Box 1)
   let line7Total = 0

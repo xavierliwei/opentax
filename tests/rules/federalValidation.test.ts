@@ -25,7 +25,7 @@ describe('validateFederalReturn', () => {
       ],
     }
     const result = validateFederalReturn(model)
-    const phaseItem = result.items.find(i => i.code === 'PHASE3_LIMITATIONS')
+    const phaseItem = result.items.find(i => i.code === 'PHASE4_LIMITATIONS')
     expect(phaseItem).toBeDefined()
     expect(phaseItem!.severity).toBe('info')
   })

@@ -253,39 +253,74 @@ function validateK1(model: TaxReturn): FederalValidationItem[] {
   }
 
   const items: FederalValidationItem[] = []
-  // total ordinary K-1 income is captured in totalAllIncome aggregation below
   const totalAllIncome = k1s.reduce((s, k) =>
     s + k.ordinaryIncome + k.rentalIncome + k.interestIncome +
     k.dividendIncome + k.shortTermCapitalGain + k.longTermCapitalGain, 0)
 
+  // K-1 income is now computed — emit info about what's included
   items.push({
-    code: 'K1_INCOME_NOT_COMPUTED',
-    severity: 'error',
-    message: `${k1s.length} Schedule K-1 form${k1s.length > 1 ? 's' : ''} detected with total reported income of $${(totalAllIncome / 100).toFixed(0)}. K-1 income is captured in the data model but full tax computation for passthrough income is NOT yet implemented. The K-1 income, deductions, and credits are NOT included in this return. This may significantly understate your tax liability. Do NOT file this return without professional review.`,
+    code: 'K1_INCOME_COMPUTED',
+    severity: 'info',
+    message: `${k1s.length} Schedule K-1 form${k1s.length > 1 ? 's' : ''} with total passthrough income of $${(totalAllIncome / 100).toFixed(0)} included in return. Ordinary/rental income → Schedule 1 Line 5, interest → Line 2b, dividends → Line 3b, capital gains → Schedule D, QBI → Form 8995.`,
     irsCitation: 'Schedule K-1 (Form 1065/1120-S/1041)',
-    category: 'unsupported',
+    category: 'compliance',
   })
 
-  // QBI from K-1 is partially supported (flows to QBI deduction if below threshold)
-  const totalK1QBI = k1s.reduce((s, k) => s + k.section199AQBI, 0)
-  if (totalK1QBI > 0) {
+  // Warn that K-1 dividends are treated as non-qualified (conservative)
+  const totalDividends = k1s.reduce((s, k) => s + k.dividendIncome, 0)
+  if (totalDividends > 0) {
     items.push({
-      code: 'K1_QBI_PARTIAL',
+      code: 'K1_DIVIDENDS_NOT_QUALIFIED',
       severity: 'warning',
-      message: `K-1 Section 199A QBI of $${(totalK1QBI / 100).toFixed(0)} detected. QBI deduction is computed but the underlying K-1 income is not yet included in the return. The QBI deduction may be inaccurate.`,
-      irsCitation: 'IRC §199A',
+      message: `K-1 dividends of $${(totalDividends / 100).toFixed(0)} are treated as ordinary (non-qualified) dividends because the qualified dividend breakdown is not yet captured. This may overstate tax if some dividends qualify for the preferential rate. Verify with your K-1 Schedule for Box 6b (qualified dividends).`,
+      irsCitation: 'Form 1040, Line 3a',
       category: 'accuracy',
     })
   }
+
+  // Warn about rental income PAL limitations not applied
+  const totalRentalLoss = k1s.reduce((s, k) => s + Math.min(0, k.rentalIncome), 0)
+  if (totalRentalLoss < 0) {
+    items.push({
+      code: 'K1_RENTAL_LOSS_NO_PAL',
+      severity: 'warning',
+      message: `K-1 rental loss of $${(Math.abs(totalRentalLoss) / 100).toFixed(0)} is included without passive activity loss limitations. Actual deductibility depends on at-risk and passive activity rules (IRC §465/§469) which require basis tracking not yet modeled. The loss may be overstated.`,
+      irsCitation: 'IRC §469, Form 8582',
+      category: 'accuracy',
+    })
+  }
+
+  // Warn about SE income not computed from partnership K-1s
+  const partnershipOrdinary = k1s
+    .filter(k => k.entityType === 'partnership')
+    .reduce((s, k) => s + k.ordinaryIncome, 0)
+  if (partnershipOrdinary > 0) {
+    items.push({
+      code: 'K1_PARTNERSHIP_SE_NOT_COMPUTED',
+      severity: 'warning',
+      message: `Partnership ordinary income of $${(partnershipOrdinary / 100).toFixed(0)} may be subject to self-employment tax depending on your participation (general partner vs. limited partner). SE tax on K-1 partnership income is not yet computed. Consult IRS instructions for Schedule K-1 (Form 1065) Box 14.`,
+      irsCitation: 'Schedule SE, K-1 Box 14',
+      category: 'accuracy',
+    })
+  }
+
+  // Unsupported K-1 items warning (guaranteed payments, foreign taxes, AMT, etc.)
+  items.push({
+    code: 'K1_UNSUPPORTED_BOXES',
+    severity: 'info',
+    message: 'K-1 computation supports: Box 1 (ordinary income), Box 2 (rental), Box 5 (interest), Box 6a (dividends), Box 8/9a (capital gains), and Box 20 Code Z / Box 17 Code V (QBI). Not yet supported: guaranteed payments (Box 4), royalties, foreign taxes (Box 16), AMT items, tax-exempt income, and other code-specific items. Review your K-1 for items requiring manual adjustment.',
+    irsCitation: 'Schedule K-1',
+    category: 'unsupported',
+  })
 
   return items
 }
 
 function validateUnsupportedSchedules(_model: TaxReturn): FederalValidationItem[] {
   return [{
-    code: 'PHASE3_LIMITATIONS',
+    code: 'PHASE4_LIMITATIONS',
     severity: 'info',
-    message: 'Federal Gap Closure Phase 3 supports: W-2 wages, self-employment (Schedule C/SE), QBI deduction (Form 8995 simplified), investment income, retirement distributions, Social Security benefits, rental income (Schedule E), capital gains (Schedule D), Premium Tax Credit (Form 8962), and common credits/deductions. K-1 data model is captured but computation is not yet supported. Not yet supported: farm income (Schedule F), foreign tax credit (Form 1116), full K-1 passthrough tax computation, Form 8995-A (complex QBI limitations).',
+    message: 'Federal Gap Closure Phase 4 supports: W-2 wages, self-employment (Schedule C/SE), QBI deduction (Form 8995 simplified), investment income, retirement distributions, Social Security benefits, rental income (Schedule E), capital gains (Schedule D), Premium Tax Credit (Form 8962), K-1 passthrough income (ordinary, rental, interest, dividends, capital gains), and common credits/deductions. Not yet supported: farm income (Schedule F), foreign tax credit (Form 1116), K-1 SE tax (partnership Box 14), K-1 guaranteed payments (Box 4), passive activity loss limitations for K-1 rental losses, Form 8995-A (complex QBI limitations).',
     irsCitation: 'Form 1040',
     category: 'unsupported',
   }]

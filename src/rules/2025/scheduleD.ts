@@ -23,12 +23,14 @@ export interface ScheduleDResult {
   // Part I — Short-Term
   line1a: TracedValue   // 8949 category A totals (gain/loss)
   line1b: TracedValue   // 8949 category B totals (gain/loss)
+  line5: TracedValue    // ST capital gains from K-1 passthrough entities
   line6: TracedValue    // Short-term capital loss carryover from prior year
   line7: TracedValue    // Net short-term gain/(loss)
 
   // Part II — Long-Term
   line8a: TracedValue   // 8949 category D totals (gain/loss)
   line8b: TracedValue   // 8949 category E totals (gain/loss)
+  line12: TracedValue   // LT capital gains from K-1 passthrough entities
   line13: TracedValue   // Capital gain distributions (from 1099-DIV Box 2a)
   line14: TracedValue   // Long-term capital loss carryover from prior year
   line15: TracedValue   // Net long-term gain/(loss)
@@ -43,7 +45,11 @@ export interface ScheduleDResult {
 
 // ── Computation ────────────────────────────────────────────────
 
-export function computeScheduleD(model: TaxReturn): ScheduleDResult {
+export function computeScheduleD(
+  model: TaxReturn,
+  k1STCapitalGain: number = 0,
+  k1LTCapitalGain: number = 0,
+): ScheduleDResult {
   const form8949 = computeForm8949(model.capitalTransactions, model.form1099Bs)
 
   // ── Part I — Short-Term ──────────────────────────────────────
@@ -65,6 +71,11 @@ export function computeScheduleD(model: TaxReturn): ScheduleDResult {
     'Schedule D, Line 1b',
   )
 
+  // Line 5 — Short-term capital gains from K-1 passthrough entities
+  const line5 = k1STCapitalGain !== 0
+    ? tracedFromComputation(k1STCapitalGain, 'scheduleD.line5', ['k1.totalSTCapitalGain'], 'Schedule D, Line 5')
+    : tracedZero('scheduleD.line5', 'Schedule D, Line 5')
+
   // Line 6 — Short-term capital loss carryover from prior year (entered as positive, applied as negative)
   const stCarryover = model.priorYear?.capitalLossCarryforwardST ?? 0
   const line6 = tracedFromComputation(
@@ -74,11 +85,14 @@ export function computeScheduleD(model: TaxReturn): ScheduleDResult {
     'Schedule D, Line 6',
   )
 
-  // Line 7 = net short-term = Line 1a + Line 1b + Line 6
+  // Line 7 = net short-term = Line 1a + Line 1b + Line 5 + Line 6
+  const line7Inputs = ['scheduleD.line1a', 'scheduleD.line1b']
+  if (k1STCapitalGain !== 0) line7Inputs.push('scheduleD.line5')
+  line7Inputs.push('scheduleD.line6')
   const line7 = tracedFromComputation(
-    line1a.amount + line1b.amount + line6.amount,
+    line1a.amount + line1b.amount + line5.amount + line6.amount,
     'scheduleD.line7',
-    ['scheduleD.line1a', 'scheduleD.line1b', 'scheduleD.line6'],
+    line7Inputs,
     'Schedule D, Line 7',
   )
 
@@ -101,6 +115,11 @@ export function computeScheduleD(model: TaxReturn): ScheduleDResult {
     'Schedule D, Line 8b',
   )
 
+  // Line 12 — Long-term capital gains from K-1 passthrough entities
+  const line12 = k1LTCapitalGain !== 0
+    ? tracedFromComputation(k1LTCapitalGain, 'scheduleD.line12', ['k1.totalLTCapitalGain'], 'Schedule D, Line 12')
+    : tracedZero('scheduleD.line12', 'Schedule D, Line 12')
+
   // Line 13 — Capital gain distributions from 1099-DIV Box 2a
   const capGainDist = model.form1099DIVs.reduce((sum, f) => sum + f.box2a, 0)
   const line13 = capGainDist > 0
@@ -121,11 +140,14 @@ export function computeScheduleD(model: TaxReturn): ScheduleDResult {
     'Schedule D, Line 14',
   )
 
-  // Line 15 = net long-term = Line 8a + Line 8b + Line 13 + Line 14
+  // Line 15 = net long-term = Line 8a + Line 8b + Line 12 + Line 13 + Line 14
+  const line15Inputs = ['scheduleD.line8a', 'scheduleD.line8b']
+  if (k1LTCapitalGain !== 0) line15Inputs.push('scheduleD.line12')
+  line15Inputs.push('scheduleD.line13', 'scheduleD.line14')
   const line15 = tracedFromComputation(
-    line8a.amount + line8b.amount + line13.amount + line14.amount,
+    line8a.amount + line8b.amount + line12.amount + line13.amount + line14.amount,
     'scheduleD.line15',
-    ['scheduleD.line8a', 'scheduleD.line8b', 'scheduleD.line13', 'scheduleD.line14'],
+    line15Inputs,
     'Schedule D, Line 15',
   )
 
@@ -166,8 +188,8 @@ export function computeScheduleD(model: TaxReturn): ScheduleDResult {
 
   return {
     form8949,
-    line1a, line1b, line6, line7,
-    line8a, line8b, line13, line14, line15,
+    line1a, line1b, line5, line6, line7,
+    line8a, line8b, line12, line13, line14, line15,
     line16, line21,
     capitalLossCarryforward,
   }

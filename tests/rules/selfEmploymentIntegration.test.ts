@@ -342,7 +342,7 @@ describe('Self-employment full integration', () => {
 })
 
 describe('K-1 model integration', () => {
-  it('K-1 data is captured but does not affect computation (except QBI)', () => {
+  it('K-1 income flows into Form 1040 computation', () => {
     const model = {
       ...emptyTaxReturn(2025),
       w2s: [
@@ -377,17 +377,33 @@ describe('K-1 model integration', () => {
     expect(result.qbiResult).not.toBeNull()
     expect(result.qbiResult!.totalQBI).toBe(cents(50000))
 
-    // But K-1 ordinary income does NOT flow into Line 9 (not yet implemented)
-    // Only W-2 wages are in income
+    // K-1 interest flows into Line 2b
+    expect(result.line2b.amount).toBe(cents(2000))
+
+    // K-1 dividends flow into Line 3b
+    expect(result.line3b.amount).toBe(cents(1000))
+
+    // K-1 ordinary income flows through Schedule 1 Line 5
+    expect(result.schedule1).not.toBeNull()
+    expect(result.schedule1!.line5.amount).toBe(cents(50000))
+
+    // K-1 LT capital gains flow through Schedule D
+    expect(result.scheduleD).not.toBeNull()
+    expect(result.scheduleD!.line12.amount).toBe(cents(10000))
+
+    // W-2 wages unchanged
     expect(result.line1a.amount).toBe(cents(80000))
 
-    // Validation should flag K-1 as error
-    const k1Error = result.validation!.items.find(i => i.code === 'K1_INCOME_NOT_COMPUTED')
-    expect(k1Error).toBeDefined()
-    expect(k1Error!.severity).toBe('error')
+    // Line 9 should include all K-1 income
+    expect(result.line9.amount).toBeGreaterThan(cents(80000))
+
+    // Validation should flag K-1 as computed (info)
+    const k1Info = result.validation!.items.find(i => i.code === 'K1_INCOME_COMPUTED')
+    expect(k1Info).toBeDefined()
+    expect(k1Info!.severity).toBe('info')
   })
 
-  it('K-1 QBI partial warning emitted when K-1 has QBI', () => {
+  it('K-1 validation includes computed info when K-1 has QBI', () => {
     const model = {
       ...emptyTaxReturn(2025),
       scheduleK1s: [
@@ -410,9 +426,14 @@ describe('K-1 model integration', () => {
 
     const result = computeForm1040(model)
 
-    const qbiPartial = result.validation!.items.find(i => i.code === 'K1_QBI_PARTIAL')
-    expect(qbiPartial).toBeDefined()
-    expect(qbiPartial!.severity).toBe('warning')
+    // K-1 income is computed now, so no error
+    const k1Error = result.validation!.items.find(i => i.code === 'K1_INCOME_NOT_COMPUTED')
+    expect(k1Error).toBeUndefined()
+
+    // K-1 computed info should be present
+    const k1Info = result.validation!.items.find(i => i.code === 'K1_INCOME_COMPUTED')
+    expect(k1Info).toBeDefined()
+    expect(k1Info!.severity).toBe('info')
   })
 
   it('no K-1 validation items when no K-1s present', () => {
@@ -420,7 +441,7 @@ describe('K-1 model integration', () => {
     const result = computeForm1040(model)
 
     const k1Items = result.validation!.items.filter(i =>
-      i.code === 'K1_INCOME_NOT_COMPUTED' || i.code === 'K1_QBI_PARTIAL')
+      i.code.startsWith('K1_'))
     expect(k1Items.length).toBe(0)
   })
 })
@@ -461,10 +482,10 @@ describe('Validation integration for Phase 3', () => {
     expect(qbiInfo).toBeDefined()
   })
 
-  it('emits PHASE3_LIMITATIONS for all returns', () => {
+  it('emits PHASE4_LIMITATIONS for all returns', () => {
     const model = emptyTaxReturn(2025)
     const result = computeForm1040(model)
-    const item = result.validation!.items.find(i => i.code === 'PHASE3_LIMITATIONS')
+    const item = result.validation!.items.find(i => i.code === 'PHASE4_LIMITATIONS')
     expect(item).toBeDefined()
   })
 
