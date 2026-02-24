@@ -12,6 +12,7 @@ import { simpleW2Return, makeW2 } from '../fixtures/returns'
 import { cents } from '../../src/model/traced'
 import { getStateFormCompiler } from '../../src/forms/stateFormRegistry'
 import { caFormCompiler } from '../../src/forms/fillers/form540Filler'
+import { dcFormCompiler } from '../../src/forms/fillers/formD40Filler'
 import { computeAll } from '../../src/rules/engine'
 import type { TaxReturn } from '../../src/model/types'
 import { emptyTaxReturn } from '../../src/model/types'
@@ -65,6 +66,31 @@ function makeCAReturn(): TaxReturn {
   }
 }
 
+function makeDCReturn(): TaxReturn {
+  return {
+    ...emptyTaxReturn(2025),
+    taxpayer: {
+      firstName: 'DC',
+      lastName: 'User',
+      ssn: '123456781',
+      dateOfBirth: '1990-01-01',
+      address: { street: '123 Main St', city: 'Washington', state: 'DC', zip: '20001' },
+    },
+    stateReturns: [{ stateCode: 'DC', residencyType: 'full-year' }],
+    w2s: [
+      makeW2({
+        id: 'w2-1',
+        employerName: 'District Co',
+        box1: cents(90000),
+        box2: cents(12000),
+        box15State: 'DC',
+        box16StateWages: cents(90000),
+        box17StateIncomeTax: cents(3500),
+      }),
+    ],
+  }
+}
+
 // ── State Form Registry ──────────────────────────────────────
 
 describe('State Form Registry', () => {
@@ -72,6 +98,12 @@ describe('State Form Registry', () => {
     const compiler = getStateFormCompiler('CA')
     expect(compiler).toBeDefined()
     expect(compiler!.stateCode).toBe('CA')
+  })
+
+  it('DC compiler is registered', () => {
+    const compiler = getStateFormCompiler('DC')
+    expect(compiler).toBeDefined()
+    expect(compiler!.stateCode).toBe('DC')
   })
 
   it('unknown state returns undefined', () => {
@@ -115,6 +147,20 @@ describe('CA Form 540 PDF generator', () => {
     const bytes = await compiled.doc.save()
     const reloaded = await PDFDocument.load(bytes)
     expect(reloaded.getPageCount()).toBe(1)
+  })
+})
+
+describe('DC Form D-40 PDF generator', () => {
+  it('generates a valid PDF', async () => {
+    const tr = makeDCReturn()
+    const result = computeAll(tr)
+    const stateResult = result.stateResults[0]
+
+    const compiled = await dcFormCompiler.compile(tr, stateResult, { templates: new Map() })
+
+    expect(compiled.doc.getPageCount()).toBe(1)
+    expect(compiled.forms[0].formId).toBe('DC Form D-40')
+    expect(compiled.forms[0].sequenceNumber).toBe('DC-01')
   })
 })
 

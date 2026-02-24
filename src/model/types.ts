@@ -556,7 +556,7 @@ export interface Credit {
 // ── State Return Config ────────────────────────────────────────
 
 /** Supported state codes (expand as states are added) */
-export type SupportedStateCode = 'CA'
+export type SupportedStateCode = 'CA' | 'DC'
 // Future: | 'NY' | 'NJ' | 'IL' | 'MA' | 'PA'
 
 /** Residency classification for a state return */
@@ -581,6 +581,7 @@ export interface StateReturnConfig {
 
   // State-specific flags
   rentPaid?: boolean                  // CA renter's credit
+  dcCommuterResidentState?: 'MD' | 'VA' | 'OTHER' // DC nonresident commuter status
 }
 
 // ── Tax Return (top-level) ─────────────────────────────────────
