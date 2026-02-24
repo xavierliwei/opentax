@@ -16,10 +16,11 @@ describe('State Engine — registry', () => {
     expect(mod!.formLabel).toBe('CA Form 540')
   })
 
-  it('getSupportedStates returns CA', () => {
+  it('getSupportedStates returns CA and MA', () => {
     const states = getSupportedStates()
-    expect(states.length).toBeGreaterThanOrEqual(1)
+    expect(states.length).toBeGreaterThanOrEqual(2)
     expect(states.find(s => s.code === 'CA')).toBeDefined()
+    expect(states.find(s => s.code === 'MA')).toBeDefined()
   })
 
   it('unknown state returns undefined', () => {
@@ -137,6 +138,41 @@ describe('State Engine — computeAll integration', () => {
     expect(result.values.has('form540.caTaxableIncome')).toBe(true)
     expect(result.values.has('form540.caTax')).toBe(true)
     expect(result.values.has('form540.taxAfterCredits')).toBe(true)
+  })
+
+  it('stateResults contains MA when MA is in stateReturns', () => {
+    const tr = makeTr({
+      stateReturns: [{ stateCode: 'MA', residencyType: 'full-year' }],
+      w2s: [{
+        id: 'w2-1',
+        employerEin: '12-3456789',
+        employerName: 'Test',
+        box1: 10000000,
+        box2: 1500000,
+        box3: 10000000,
+        box4: 620000,
+        box5: 10000000,
+        box6: 145000,
+        box7: 0,
+        box8: 0,
+        box10: 0,
+        box11: 0,
+        box12: [],
+        box13StatutoryEmployee: false,
+        box13RetirementPlan: false,
+        box13ThirdPartySickPay: false,
+        box14: '',
+        box15State: 'MA',
+        box16StateWages: 10000000,
+        box17StateIncomeTax: 350000,
+      }],
+    })
+    const result = computeAll(tr)
+    expect(result.stateResults).toHaveLength(1)
+    expect(result.stateResults[0].stateCode).toBe('MA')
+    expect(result.stateResults[0].formLabel).toBe('MA Form 1')
+    expect(result.values.has('form1.maAGI')).toBe(true)
+    expect(result.values.has('form1.maIncomeTax')).toBe(true)
   })
 })
 

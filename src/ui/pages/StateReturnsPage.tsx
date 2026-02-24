@@ -69,7 +69,9 @@ export function StateReturnsPage() {
                     pubName={`${stateName} — Filing Requirements`}
                     pubUrl={code === 'CA'
                       ? 'https://www.ftb.ca.gov/file/personal/residency-status/index.html'
-                      : '#'
+                      : code === 'MA'
+                        ? 'https://www.mass.gov/guides/learn-about-legal-and-residency-status-in-massachusetts'
+                        : '#'
                     }
                   />
                 </span>
