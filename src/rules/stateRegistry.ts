@@ -11,6 +11,7 @@ import { flModule } from './2025/fl/module'
 import { gaModule } from './2025/ga/module'
 import { maModule } from './2025/ma/module'
 import { mdModule } from './2025/md/module'
+import { ncModule } from './2025/nc/module'
 import { njModule } from './2025/nj/module'
 import { paModule } from './2025/pa/module'
 import { vaModule } from './2025/va/module'
@@ -23,6 +24,7 @@ const STATE_MODULES: Map<SupportedStateCode, StateRulesModule> = new Map([
   ['GA', gaModule],
   ['MA', maModule],
   ['MD', mdModule],
+  ['NC', ncModule],
   ['NJ', njModule],
   ['PA', paModule],
   ['VA', vaModule],

@@ -17,6 +17,7 @@ import { mdFormCompiler } from '../../src/forms/fillers/form502Filler'
 import { njFormCompiler } from '../../src/forms/fillers/nj1040Filler'
 import { paFormCompiler } from '../../src/forms/fillers/formPA40Filler'
 import { dcFormCompiler } from '../../src/forms/fillers/formD40Filler'
+import { ncFormCompiler } from '../../src/forms/fillers/formD400Filler'
 import { computeAll } from '../../src/rules/engine'
 import type { TaxReturn } from '../../src/model/types'
 import { emptyTaxReturn } from '../../src/model/types'
@@ -196,6 +197,7 @@ function makeVAReturn(): TaxReturn {
 }
 
 function makePAReturn(): TaxReturn {
+function makeNCReturn(): TaxReturn {
   return {
     ...emptyTaxReturn(2025),
     taxpayer: {
@@ -206,6 +208,9 @@ function makePAReturn(): TaxReturn {
       address: { street: '123 Main St', city: 'Pittsburgh', state: 'PA', zip: '15222' },
     },
     stateReturns: [{ stateCode: 'PA', residencyType: 'full-year' }],
+      address: { street: '123 Main St', city: 'Raleigh', state: 'NC', zip: '27601' },
+    },
+    stateReturns: [{ stateCode: 'NC', residencyType: 'full-year' }],
     w2s: [
       makeW2({
         id: 'w2-1',
@@ -215,6 +220,9 @@ function makePAReturn(): TaxReturn {
         box15State: 'PA',
         box16StateWages: cents(100000),
         box17StateIncomeTax: cents(2500),
+        box15State: 'NC',
+        box16StateWages: cents(100000),
+        box17StateIncomeTax: cents(3000),
       }),
     ],
   }
@@ -269,6 +277,10 @@ describe('State Form Registry', () => {
     const compiler = getStateFormCompiler('FL')
     expect(compiler).toBeDefined()
     expect(compiler!.stateCode).toBe('FL')
+  it('NC compiler is registered', () => {
+    const compiler = getStateFormCompiler('NC')
+    expect(compiler).toBeDefined()
+    expect(compiler!.stateCode).toBe('NC')
   })
 
   it('unknown state returns undefined', () => {
@@ -407,6 +419,16 @@ describe('DC Form D-40 PDF generator', () => {
     expect(compiled.doc.getPageCount()).toBe(1)
     expect(compiled.forms[0].formId).toBe('DC Form D-40')
     expect(compiled.forms[0].sequenceNumber).toBe('DC-01')
+describe('NC Form D-400 PDF generator', () => {
+  it('generates a valid PDF', async () => {
+    const tr = makeNCReturn()
+    const result = computeAll(tr)
+    const stateResult = result.stateResults[0]
+
+    const compiled = await ncFormCompiler.compile(tr, stateResult, { templates: new Map() })
+    expect(compiled.doc.getPageCount()).toBe(1)
+    expect(compiled.forms[0].formId).toBe('NC Form D-400')
+    expect(compiled.forms[0].sequenceNumber).toBe('NC-01')
   })
 })
 
@@ -447,6 +469,8 @@ describe('compileFilingPackage — state form integration', () => {
     const tr = makeGAReturn()
   it('PA return includes PA-40 in combined PDF', async () => {
     const tr = makePAReturn()
+  it('NC return includes NC Form D-400 in combined PDF', async () => {
+    const tr = makeNCReturn()
 
     const result = await compileFilingPackage(tr, templates)
 
@@ -522,6 +546,13 @@ describe('compileFilingPackage — state form integration', () => {
     const paForm = result.formsIncluded.find(f => f.formId === 'PA-40')
     expect(paForm).toBeDefined()
     expect(paForm!.pageCount).toBe(1)
+    expect(result.statePackages[0].stateCode).toBe('NC')
+    expect(result.statePackages[0].label).toBe('NC Form D-400')
+    expect(result.statePackages[0].pdfBytes.length).toBeGreaterThan(0)
+
+    const ncForm = result.formsIncluded.find(f => f.formId === 'NC Form D-400')
+    expect(ncForm).toBeDefined()
+    expect(ncForm!.pageCount).toBe(1)
   })
 
   it('combined PDF has more pages when CA is selected', async () => {

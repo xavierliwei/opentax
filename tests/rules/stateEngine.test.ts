@@ -62,6 +62,18 @@ describe('State Engine — registry', () => {
     expect(states.length).toBeGreaterThanOrEqual(2)
     expect(states.find(s => s.code === 'CA')).toBeDefined()
     expect(states.find(s => s.code === 'DC')).toBeDefined()
+  it('NC module is registered', () => {
+    const mod = getStateModule('NC')
+    expect(mod).toBeDefined()
+    expect(mod!.stateCode).toBe('NC')
+    expect(mod!.formLabel).toBe('NC Form D-400')
+  })
+
+  it('getSupportedStates returns CA and NC', () => {
+    const states = getSupportedStates()
+    expect(states.length).toBeGreaterThanOrEqual(2)
+    expect(states.find(s => s.code === 'CA')).toBeDefined()
+    expect(states.find(s => s.code === 'NC')).toBeDefined()
   })
 
   it('unknown state returns undefined', () => {
@@ -137,6 +149,42 @@ describe('State Engine — computeAll integration', () => {
     expect(result.stateResults[0].stateCode).toBe('PA')
     expect(result.stateResults[0].formLabel).toBe('PA-40')
     expect(result.stateResults[0].stateWithholding).toBe(500000)
+  })
+
+  it('stateResults contains NC when NC is in stateReturns', () => {
+    const tr = makeTr({
+      stateReturns: [{ stateCode: 'NC', residencyType: 'full-year' }],
+      w2s: [{
+        id: 'w2-1',
+        employerEin: '12-3456789',
+        employerName: 'Test',
+        box1: 10000000,
+        box2: 1500000,
+        box3: 10000000,
+        box4: 620000,
+        box5: 10000000,
+        box6: 145000,
+        box7: 0,
+        box8: 0,
+        box10: 0,
+        box11: 0,
+        box12: [],
+        box13StatutoryEmployee: false,
+        box13RetirementPlan: false,
+        box13ThirdPartySickPay: false,
+        box14: '',
+        box15State: 'NC',
+        box16StateWages: 10000000,
+        box17StateIncomeTax: 300000,
+      }],
+    })
+    const result = computeAll(tr)
+    expect(result.stateResults).toHaveLength(1)
+    expect(result.stateResults[0].stateCode).toBe('NC')
+    expect(result.stateResults[0].formLabel).toBe('NC Form D-400')
+    expect(result.stateResults[0].stateWithholding).toBe(300000)
+    expect(result.executedSchedules).toContain('NC')
+    expect(result.values.has('formd400.ncAGI')).toBe(true)
   })
 
   it('form540 backward compat is populated from stateResults', () => {
