@@ -163,6 +163,30 @@ describe('NJ-1040 — tax brackets', () => {
     expect(result.line39_njTax).toBe(expected)
   })
 
+  it('MFS uses single brackets', () => {
+    const result = computeNJ({
+      filingStatus: 'mfs',
+      w2s: [makeW2({ id: 'w', employerName: 'X', box1: cents(80000), box2: cents(8000), box15State: 'NJ' })],
+    })
+
+    const expected = computeBracketTax(result.line38_njTaxableIncome, NJ_TAX_BRACKETS.mfs)
+    expect(result.line39_njTax).toBe(expected)
+    // MFS uses single brackets
+    expect(NJ_TAX_BRACKETS.mfs).toBe(NJ_TAX_BRACKETS.single)
+  })
+
+  it('QW uses MFJ brackets', () => {
+    const result = computeNJ({
+      filingStatus: 'qw',
+      w2s: [makeW2({ id: 'w', employerName: 'X', box1: cents(100000), box2: cents(10000), box15State: 'NJ' })],
+    })
+
+    const expected = computeBracketTax(result.line38_njTaxableIncome, NJ_TAX_BRACKETS.qw)
+    expect(result.line39_njTax).toBe(expected)
+    // QW uses MFJ brackets
+    expect(NJ_TAX_BRACKETS.qw).toBe(NJ_TAX_BRACKETS.mfj)
+  })
+
   it('income in first bracket (1.4%)', () => {
     const result = computeNJ({
       w2s: [makeW2({ id: 'w', employerName: 'X', box1: cents(15000), box2: cents(0), box15State: 'NJ' })],
