@@ -94,6 +94,8 @@ export function StateReturnsPage() {
                         ? 'https://www.marylandtaxes.gov/individual/income/tax-info/'
                       : code === 'NJ'
                         ? NJ_RESIDENCY_OVERVIEW_URL
+                      : code === 'PA'
+                        ? 'https://www.revenue.pa.gov/TaxTypes/PIT/Pages/default.aspx'
                         : '#'
                     }
                   />
