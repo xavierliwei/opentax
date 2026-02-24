@@ -7,6 +7,7 @@ import type { StateRulesModule } from './stateEngine'
 import { caModule } from './2025/ca/module'
 import { ctModule } from './2025/ct/module'
 import { dcModule } from './2025/dc/module'
+import { flModule } from './2025/fl/module'
 import { gaModule } from './2025/ga/module'
 import { maModule } from './2025/ma/module'
 import { mdModule } from './2025/md/module'
@@ -18,6 +19,7 @@ const STATE_MODULES: Map<SupportedStateCode, StateRulesModule> = new Map([
   ['CA', caModule],
   ['CT', ctModule],
   ['DC', dcModule],
+  ['FL', flModule],
   ['GA', gaModule],
   ['MA', maModule],
   ['MD', mdModule],

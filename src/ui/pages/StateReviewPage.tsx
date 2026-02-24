@@ -140,6 +140,16 @@ export function StateReviewPage() {
         }. Click [?] to see how any number was calculated.
       </p>
 
+      {(stateResult.disclosures ?? []).length > 0 && (
+        <div className="mt-3 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+          <ul className="list-disc pl-5 space-y-1">
+            {(stateResult.disclosures ?? []).map((disclosure) => (
+              <li key={disclosure}>{disclosure}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {stateModule.reviewLayout.map((section) => {
         const visibleItems = section.items.filter(
           (item) => !item.showWhen || item.showWhen(stateResult),
