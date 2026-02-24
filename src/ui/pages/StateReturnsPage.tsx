@@ -23,6 +23,22 @@ const RESIDENCY_OPTIONS: { value: ResidencyType; label: string; description: str
   },
 ]
 
+const NJ_TAX_GUIDE_URL = 'https://www.nj.gov/treasury/taxation/pdf/current/1040i.pdf'
+const NJ_RESIDENCY_OVERVIEW_URL = 'https://www.nj.gov/treasury/taxation/njit24.shtml'
+
+export function getPartYearDateError(
+  moveInDate?: string,
+  moveOutDate?: string,
+): string | null {
+  if (!moveInDate && !moveOutDate) {
+    return 'Enter at least one date for part-year residency (move-in or move-out).'
+  }
+  if (moveInDate && moveOutDate && moveInDate > moveOutDate) {
+    return 'Move-in date must be before move-out date.'
+  }
+  return null
+}
+
 export function StateReturnsPage() {
   const taxReturn = useTaxStore((s) => s.taxReturn)
   const stateReturns = taxReturn.stateReturns ?? []
@@ -71,7 +87,7 @@ export function StateReturnsPage() {
                     pubUrl={code === 'CA'
                       ? 'https://www.ftb.ca.gov/file/personal/residency-status/index.html'
                       : code === 'NJ'
-                        ? 'https://www.nj.gov/treasury/taxation/njit24.shtml'
+                        ? NJ_RESIDENCY_OVERVIEW_URL
                         : '#'
                     }
                   />
@@ -127,6 +143,11 @@ export function StateReturnsPage() {
                     <p className="text-xs text-amber-800 font-medium">
                       Enter the dates you lived in {stateName} during the tax year.
                     </p>
+                    {code === 'NJ' && (
+                      <p className="text-xs text-amber-700">
+                        NJ part-year and nonresident filing uses Form NJ-1040NR. OpenTax currently provides a resident estimate only.
+                      </p>
+                    )}
                     <div className="flex flex-col sm:flex-row gap-2">
                       <div className="flex-1">
                         <label className="block text-xs text-gray-600 mb-0.5">Moved in</label>
@@ -159,10 +180,11 @@ export function StateReturnsPage() {
                         <p className="text-xs text-gray-400 mt-0.5">Leave blank if Dec 31</p>
                       </div>
                     </div>
-                    {getConfig(code)?.moveInDate && getConfig(code)?.moveOutDate &&
-                     getConfig(code)!.moveInDate! > getConfig(code)!.moveOutDate! && (
-                      <p className="text-xs text-red-600">Move-in date must be before move-out date.</p>
-                    )}
+                    {(() => {
+                      const partYearDateError = getPartYearDateError(getConfig(code)?.moveInDate, getConfig(code)?.moveOutDate)
+                      if (!partYearDateError) return null
+                      return <p className="text-xs text-red-600">{partYearDateError}</p>
+                    })()}
                   </div>
                 )}
 
@@ -205,7 +227,7 @@ export function StateReturnsPage() {
                         <InfoTooltip
                           explanation="NJ allows a property tax deduction (up to $15,000) or a $50 property tax credit. Renters use 18% of rent as deemed property tax. OpenTax auto-selects the better option."
                           pubName="NJ Property Tax Deduction/Credit"
-                          pubUrl="https://www.nj.gov/treasury/taxation/njit24.shtml"
+                          pubUrl={NJ_TAX_GUIDE_URL}
                         />
                       </legend>
                       <div className="flex flex-col gap-1.5">
@@ -301,7 +323,7 @@ export function StateReturnsPage() {
                           <InfoTooltip
                             explanation="Honorably discharged veterans of the U.S. Armed Forces qualify for a $6,000 NJ personal exemption."
                             pubName="NJ Veteran Exemption"
-                            pubUrl="https://www.nj.gov/treasury/taxation/njit24.shtml"
+                            pubUrl={NJ_TAX_GUIDE_URL}
                           />
                         </span>
                         <p className="text-xs text-gray-500">$6,000 exemption</p>

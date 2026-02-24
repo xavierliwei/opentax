@@ -83,6 +83,27 @@ describe('NJ state module — engine integration', () => {
     expect(nj!.stateTax).toBeGreaterThan(0)
   })
 
+
+
+  it('part-year NJ selection is labeled as a resident estimate', () => {
+    const tr = {
+      ...emptyTaxReturn(2025),
+      stateReturns: [{ stateCode: 'NJ' as const, residencyType: 'part-year' as const }],
+      w2s: [makeW2({
+        id: 'w2-nj-py',
+        employerName: 'Garden State Inc',
+        box1: cents(75000),
+        box2: cents(9000),
+        box15State: 'NJ',
+        box16StateWages: cents(75000),
+      })],
+    }
+
+    const result = computeAll(tr)
+    const nj = result.stateResults.find((s) => s.stateCode === 'NJ')
+    expect(nj).toBeDefined()
+    expect(nj!.formLabel).toContain('NJ-1040NR not yet supported')
+  })
   it('NJ state result has correct refund/owed', () => {
     const tr = {
       ...emptyTaxReturn(2025),

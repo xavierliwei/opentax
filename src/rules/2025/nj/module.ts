@@ -12,9 +12,12 @@ import type { StateRulesModule, StateComputeResult, StateReviewSection, StateRev
 
 /** Map a NJ1040Result into the standardised StateComputeResult */
 function toStateResult(nj: NJ1040Result): StateComputeResult {
+  const isPartYearEstimate = nj.residencyType === 'part-year'
   return {
     stateCode: 'NJ',
-    formLabel: 'NJ Form NJ-1040',
+    formLabel: isPartYearEstimate
+      ? 'NJ Form NJ-1040 (part-year estimate; NJ-1040NR not yet supported)'
+      : 'NJ Form NJ-1040',
     residencyType: nj.residencyType,
     stateAGI: nj.line29_njGrossIncome,
     stateTaxableIncome: nj.line38_njTaxableIncome,
