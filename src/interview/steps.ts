@@ -49,7 +49,7 @@ export interface InterviewStep {
 function stateReviewSteps(): InterviewStep[] {
   return getSupportedStates().map(st => ({
     id: `state-review-${st.code}`,
-    label: st.label,
+    label: `${st.code} Review`,
     path: `/interview/state-review-${st.code}`,
     section: 'review' as const,
     isVisible: (tr: TaxReturn) =>
