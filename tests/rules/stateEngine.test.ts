@@ -57,6 +57,11 @@ describe('State Engine — registry', () => {
     const states = getSupportedStates()
     expect(states.find(s => s.code === 'CA')).toBeDefined()
     expect(states.find(s => s.code === 'PA')).toBeDefined()
+  it('getSupportedStates returns CA and DC', () => {
+    const states = getSupportedStates()
+    expect(states.length).toBeGreaterThanOrEqual(2)
+    expect(states.find(s => s.code === 'CA')).toBeDefined()
+    expect(states.find(s => s.code === 'DC')).toBeDefined()
   })
 
   it('unknown state returns undefined', () => {

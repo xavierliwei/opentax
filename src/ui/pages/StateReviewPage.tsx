@@ -135,6 +135,7 @@ export function StateReviewPage() {
         Your {stateResult.formLabel.split(' ')[0]} state return
         {stateResult.residencyType === 'part-year' && stateResult.apportionmentRatio !== undefined
           ? ` (part-year resident — ${Math.round(stateResult.apportionmentRatio * 100)}% ${stateResult.stateCode})`
+          ? ` (part-year resident \u2014 ${Math.round(stateResult.apportionmentRatio * 100)}% ${stateResult.stateCode})`
           : ''
         }. Click [?] to see how any number was calculated.
       </p>

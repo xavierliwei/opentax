@@ -98,6 +98,8 @@ export function StateReturnsPage() {
                         ? 'https://www.revenue.pa.gov/TaxTypes/PIT/Pages/default.aspx'
                       : code === 'CT'
                         ? 'https://portal.ct.gov/drs/individuals/residency-status'
+                      : code === 'DC'
+                        ? 'https://otr.cfo.dc.gov/page/individual-income-tax-filing-faqs'
                         : '#'
                     }
                   />
@@ -115,7 +117,7 @@ export function StateReturnsPage() {
                   <legend className="text-sm font-medium text-gray-700 mb-1">Residency status</legend>
                   <div className="flex flex-col gap-1.5">
                     {RESIDENCY_OPTIONS.map((opt) => {
-                      const disabled = opt.value === 'nonresident' // Not yet supported
+                      const disabled = opt.value === 'nonresident' && code !== 'DC'
                       return (
                         <label
                           key={opt.value}
@@ -195,6 +197,26 @@ export function StateReturnsPage() {
                       if (!partYearDateError) return null
                       return <p className="text-xs text-red-600">{partYearDateError}</p>
                     })()}
+                  </div>
+                )}
+
+                {code === 'DC' && getConfig(code)?.residencyType === 'nonresident' && (
+                  <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                    <label className="block text-xs text-gray-600 mb-1">Home state for DC commuter reciprocity</label>
+                    <select
+                      value={getConfig(code)?.dcCommuterResidentState ?? 'OTHER'}
+                      onChange={(e) => updateStateReturn(code as SupportedStateCode, {
+                        dcCommuterResidentState: e.target.value as 'MD' | 'VA' | 'OTHER',
+                      })}
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md"
+                    >
+                      <option value="OTHER">Other state</option>
+                      <option value="MD">Maryland</option>
+                      <option value="VA">Virginia</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      MD/VA residents who only commute into DC are generally exempt from DC income tax under reciprocity.
+                    </p>
                   </div>
                 )}
 
