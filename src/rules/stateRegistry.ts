@@ -5,9 +5,11 @@
 import type { SupportedStateCode } from '../model/types'
 import type { StateRulesModule } from './stateEngine'
 import { caModule } from './2025/ca/module'
+import { ctModule } from './2025/ct/module'
 
 const STATE_MODULES: Map<SupportedStateCode, StateRulesModule> = new Map([
   ['CA', caModule],
+  ['CT', ctModule],
 ])
 
 export function getStateModule(code: SupportedStateCode): StateRulesModule | undefined {

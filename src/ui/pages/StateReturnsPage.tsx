@@ -69,7 +69,9 @@ export function StateReturnsPage() {
                     pubName={`${stateName} — Filing Requirements`}
                     pubUrl={code === 'CA'
                       ? 'https://www.ftb.ca.gov/file/personal/residency-status/index.html'
-                      : '#'
+                      : code === 'CT'
+                        ? 'https://portal.ct.gov/drs/individuals/residency-status'
+                        : '#'
                     }
                   />
                 </span>
@@ -191,6 +193,29 @@ export function StateReturnsPage() {
                       </p>
                     </div>
                   </label>
+                )}
+
+                {code === 'CT' && (
+                  <div className="mt-1">
+                    <label className="block text-sm font-medium text-gray-900 inline-flex items-center gap-1">
+                      CT property tax paid
+                      <InfoTooltip
+                        explanation="Connecticut property tax credit is nonrefundable (up to $300) and phases out by AGI. Enter property taxes paid on your CT primary residence and motor vehicle taxes."
+                        pubName="CT Schedule 3"
+                        pubUrl="https://portal.ct.gov/drs/forms/ct-1040"
+                      />
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={Math.round((getConfig(code)?.ctPropertyTaxPaid ?? 0) / 100)}
+                      onChange={(e) => updateStateReturn(code as SupportedStateCode, { ctPropertyTaxPaid: Math.max(0, Number(e.target.value || 0)) * 100 })}
+                      className="mt-1 w-full sm:w-64 px-2 py-1.5 text-sm border border-gray-300 rounded-md"
+                      data-testid="ct-property-tax-paid"
+                    />
+                    <p className="text-xs text-gray-500 mt-0.5">Enter whole dollars.</p>
+                  </div>
                 )}
               </div>
             )}

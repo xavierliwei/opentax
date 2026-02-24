@@ -556,7 +556,7 @@ export interface Credit {
 // ── State Return Config ────────────────────────────────────────
 
 /** Supported state codes (expand as states are added) */
-export type SupportedStateCode = 'CA'
+export type SupportedStateCode = 'CA' | 'CT'
 // Future: | 'NY' | 'NJ' | 'IL' | 'MA' | 'PA'
 
 /** Residency classification for a state return */
@@ -581,6 +581,7 @@ export interface StateReturnConfig {
 
   // State-specific flags
   rentPaid?: boolean                  // CA renter's credit
+  ctPropertyTaxPaid?: number          // CT property tax credit base (cents)
 }
 
 // ── Tax Return (top-level) ─────────────────────────────────────
