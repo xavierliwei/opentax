@@ -12,6 +12,7 @@ import { maFormCompiler } from './fillers/form1Filler'
 import { mdFormCompiler } from './fillers/form502Filler'
 import { ncFormCompiler } from './fillers/formD400Filler'
 import { njFormCompiler } from './fillers/nj1040Filler'
+import { nyFormCompiler } from './fillers/formIT201Filler'
 import { paFormCompiler } from './fillers/formPA40Filler'
 import { vaFormCompiler } from './fillers/form760Filler'
 
@@ -24,6 +25,7 @@ const STATE_COMPILERS: Map<SupportedStateCode, StateFormCompiler> = new Map([
   ['MD', mdFormCompiler],
   ['NC', ncFormCompiler],
   ['NJ', njFormCompiler],
+  ['NY', nyFormCompiler],
   ['PA', paFormCompiler],
   ['VA', vaFormCompiler],
 ])

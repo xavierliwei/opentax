@@ -51,6 +51,13 @@ describe('State Engine — registry', () => {
     expect(mod!.formLabel).toBe('NC Form D-400')
   })
 
+  it('NY module is registered', () => {
+    const mod = getStateModule('NY')
+    expect(mod).toBeDefined()
+    expect(mod!.stateCode).toBe('NY')
+    expect(mod!.formLabel).toBe('NY Form IT-201')
+  })
+
   it('getSupportedStates returns all registered states', () => {
     const states = getSupportedStates()
     expect(states.length).toBeGreaterThanOrEqual(6)
@@ -59,6 +66,7 @@ describe('State Engine — registry', () => {
     expect(states.find(s => s.code === 'MA')).toBeDefined()
     expect(states.find(s => s.code === 'MD')).toBeDefined()
     expect(states.find(s => s.code === 'NJ')).toBeDefined()
+    expect(states.find(s => s.code === 'NY')).toBeDefined()
     expect(states.find(s => s.code === 'VA')).toBeDefined()
     expect(states.find(s => s.code === 'PA')).toBeDefined()
     expect(states.find(s => s.code === 'DC')).toBeDefined()
@@ -208,6 +216,26 @@ describe('State Engine — computeAll integration', () => {
     expect(result.stateResults[0].stateCode).toBe('NJ')
     expect(result.stateResults[0].formLabel).toBe('NJ Form NJ-1040')
     expect(result.stateResults[0].stateWithholding).toBe(300000)
+  })
+
+  it('stateResults contains NY when NY is in stateReturns', () => {
+    const tr = makeTr({
+      stateReturns: [{ stateCode: 'NY', residencyType: 'full-year' }],
+      w2s: [{
+        id: 'w2-ny-1', employerEin: '12-3456789', employerName: 'Test',
+        box1: 10000000, box2: 1500000, box3: 10000000, box4: 620000,
+        box5: 10000000, box6: 145000, box7: 0, box8: 0, box10: 0, box11: 0,
+        box12: [], box13StatutoryEmployee: false, box13RetirementPlan: false,
+        box13ThirdPartySickPay: false, box14: '', box15State: 'NY', box16StateWages: 10000000, box17StateIncomeTax: 400000,
+      }],
+    })
+    const result = computeAll(tr)
+    expect(result.stateResults).toHaveLength(1)
+    expect(result.stateResults[0].stateCode).toBe('NY')
+    expect(result.stateResults[0].formLabel).toBe('NY Form IT-201')
+    expect(result.stateResults[0].stateWithholding).toBe(400000)
+    expect(result.executedSchedules).toContain('NY-IT201')
+    expect(result.values.has('it201.nyAGI')).toBe(true)
   })
 
   it('executedSchedules includes CA-540 when CA is selected', () => {
