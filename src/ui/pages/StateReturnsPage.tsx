@@ -57,19 +57,20 @@ export function StateReturnsPage() {
     stateReturns.find((s) => s.stateCode === code)
 
   return (
-    <div data-testid="page-state-returns" className="max-w-xl mx-auto">
+    <div data-testid="page-state-returns" className="max-w-xl mx-auto" role="form" aria-label="State return selection">
       <h1 className="text-2xl font-bold text-gray-900">State Returns</h1>
       <p className="mt-1 text-sm text-gray-600">
         Select the states you need to file for. Skip this page if you only file a federal return.
       </p>
 
-      <div className="mt-6 flex flex-col gap-4">
+      <div className="mt-6 flex flex-col gap-4" role="group" aria-label="Available states">
         {supportedStates.map(({ code, stateName }) => (
-          <div key={code} className="border border-gray-200 rounded-lg p-4">
+          <div key={code} className="border border-gray-200 rounded-lg p-4" role="group" aria-label={`${stateName} state return options`}>
             <label className="flex items-start gap-3 cursor-pointer">
               <input
                 type="checkbox"
                 checked={isSelected(code)}
+                aria-label={`File ${stateName} state return`}
                 onChange={(e) => {
                   if (e.target.checked) {
                     addStateReturn({ stateCode: code as SupportedStateCode, residencyType: 'full-year' })
@@ -114,7 +115,7 @@ export function StateReturnsPage() {
             {/* Residency type selector — shown when state is selected */}
             {isSelected(code) && (
               <div className="mt-3 ml-6 flex flex-col gap-2">
-                <fieldset>
+                <fieldset aria-label={`${stateName} residency status`}>
                   <legend className="text-sm font-medium text-gray-700 mb-1">Residency status</legend>
                   <div className="flex flex-col gap-1.5">
                     {RESIDENCY_OPTIONS.map((opt) => {
@@ -177,8 +178,9 @@ export function StateReturnsPage() {
                     )}
                     <div className="flex flex-col sm:flex-row gap-2">
                       <div className="flex-1">
-                        <label className="block text-xs text-gray-600 mb-0.5">Moved in</label>
+                        <label htmlFor={`move-in-date-${code}`} className="block text-xs text-gray-600 mb-0.5">Moved in</label>
                         <input
+                          id={`move-in-date-${code}`}
                           type="date"
                           value={getConfig(code)?.moveInDate ?? ''}
                           min="2025-01-01"
@@ -188,12 +190,14 @@ export function StateReturnsPage() {
                           }
                           className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md"
                           data-testid={`move-in-date-${code}`}
+                          aria-describedby={`move-in-hint-${code} part-year-error-${code}`}
                         />
-                        <p className="text-xs text-gray-400 mt-0.5">Leave blank if Jan 1</p>
+                        <p id={`move-in-hint-${code}`} className="text-xs text-gray-400 mt-0.5">Leave blank if Jan 1</p>
                       </div>
                       <div className="flex-1">
-                        <label className="block text-xs text-gray-600 mb-0.5">Moved out</label>
+                        <label htmlFor={`move-out-date-${code}`} className="block text-xs text-gray-600 mb-0.5">Moved out</label>
                         <input
+                          id={`move-out-date-${code}`}
                           type="date"
                           value={getConfig(code)?.moveOutDate ?? ''}
                           min="2025-01-01"
@@ -203,33 +207,38 @@ export function StateReturnsPage() {
                           }
                           className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md"
                           data-testid={`move-out-date-${code}`}
+                          aria-describedby={`move-out-hint-${code} part-year-error-${code}`}
                         />
-                        <p className="text-xs text-gray-400 mt-0.5">Leave blank if Dec 31</p>
+                        <p id={`move-out-hint-${code}`} className="text-xs text-gray-400 mt-0.5">Leave blank if Dec 31</p>
                       </div>
                     </div>
-                    {(() => {
-                      const partYearDateError = getPartYearDateError(getConfig(code)?.moveInDate, getConfig(code)?.moveOutDate)
-                      if (!partYearDateError) return null
-                      return <p className="text-xs text-red-600">{partYearDateError}</p>
-                    })()}
+                    <div aria-live="polite" id={`part-year-error-${code}`}>
+                      {(() => {
+                        const partYearDateError = getPartYearDateError(getConfig(code)?.moveInDate, getConfig(code)?.moveOutDate)
+                        if (!partYearDateError) return null
+                        return <p className="text-xs text-red-600" role="alert">{partYearDateError}</p>
+                      })()}
+                    </div>
                   </div>
                 )}
 
                 {code === 'DC' && getConfig(code)?.residencyType === 'nonresident' && (
                   <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                    <label className="block text-xs text-gray-600 mb-1">Home state for DC commuter reciprocity</label>
+                    <label htmlFor={`dc-commuter-state`} className="block text-xs text-gray-600 mb-1">Home state for DC commuter reciprocity</label>
                     <select
+                      id="dc-commuter-state"
                       value={getConfig(code)?.dcCommuterResidentState ?? 'OTHER'}
                       onChange={(e) => updateStateReturn(code as SupportedStateCode, {
                         dcCommuterResidentState: e.target.value as 'MD' | 'VA' | 'OTHER',
                       })}
                       className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md"
+                      aria-describedby="dc-commuter-hint"
                     >
                       <option value="OTHER">Other state</option>
                       <option value="MD">Maryland</option>
                       <option value="VA">Virginia</option>
                     </select>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p id="dc-commuter-hint" className="text-xs text-gray-500 mt-1">
                       MD/VA residents who only commute into DC are generally exempt from DC income tax under reciprocity.
                     </p>
                   </div>
@@ -570,7 +579,7 @@ export function StateReturnsPage() {
 
                 {code === 'CT' && (
                   <div className="mt-1">
-                    <label className="block text-sm font-medium text-gray-900 inline-flex items-center gap-1">
+                    <label htmlFor="ct-property-tax-input" className="block text-sm font-medium text-gray-900 inline-flex items-center gap-1">
                       CT property tax paid
                       <InfoTooltip
                         explanation="Connecticut property tax credit is nonrefundable (up to $300) and phases out by AGI. Enter property taxes paid on your CT primary residence and motor vehicle taxes."
@@ -579,6 +588,7 @@ export function StateReturnsPage() {
                       />
                     </label>
                     <input
+                      id="ct-property-tax-input"
                       type="number"
                       min={0}
                       step={1}

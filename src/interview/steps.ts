@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react'
 import type { TaxReturn } from '../model/types.ts'
 import { getSupportedStates } from '../rules/stateRegistry.ts'
+import { getPartYearDateError } from '../ui/pages/StateReturnsPage.tsx'
 import { WelcomePage } from '../ui/pages/WelcomePage.tsx'
 import { FilingStatusPage } from '../ui/pages/FilingStatusPage.tsx'
 import { PersonalInfoPage } from '../ui/pages/PersonalInfoPage.tsx'
@@ -54,7 +55,14 @@ function stateReviewSteps(): InterviewStep[] {
     section: 'review' as const,
     isVisible: (tr: TaxReturn) =>
       (tr.stateReturns ?? []).some(s => s.stateCode === st.code),
-    isComplete: () => false,
+    isComplete: (tr: TaxReturn) => {
+      const config = (tr.stateReturns ?? []).find(s => s.stateCode === st.code)
+      if (!config) return false
+      if (config.residencyType === 'part-year') {
+        return getPartYearDateError(config.moveInDate, config.moveOutDate) === null
+      }
+      return true
+    },
     component: StateReviewPage,
   }))
 }

@@ -28,17 +28,18 @@ interface LineItemProps {
 function LineItem({ item, result }: LineItemProps) {
   const amount = item.getValue(result)
   return (
-    <div className="flex items-baseline justify-between gap-2 sm:gap-3 py-1.5 sm:py-1">
+    <div className="flex items-baseline justify-between gap-2 sm:gap-3 py-1.5 sm:py-1" role="listitem">
       <span className="text-sm text-gray-700 min-w-0 inline-flex items-center flex-wrap">
         <span className="break-words">{item.label}</span>
         {item.tooltip && <InfoTooltip {...item.tooltip} />}
       </span>
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-        <span className="text-sm font-medium tabular-nums">{formatCurrency(amount)}</span>
+        <span className="text-sm font-medium tabular-nums" aria-label={`${item.label}: ${formatCurrency(amount)}`}>{formatCurrency(amount)}</span>
         <Link
           to={`/explain/${item.nodeId}`}
           className="inline-flex items-center justify-center w-6 h-6 sm:w-auto sm:h-auto text-xs text-tax-blue hover:text-blue-700 rounded-full sm:rounded-none hover:bg-blue-50 sm:hover:bg-transparent"
           title="Why this number?"
+          aria-label={`Explain ${item.label}`}
         >
           ?
         </Link>
@@ -65,7 +66,7 @@ function ResultLine({ line, result }: ResultLineProps) {
   const colorClass = line.type === 'refund' ? 'text-tax-green' : 'text-tax-red'
 
   return (
-    <div className="flex items-center justify-between gap-2 py-1.5 sm:py-1 mt-2 pt-2 border-t border-amber-100">
+    <div className="flex items-center justify-between gap-2 py-1.5 sm:py-1 mt-2 pt-2 border-t border-amber-100" role="status" aria-label={`${line.label}: ${formatCurrency(amount)}`}>
       <span className={`text-sm font-medium ${colorClass}`}>{line.label}</span>
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
         <span className={`text-base sm:text-lg font-bold ${colorClass} tabular-nums`}>
@@ -75,6 +76,7 @@ function ResultLine({ line, result }: ResultLineProps) {
           <Link
             to={`/explain/${line.nodeId}`}
             className="inline-flex items-center justify-center w-6 h-6 sm:w-auto sm:h-auto text-xs text-tax-blue hover:text-blue-700 rounded-full sm:rounded-none hover:bg-blue-50 sm:hover:bg-transparent"
+            aria-label={`Explain ${line.label}`}
           >
             ?
           </Link>
@@ -156,11 +158,11 @@ export function StateReviewPage() {
         if (visibleItems.length === 0) return null
 
         return (
-          <section key={section.title} className="mt-6">
+          <section key={section.title} className="mt-6" aria-label={section.title}>
             <h2 className="text-sm font-semibold text-amber-700 uppercase tracking-wide border-b border-amber-200 pb-1">
               {section.title}
             </h2>
-            <div className="mt-2 flex flex-col">
+            <div className="mt-2 flex flex-col" role="list" aria-label={`${section.title} line items`}>
               {visibleItems.map((item) => (
                 <LineItem key={item.nodeId} item={item} result={stateResult} />
               ))}
