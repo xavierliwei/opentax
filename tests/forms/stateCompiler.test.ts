@@ -12,6 +12,7 @@ import { simpleW2Return, makeW2 } from '../fixtures/returns'
 import { cents } from '../../src/model/traced'
 import { getStateFormCompiler } from '../../src/forms/stateFormRegistry'
 import { caFormCompiler } from '../../src/forms/fillers/form540Filler'
+import { njFormCompiler } from '../../src/forms/fillers/nj1040Filler'
 import { computeAll } from '../../src/rules/engine'
 import type { TaxReturn } from '../../src/model/types'
 import { emptyTaxReturn } from '../../src/model/types'
@@ -65,6 +66,31 @@ function makeCAReturn(): TaxReturn {
   }
 }
 
+function makeNJReturn(): TaxReturn {
+  return {
+    ...emptyTaxReturn(2025),
+    taxpayer: {
+      firstName: 'Jersey',
+      lastName: 'User',
+      ssn: '987654321',
+      dateOfBirth: '1990-01-01',
+      address: { street: '77 Broad St', city: 'Newark', state: 'NJ', zip: '07102' },
+    },
+    stateReturns: [{ stateCode: 'NJ', residencyType: 'full-year' }],
+    w2s: [
+      makeW2({
+        id: 'w2-1',
+        employerName: 'Garden State Tech',
+        box1: cents(100000),
+        box2: cents(15000),
+        box15State: 'NJ',
+        box16StateWages: cents(100000),
+        box17StateIncomeTax: cents(4500),
+      }),
+    ],
+  }
+}
+
 // ── State Form Registry ──────────────────────────────────────
 
 describe('State Form Registry', () => {
@@ -72,6 +98,12 @@ describe('State Form Registry', () => {
     const compiler = getStateFormCompiler('CA')
     expect(compiler).toBeDefined()
     expect(compiler!.stateCode).toBe('CA')
+  })
+
+  it('NJ compiler is registered', () => {
+    const compiler = getStateFormCompiler('NJ')
+    expect(compiler).toBeDefined()
+    expect(compiler!.stateCode).toBe('NJ')
   })
 
   it('unknown state returns undefined', () => {
@@ -118,6 +150,21 @@ describe('CA Form 540 PDF generator', () => {
   })
 })
 
+describe('NJ Form NJ-1040 PDF generator', () => {
+  it('generates a valid PDF', async () => {
+    const tr = makeNJReturn()
+    const result = computeAll(tr)
+    const stateResult = result.stateResults[0]
+
+    const compiled = await njFormCompiler.compile(tr, stateResult, { templates: new Map() })
+
+    expect(compiled.doc).toBeDefined()
+    expect(compiled.doc.getPageCount()).toBe(1)
+    expect(compiled.forms[0].formId).toBe('NJ Form NJ-1040')
+    expect(compiled.forms[0].sequenceNumber).toBe('NJ-01')
+  })
+})
+
 // ── Compiler integration with state forms ─────────────────────
 
 describe('compileFilingPackage — state form integration', () => {
@@ -149,6 +196,20 @@ describe('compileFilingPackage — state form integration', () => {
     const caForm = result.formsIncluded.find(f => f.formId === 'CA Form 540')
     expect(caForm).toBeDefined()
     expect(caForm!.pageCount).toBe(1)
+  })
+
+  it('NJ return includes NJ Form NJ-1040 in combined PDF', async () => {
+    const tr = makeNJReturn()
+
+    const result = await compileFilingPackage(tr, templates)
+
+    expect(result.statePackages).toHaveLength(1)
+    expect(result.statePackages[0].stateCode).toBe('NJ')
+    expect(result.statePackages[0].label).toBe('NJ Form NJ-1040')
+
+    const njForm = result.formsIncluded.find(f => f.formId === 'NJ Form NJ-1040')
+    expect(njForm).toBeDefined()
+    expect(njForm!.sequenceNumber).toBe('NJ-01')
   })
 
   it('combined PDF has more pages when CA is selected', async () => {

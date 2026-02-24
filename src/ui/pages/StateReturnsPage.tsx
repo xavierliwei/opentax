@@ -69,7 +69,9 @@ export function StateReturnsPage() {
                     pubName={`${stateName} — Filing Requirements`}
                     pubUrl={code === 'CA'
                       ? 'https://www.ftb.ca.gov/file/personal/residency-status/index.html'
-                      : '#'
+                      : code === 'NJ'
+                        ? 'https://www.nj.gov/treasury/taxation/njit24.shtml'
+                        : '#'
                     }
                   />
                 </span>
@@ -198,9 +200,9 @@ export function StateReturnsPage() {
         ))}
       </div>
 
-      {supportedStates.length === 1 && (
+      {supportedStates.length <= 2 && (
         <p className="mt-4 text-xs text-gray-400">
-          More states coming soon. Currently only {supportedStates[0].stateName} is supported.
+          More states coming soon. Currently available: {supportedStates.map(s => s.stateName).join(' and ')}.
         </p>
       )}
 

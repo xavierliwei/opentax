@@ -556,8 +556,8 @@ export interface Credit {
 // ── State Return Config ────────────────────────────────────────
 
 /** Supported state codes (expand as states are added) */
-export type SupportedStateCode = 'CA'
-// Future: | 'NY' | 'NJ' | 'IL' | 'MA' | 'PA'
+export type SupportedStateCode = 'CA' | 'NJ'
+// Future: | 'NY' | 'IL' | 'MA' | 'PA'
 
 /** Residency classification for a state return */
 export type ResidencyType = 'full-year' | 'part-year' | 'nonresident'
@@ -579,8 +579,18 @@ export interface StateReturnConfig {
    */
   moveOutDate?: string
 
-  // State-specific flags
+  // State-specific flags — CA
   rentPaid?: boolean                  // CA renter's credit
+
+  // State-specific flags — NJ
+  njPropertyTaxPaid?: number          // Annual property tax (cents)
+  njRentPaid?: number                 // Annual rent (cents), for 18% deemed property tax
+  njIsHomeowner?: boolean             // Homeowner vs renter
+  njTaxpayerVeteran?: boolean         // Veteran exemption ($6,000)
+  njSpouseVeteran?: boolean           // Spouse veteran exemption ($6,000)
+  njTaxpayerBlindDisabled?: boolean   // Blind/disabled exemption ($1,000)
+  njSpouseBlindDisabled?: boolean     // Spouse blind/disabled exemption ($1,000)
+  njDependentCollegeStudents?: string[] // IDs of dependents who are full-time college students (<22)
 }
 
 // ── Tax Return (top-level) ─────────────────────────────────────
