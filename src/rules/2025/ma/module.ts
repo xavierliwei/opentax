@@ -41,6 +41,7 @@ const MA_NODE_LABELS: Record<string, string> = {
   'form1.maBaseTax': 'Massachusetts income tax (5%)',
   'form1.maSurtax': 'Massachusetts surtax (4% over $1M)',
   'form1.maIncomeTax': 'Massachusetts total income tax',
+  'form1.maEITC': 'MA Earned Income Tax Credit',
   'form1.taxAfterCredits': 'MA tax after credits',
   'form1.stateWithholding': 'MA state income tax withheld',
   'form1.overpaid': 'MA overpaid (refund)',
@@ -131,8 +132,16 @@ function collectMATracedValues(result: StateComputeResult): Map<string, TracedVa
     'Massachusetts total income tax',
   ))
 
+  if (f.maEITC > 0) {
+    values.set('form1.maEITC', tracedFromComputation(
+      f.maEITC, 'form1.maEITC', [], 'MA EITC (30% of federal)',
+    ))
+  }
+
+  const taxAfterInputs = ['form1.maIncomeTax']
+  if (f.maEITC > 0) taxAfterInputs.push('form1.maEITC')
   values.set('form1.taxAfterCredits', tracedFromComputation(
-    f.taxAfterCredits, 'form1.taxAfterCredits', ['form1.maIncomeTax'],
+    f.taxAfterCredits, 'form1.taxAfterCredits', taxAfterInputs,
     'MA tax after credits',
   ))
 
@@ -282,6 +291,17 @@ const MA_REVIEW_LAYOUT: StateReviewSection[] = [
           explanation: 'Additional 4% surtax on taxable income exceeding $1,000,000. Approved by voters in November 2022 as the Fair Share Amendment (Article XLIV). Not doubled for MFJ filers.',
           pubName: 'MA Fair Share Amendment',
           pubUrl: 'https://www.mass.gov/info-details/massachusetts-tax-rates',
+        },
+      },
+      {
+        label: 'MA EITC',
+        nodeId: 'form1.maEITC',
+        getValue: (r) => d(r).maEITC,
+        showWhen: (r) => d(r).maEITC > 0,
+        tooltip: {
+          explanation: 'Massachusetts Earned Income Tax Credit equals 30% of your federal EITC. Refundable — applied as a payment.',
+          pubName: 'MA DOR EITC',
+          pubUrl: 'https://www.mass.gov/info-details/massachusetts-earned-income-tax-credit-eitc',
         },
       },
       {

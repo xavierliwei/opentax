@@ -85,3 +85,9 @@ export const MA_RENT_DEDUCTION_CAP: Record<FilingStatus, number> = {
   hoh:    c(4000),
   qw:     c(4000),
 }
+
+// ── MA Earned Income Tax Credit ───────────────────────────────
+// MA EITC is 30% of the federal EITC. Refundable.
+// Source: MGL ch. 62, §6(p); MA DOR Form 1 Instructions
+
+export const MA_EITC_RATE = 0.30

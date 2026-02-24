@@ -117,7 +117,10 @@ export function StateReturnsPage() {
                   <legend className="text-sm font-medium text-gray-700 mb-1">Residency status</legend>
                   <div className="flex flex-col gap-1.5">
                     {RESIDENCY_OPTIONS.map((opt) => {
-                      const disabled = opt.value === 'nonresident' && code !== 'DC'
+                      const isNonresidentDisabled = opt.value === 'nonresident' && code !== 'DC'
+                      const isNJPartYear = opt.value === 'part-year' && code === 'NJ'
+                      const isNJNonresident = opt.value === 'nonresident' && code === 'NJ'
+                      const disabled = isNonresidentDisabled || isNJNonresident
                       return (
                         <label
                           key={opt.value}
@@ -140,7 +143,18 @@ export function StateReturnsPage() {
                           <div>
                             <span className="text-sm font-medium text-gray-900">
                               {opt.label}
-                              {disabled && <span className="text-xs text-gray-400 ml-2">&mdash; coming soon</span>}
+                              {isNonresidentDisabled && code === 'CA' && (
+                                <span className="text-xs text-gray-400 ml-2">&mdash; CA 540NR not yet supported</span>
+                              )}
+                              {isNJPartYear && (
+                                <span className="text-xs text-amber-500 ml-2">&mdash; resident estimate only</span>
+                              )}
+                              {isNJNonresident && (
+                                <span className="text-xs text-gray-400 ml-2">&mdash; NJ-1040NR not yet supported</span>
+                              )}
+                              {disabled && code !== 'CA' && code !== 'NJ' && (
+                                <span className="text-xs text-gray-400 ml-2">&mdash; coming soon</span>
+                              )}
                             </span>
                             <p className="text-xs text-gray-500">{opt.description}</p>
                           </div>

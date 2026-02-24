@@ -26,6 +26,8 @@ function toStateResult(form: FormD400Result): StateComputeResult {
 }
 
 const NC_NODE_LABELS: Record<string, string> = {
+  'formd400.ncAdditions': 'NC additions (Schedule S Part A)',
+  'formd400.ncDeductions': 'NC deductions (Schedule S Part B)',
   'formd400.ncAGI': 'North Carolina adjusted gross income',
   'formd400.ncTaxableIncome': 'North Carolina taxable income',
   'formd400.ncTax': 'North Carolina income tax',
@@ -39,10 +41,26 @@ function collectNCTracedValues(result: StateComputeResult): Map<string, TracedVa
   const form = result.detail as FormD400Result
   const values = new Map<string, TracedValue>()
 
+  const ncAGIInputs = ['form1040.line11']
+  if (form.ncAdditions > 0) {
+    ncAGIInputs.push('formd400.ncAdditions')
+    values.set('formd400.ncAdditions', tracedFromComputation(
+      form.ncAdditions, 'formd400.ncAdditions', [],
+      'NC additions (HSA add-back)',
+    ))
+  }
+  if (form.ncDeductions > 0) {
+    ncAGIInputs.push('formd400.ncDeductions')
+    values.set('formd400.ncDeductions', tracedFromComputation(
+      form.ncDeductions, 'formd400.ncDeductions', [],
+      'NC deductions (SS exemption, US gov interest)',
+    ))
+  }
+
   values.set('formd400.ncAGI', tracedFromComputation(
     form.ncAGI,
     'formd400.ncAGI',
-    ['form1040.line11'],
+    ncAGIInputs,
     'North Carolina adjusted gross income',
   ))
 
@@ -116,11 +134,33 @@ const NC_REVIEW_LAYOUT: StateReviewSection[] = [
         },
       },
       {
+        label: 'NC Additions',
+        nodeId: 'formd400.ncAdditions',
+        getValue: (r) => d(r).ncAdditions,
+        showWhen: (r) => d(r).ncAdditions > 0,
+        tooltip: {
+          explanation: 'NC additions include HSA deduction add-back (NC does not conform to IRC §223).',
+          pubName: 'NC D-400 Schedule S',
+          pubUrl: 'https://www.ncdor.gov/taxes-forms/individual-income-tax',
+        },
+      },
+      {
+        label: 'NC Deductions',
+        nodeId: 'formd400.ncDeductions',
+        getValue: (r) => d(r).ncDeductions,
+        showWhen: (r) => d(r).ncDeductions > 0,
+        tooltip: {
+          explanation: 'NC deductions include Social Security exemption (NC fully exempts SS) and US government obligation interest.',
+          pubName: 'NC D-400 Schedule S',
+          pubUrl: 'https://www.ncdor.gov/taxes-forms/individual-income-tax',
+        },
+      },
+      {
         label: 'NC AGI',
         nodeId: 'formd400.ncAGI',
         getValue: (r) => r.stateAGI,
         tooltip: {
-          explanation: 'North Carolina adjusted gross income after state additions/subtractions (when applicable).',
+          explanation: 'North Carolina adjusted gross income: Federal AGI + NC additions − NC deductions.',
           pubName: 'NC D-400 Instructions',
           pubUrl: 'https://www.ncdor.gov/taxes-forms/individual-income-tax',
         },
