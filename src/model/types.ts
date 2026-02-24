@@ -581,6 +581,7 @@ export interface StateReturnConfig {
 
   // State-specific flags
   rentPaid?: boolean                  // CA renter's credit
+  county?: string                     // MD county/city code for local tax rate
 }
 
 // ── Tax Return (top-level) ─────────────────────────────────────
