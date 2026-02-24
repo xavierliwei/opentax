@@ -4,6 +4,7 @@ import type { TaxReturn } from '../../../src/model/types'
 import { computeForm1040 } from '../../../src/rules/2025/form1040'
 import { computeForm500 } from '../../../src/rules/2025/ga/form500'
 import { cents } from '../../../src/model/traced'
+import { GA_STANDARD_DEDUCTION } from '../../../src/rules/2025/ga/constants'
 import { makeW2 } from '../../fixtures/returns'
 
 function makeGAReturn(overrides: Partial<TaxReturn> = {}): TaxReturn {
@@ -78,6 +79,46 @@ describe('computeForm500', () => {
     const ga = computeForm500(tr, f1040, tr.stateReturns[0])
 
     expect(ga.stateWithholding).toBe(cents(2200))
+  })
+
+  it('uses HOH standard deduction (same as single in GA)', () => {
+    const tr = makeGAReturn({ filingStatus: 'hoh' })
+    const f1040 = computeForm1040(tr)
+    const ga = computeForm500(tr, f1040, tr.stateReturns[0])
+
+    // HOH standard = $12,000 (same as single in GA)
+    expect(ga.gaTaxableIncome).toBe(cents(88000))
+    expect(ga.gaTax).toBe(cents(4567.2))
+  })
+
+  it('uses MFS standard deduction (same as single)', () => {
+    const tr = makeGAReturn({ filingStatus: 'mfs' })
+    const f1040 = computeForm1040(tr)
+    const ga = computeForm500(tr, f1040, tr.stateReturns[0])
+
+    // MFS standard = $12,000
+    expect(ga.gaTaxableIncome).toBe(cents(88000))
+    expect(ga.gaTax).toBe(cents(4567.2))
+  })
+
+  it('uses QW standard deduction (same as MFJ)', () => {
+    const tr = makeGAReturn({
+      filingStatus: 'qw',
+      w2s: [
+        makeW2({ box1: cents(120000), box2: cents(18000), box15State: 'GA', box17StateIncomeTax: cents(6000) }),
+      ],
+    })
+    const f1040 = computeForm1040(tr)
+    const ga = computeForm500(tr, f1040, tr.stateReturns[0])
+
+    // QW standard = $24,000 (same as MFJ)
+    expect(ga.gaTaxableIncome).toBe(cents(96000))
+  })
+
+  it('QW matches MFJ deduction, MFS matches single deduction', () => {
+    expect(GA_STANDARD_DEDUCTION.qw).toBe(GA_STANDARD_DEDUCTION.mfj)
+    expect(GA_STANDARD_DEDUCTION.mfs).toBe(GA_STANDARD_DEDUCTION.single)
+    expect(GA_STANDARD_DEDUCTION.hoh).toBe(GA_STANDARD_DEDUCTION.single)
   })
 
   it('apportions tax for part-year resident', () => {

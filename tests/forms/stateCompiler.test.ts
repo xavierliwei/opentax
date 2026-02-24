@@ -22,6 +22,7 @@ import { computeAll } from '../../src/rules/engine'
 import type { TaxReturn } from '../../src/model/types'
 import { emptyTaxReturn } from '../../src/model/types'
 import { vaFormCompiler } from '../../src/forms/fillers/form760Filler'
+import { ctFormCompiler } from '../../src/forms/fillers/formCT1040Filler'
 
 // ── Load PDF templates once ──────────────────────────────────
 
@@ -227,6 +228,31 @@ function makePAReturn(): TaxReturn {
   }
 }
 
+function makeCTReturn(): TaxReturn {
+  return {
+    ...emptyTaxReturn(2025),
+    taxpayer: {
+      firstName: 'CT',
+      lastName: 'User',
+      ssn: '123456789',
+      dateOfBirth: '1990-01-01',
+      address: { street: '100 Pearl St', city: 'Hartford', state: 'CT', zip: '06103' },
+    },
+    stateReturns: [{ stateCode: 'CT', residencyType: 'full-year' }],
+    w2s: [
+      makeW2({
+        id: 'w2-1',
+        employerName: 'CT Corp',
+        box1: cents(100000),
+        box2: cents(15000),
+        box15State: 'CT',
+        box16StateWages: cents(100000),
+        box17StateIncomeTax: cents(4500),
+      }),
+    ],
+  }
+}
+
 function makeNCReturn(): TaxReturn {
   return {
     ...emptyTaxReturn(2025),
@@ -313,6 +339,12 @@ describe('State Form Registry', () => {
     const compiler = getStateFormCompiler('NC')
     expect(compiler).toBeDefined()
     expect(compiler!.stateCode).toBe('NC')
+  })
+
+  it('CT compiler is registered', () => {
+    const compiler = getStateFormCompiler('CT')
+    expect(compiler).toBeDefined()
+    expect(compiler!.stateCode).toBe('CT')
   })
 
   it('unknown state returns undefined', () => {
@@ -468,6 +500,34 @@ describe('DC Form D-40 PDF generator', () => {
   })
 })
 
+describe('CT Form CT-1040 PDF generator', () => {
+  it('generates a valid PDF', async () => {
+    const tr = makeCTReturn()
+    const result = computeAll(tr)
+    const stateResult = result.stateResults[0]
+
+    const compiled = await ctFormCompiler.compile(tr, stateResult, { templates: new Map() })
+
+    expect(compiled.doc).toBeDefined()
+    expect(compiled.doc.getPageCount()).toBe(1)
+    expect(compiled.forms).toHaveLength(1)
+    expect(compiled.forms[0].formId).toBe('CT Form CT-1040')
+    expect(compiled.forms[0].sequenceNumber).toBe('CT-01')
+  })
+
+  it('PDF bytes can be saved and reloaded', async () => {
+    const tr = makeCTReturn()
+    const result = computeAll(tr)
+    const stateResult = result.stateResults[0]
+
+    const compiled = await ctFormCompiler.compile(tr, stateResult, { templates: new Map() })
+
+    const bytes = await compiled.doc.save()
+    const reloaded = await PDFDocument.load(bytes)
+    expect(reloaded.getPageCount()).toBe(1)
+  })
+})
+
 describe('NC Form D-400 PDF generator', () => {
   it('generates a valid PDF', async () => {
     const tr = makeNCReturn()
@@ -614,6 +674,21 @@ describe('compileFilingPackage — state form integration', () => {
     const vaForm = result.formsIncluded.find(f => f.formId === 'VA Form 760')
     expect(vaForm).toBeDefined()
     expect(vaForm!.pageCount).toBe(1)
+  })
+
+  it('CT return includes CT Form CT-1040 in combined PDF', async () => {
+    const tr = makeCTReturn()
+
+    const result = await compileFilingPackage(tr, templates)
+
+    expect(result.statePackages).toHaveLength(1)
+    expect(result.statePackages[0].stateCode).toBe('CT')
+    expect(result.statePackages[0].label).toBe('CT Form CT-1040')
+    expect(result.statePackages[0].pdfBytes.length).toBeGreaterThan(0)
+
+    const ctForm = result.formsIncluded.find(f => f.formId === 'CT Form CT-1040')
+    expect(ctForm).toBeDefined()
+    expect(ctForm!.pageCount).toBe(1)
   })
 
   it('combined PDF has more pages when CA is selected', async () => {

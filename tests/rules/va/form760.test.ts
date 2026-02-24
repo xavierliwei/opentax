@@ -13,7 +13,7 @@ import type { TaxReturn, StateReturnConfig } from '../../../src/model/types'
 import { computeForm1040 } from '../../../src/rules/2025/form1040'
 import { computeForm760 } from '../../../src/rules/2025/va/form760'
 import { computeBracketTax } from '../../../src/rules/2025/taxComputation'
-import { VA_TAX_BRACKETS } from '../../../src/rules/2025/va/constants'
+import { VA_TAX_BRACKETS, VA_STANDARD_DEDUCTION } from '../../../src/rules/2025/va/constants'
 import { computeScheduleADJ } from '../../../src/rules/2025/va/scheduleADJ'
 import { computeLowIncomeCredit } from '../../../src/rules/2025/va/vaCredits'
 import { computeAll } from '../../../src/rules/engine'
@@ -120,6 +120,37 @@ describe('Form 760 — basic tax computation', () => {
     expect(result.totalExemptions).toBe(cents(2790))
     // Taxable: $90,000 - $16,000 - $2,790 = $71,210
     expect(result.vaTaxableIncome).toBe(cents(71210))
+  })
+
+  it('MFS, $50K wages → same deduction as single ($8K)', () => {
+    const result = compute760({
+      filingStatus: 'mfs',
+      w2s: [makeW2({ id: 'w', employerName: 'X', box1: cents(50000), box2: cents(5000),
+        box15State: 'VA', box17StateIncomeTax: cents(2000) })],
+    }, vaFullYear)
+
+    expect(result.deductionUsed).toBe(cents(8000))
+    // MFS: 2 persons (self + spouse) × $930 = $1,860
+    expect(result.personalExemptions).toBe(cents(1860))
+    expect(result.vaTaxableIncome).toBe(cents(40140))
+  })
+
+  it('QW, $120K wages → same deduction as MFJ ($16K)', () => {
+    const result = compute760({
+      filingStatus: 'qw',
+      w2s: [makeW2({ id: 'w', employerName: 'X', box1: cents(120000), box2: cents(15000),
+        box15State: 'VA', box17StateIncomeTax: cents(5000) })],
+    }, vaFullYear)
+
+    // QW: $16K standard deduction (same as MFJ), 1 filer exemption
+    expect(result.deductionUsed).toBe(cents(16000))
+    expect(result.personalExemptions).toBe(cents(930))
+    expect(result.vaTaxableIncome).toBe(cents(103070))
+  })
+
+  it('QW and MFJ use same standard deduction', () => {
+    expect(VA_STANDARD_DEDUCTION.qw).toBe(VA_STANDARD_DEDUCTION.mfj)
+    expect(VA_STANDARD_DEDUCTION.mfs).toBe(VA_STANDARD_DEDUCTION.single)
   })
 
   it('zero income', () => {

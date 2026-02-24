@@ -59,6 +59,69 @@ describe('PA-40 — basic tax computation', () => {
     expect(result.stateWithholding).toBe(cents(3600))
   })
 
+  it('HOH, $75K wages → same flat rate', () => {
+    const model: TaxReturn = {
+      ...emptyTaxReturn(2025),
+      filingStatus: 'hoh',
+      w2s: [makeW2({
+        id: 'w2-1', employerName: 'PA Corp',
+        box1: cents(75000), box2: cents(10000),
+        box15State: 'PA', box16StateWages: cents(75000), box17StateIncomeTax: cents(2300),
+      })],
+      dependents: [makeDependent({ firstName: 'Kid', dateOfBirth: '2015-01-01' })],
+    }
+    const result = computePA(model)
+
+    expect(result.totalPATaxableIncome).toBe(cents(75000))
+    expect(result.paTax).toBe(Math.round(cents(75000) * PA_TAX_RATE))
+  })
+
+  it('MFS, $60K wages → same flat rate as single', () => {
+    const model: TaxReturn = {
+      ...emptyTaxReturn(2025),
+      filingStatus: 'mfs',
+      w2s: [makeW2({
+        id: 'w2-1', employerName: 'PA Corp',
+        box1: cents(60000), box2: cents(8000),
+        box15State: 'PA', box16StateWages: cents(60000), box17StateIncomeTax: cents(1800),
+      })],
+    }
+    const result = computePA(model)
+
+    expect(result.totalPATaxableIncome).toBe(cents(60000))
+    expect(result.paTax).toBe(Math.round(cents(60000) * PA_TAX_RATE))
+  })
+
+  it('QW, $90K wages → same flat rate', () => {
+    const model: TaxReturn = {
+      ...emptyTaxReturn(2025),
+      filingStatus: 'qw',
+      w2s: [makeW2({
+        id: 'w2-1', employerName: 'PA Corp',
+        box1: cents(90000), box2: cents(12000),
+        box15State: 'PA', box16StateWages: cents(90000), box17StateIncomeTax: cents(2700),
+      })],
+    }
+    const result = computePA(model)
+
+    expect(result.totalPATaxableIncome).toBe(cents(90000))
+    expect(result.paTax).toBe(Math.round(cents(90000) * PA_TAX_RATE))
+  })
+
+  it('all filing statuses produce same tax on same income (flat rate)', () => {
+    const statuses: ('single' | 'mfj' | 'mfs' | 'hoh' | 'qw')[] = ['single', 'mfj', 'mfs', 'hoh', 'qw']
+    const expectedTax = Math.round(cents(75000) * PA_TAX_RATE)
+    for (const status of statuses) {
+      const model: TaxReturn = {
+        ...emptyTaxReturn(2025),
+        filingStatus: status,
+        w2s: [makeW2({ id: 'w2-1', employerName: 'X', box1: cents(75000), box2: cents(10000) })],
+      }
+      const result = computePA(model)
+      expect(result.paTax).toBe(expectedTax)
+    }
+  })
+
   it('zero income → $0 tax', () => {
     const model = emptyTaxReturn(2025)
     const result = computePA(model)
