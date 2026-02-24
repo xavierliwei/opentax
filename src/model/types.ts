@@ -556,7 +556,7 @@ export interface Credit {
 // ── State Return Config ────────────────────────────────────────
 
 /** Supported state codes (expand as states are added) */
-export type SupportedStateCode = 'CA' | 'GA' | 'MA' | 'MD' | 'NJ' | 'PA' | 'VA'
+export type SupportedStateCode = 'CA' | 'CT' | 'GA' | 'MA' | 'MD' | 'NJ' | 'PA' | 'VA'
 
 /** Residency classification for a state return */
 export type ResidencyType = 'full-year' | 'part-year' | 'nonresident'
@@ -593,6 +593,7 @@ export interface StateReturnConfig {
   njTaxpayerBlindDisabled?: boolean   // Blind/disabled exemption ($1,000)
   njSpouseBlindDisabled?: boolean     // Spouse blind/disabled exemption ($1,000)
   njDependentCollegeStudents?: string[] // IDs of dependents who are full-time college students (<22)
+  ctPropertyTaxPaid?: number          // CT property tax credit base (cents)
 }
 
 // ── Tax Return (top-level) ─────────────────────────────────────
