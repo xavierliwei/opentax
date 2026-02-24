@@ -112,7 +112,7 @@ describe('InterviewNav sticky positioning', () => {
     // Find the nav container
     const backBtn = screen.getByRole('button', { name: /back/i })
     const navContainer = backBtn.parentElement!
-    expect(navContainer.className).toContain('sticky')
+    expect(navContainer.className).toContain('fixed')
     expect(navContainer.className).toContain('bottom-0')
     expect(navContainer.className).toContain('sm:static')
   })

@@ -121,6 +121,12 @@ function makeMAReturn(): TaxReturn {
         box2: cents(15000),
         box15State: 'MA',
         box16StateWages: cents(100000),
+        box17StateIncomeTax: cents(3500),
+      }),
+    ],
+  }
+}
+
 function makeDCReturn(): TaxReturn {
   return {
     ...emptyTaxReturn(2025),
@@ -197,7 +203,6 @@ function makeVAReturn(): TaxReturn {
 }
 
 function makePAReturn(): TaxReturn {
-function makeNCReturn(): TaxReturn {
   return {
     ...emptyTaxReturn(2025),
     taxpayer: {
@@ -208,9 +213,6 @@ function makeNCReturn(): TaxReturn {
       address: { street: '123 Main St', city: 'Pittsburgh', state: 'PA', zip: '15222' },
     },
     stateReturns: [{ stateCode: 'PA', residencyType: 'full-year' }],
-      address: { street: '123 Main St', city: 'Raleigh', state: 'NC', zip: '27601' },
-    },
-    stateReturns: [{ stateCode: 'NC', residencyType: 'full-year' }],
     w2s: [
       makeW2({
         id: 'w2-1',
@@ -220,6 +222,28 @@ function makeNCReturn(): TaxReturn {
         box15State: 'PA',
         box16StateWages: cents(100000),
         box17StateIncomeTax: cents(2500),
+      }),
+    ],
+  }
+}
+
+function makeNCReturn(): TaxReturn {
+  return {
+    ...emptyTaxReturn(2025),
+    taxpayer: {
+      firstName: 'Test',
+      lastName: 'User',
+      ssn: '123456789',
+      dateOfBirth: '1990-01-01',
+      address: { street: '123 Main St', city: 'Raleigh', state: 'NC', zip: '27601' },
+    },
+    stateReturns: [{ stateCode: 'NC', residencyType: 'full-year' }],
+    w2s: [
+      makeW2({
+        id: 'w2-1',
+        employerName: 'Tech Corp',
+        box1: cents(100000),
+        box2: cents(15000),
         box15State: 'NC',
         box16StateWages: cents(100000),
         box17StateIncomeTax: cents(3000),
@@ -265,18 +289,26 @@ describe('State Form Registry', () => {
     const compiler = getStateFormCompiler('VA')
     expect(compiler).toBeDefined()
     expect(compiler!.stateCode).toBe('VA')
+  })
+
   it('PA compiler is registered', () => {
     const compiler = getStateFormCompiler('PA')
     expect(compiler).toBeDefined()
     expect(compiler!.stateCode).toBe('PA')
+  })
+
   it('DC compiler is registered', () => {
     const compiler = getStateFormCompiler('DC')
     expect(compiler).toBeDefined()
     expect(compiler!.stateCode).toBe('DC')
+  })
+
   it('FL compiler is registered', () => {
     const compiler = getStateFormCompiler('FL')
     expect(compiler).toBeDefined()
     expect(compiler!.stateCode).toBe('FL')
+  })
+
   it('NC compiler is registered', () => {
     const compiler = getStateFormCompiler('NC')
     expect(compiler).toBeDefined()
@@ -334,6 +366,19 @@ describe('MA Form 1 PDF generator', () => {
     const stateResult = result.stateResults[0]
 
     const compiled = await maFormCompiler.compile(
+      tr,
+      stateResult,
+      { templates: new Map() },
+    )
+
+    expect(compiled.doc).toBeDefined()
+    expect(compiled.doc.getPageCount()).toBe(1)
+    expect(compiled.forms).toHaveLength(1)
+    expect(compiled.forms[0].formId).toBe('MA Form 1')
+    expect(compiled.forms[0].sequenceNumber).toBe('MA-01')
+  })
+})
+
 describe('PA-40 PDF generator', () => {
   it('generates a valid PDF', async () => {
     const tr = makePAReturn()
@@ -349,8 +394,8 @@ describe('PA-40 PDF generator', () => {
     expect(compiled.doc).toBeDefined()
     expect(compiled.doc.getPageCount()).toBe(1)
     expect(compiled.forms).toHaveLength(1)
-    expect(compiled.forms[0].formId).toBe('MA Form 1')
-    expect(compiled.forms[0].sequenceNumber).toBe('MA-01')
+    expect(compiled.forms[0].formId).toBe('PA-40')
+    expect(compiled.forms[0].sequenceNumber).toBe('PA-01')
   })
 })
 
@@ -406,8 +451,9 @@ describe('VA Form 760 PDF generator', () => {
     expect(compiled.forms).toHaveLength(1)
     expect(compiled.forms[0].formId).toBe('VA Form 760')
     expect(compiled.forms[0].sequenceNumber).toBe('VA-01')
-    expect(compiled.forms[0].formId).toBe('PA-40')
-    expect(compiled.forms[0].sequenceNumber).toBe('PA-01')
+  })
+})
+
 describe('DC Form D-40 PDF generator', () => {
   it('generates a valid PDF', async () => {
     const tr = makeDCReturn()
@@ -419,6 +465,9 @@ describe('DC Form D-40 PDF generator', () => {
     expect(compiled.doc.getPageCount()).toBe(1)
     expect(compiled.forms[0].formId).toBe('DC Form D-40')
     expect(compiled.forms[0].sequenceNumber).toBe('DC-01')
+  })
+})
+
 describe('NC Form D-400 PDF generator', () => {
   it('generates a valid PDF', async () => {
     const tr = makeNCReturn()
@@ -467,10 +516,6 @@ describe('compileFilingPackage — state form integration', () => {
 
   it('GA return includes GA Form 500 in combined PDF', async () => {
     const tr = makeGAReturn()
-  it('PA return includes PA-40 in combined PDF', async () => {
-    const tr = makePAReturn()
-  it('NC return includes NC Form D-400 in combined PDF', async () => {
-    const tr = makeNCReturn()
 
     const result = await compileFilingPackage(tr, templates)
 
@@ -481,6 +526,36 @@ describe('compileFilingPackage — state form integration', () => {
     const gaForm = result.formsIncluded.find(f => f.formId === 'GA Form 500')
     expect(gaForm).toBeDefined()
     expect(gaForm!.pageCount).toBe(1)
+  })
+
+  it('PA return includes PA-40 in combined PDF', async () => {
+    const tr = makePAReturn()
+
+    const result = await compileFilingPackage(tr, templates)
+
+    expect(result.statePackages).toHaveLength(1)
+    expect(result.statePackages[0].stateCode).toBe('PA')
+    expect(result.statePackages[0].label).toBe('PA-40')
+    expect(result.statePackages[0].pdfBytes.length).toBeGreaterThan(0)
+
+    const paForm = result.formsIncluded.find(f => f.formId === 'PA-40')
+    expect(paForm).toBeDefined()
+    expect(paForm!.pageCount).toBe(1)
+  })
+
+  it('NC return includes NC Form D-400 in combined PDF', async () => {
+    const tr = makeNCReturn()
+
+    const result = await compileFilingPackage(tr, templates)
+
+    expect(result.statePackages).toHaveLength(1)
+    expect(result.statePackages[0].stateCode).toBe('NC')
+    expect(result.statePackages[0].label).toBe('NC Form D-400')
+    expect(result.statePackages[0].pdfBytes.length).toBeGreaterThan(0)
+
+    const ncForm = result.formsIncluded.find(f => f.formId === 'NC Form D-400')
+    expect(ncForm).toBeDefined()
+    expect(ncForm!.pageCount).toBe(1)
   })
 
   it('MA return includes MA Form 1 in combined PDF', async () => {
@@ -539,20 +614,6 @@ describe('compileFilingPackage — state form integration', () => {
     const vaForm = result.formsIncluded.find(f => f.formId === 'VA Form 760')
     expect(vaForm).toBeDefined()
     expect(vaForm!.pageCount).toBe(1)
-    expect(result.statePackages[0].stateCode).toBe('PA')
-    expect(result.statePackages[0].label).toBe('PA-40')
-    expect(result.statePackages[0].pdfBytes.length).toBeGreaterThan(0)
-
-    const paForm = result.formsIncluded.find(f => f.formId === 'PA-40')
-    expect(paForm).toBeDefined()
-    expect(paForm!.pageCount).toBe(1)
-    expect(result.statePackages[0].stateCode).toBe('NC')
-    expect(result.statePackages[0].label).toBe('NC Form D-400')
-    expect(result.statePackages[0].pdfBytes.length).toBeGreaterThan(0)
-
-    const ncForm = result.formsIncluded.find(f => f.formId === 'NC Form D-400')
-    expect(ncForm).toBeDefined()
-    expect(ncForm!.pageCount).toBe(1)
   })
 
   it('combined PDF has more pages when CA is selected', async () => {

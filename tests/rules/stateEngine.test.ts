@@ -37,6 +37,20 @@ describe('State Engine — registry', () => {
     expect(mod!.formLabel).toBe('VA Form 760')
   })
 
+  it('PA module is registered', () => {
+    const mod = getStateModule('PA')
+    expect(mod).toBeDefined()
+    expect(mod!.stateCode).toBe('PA')
+    expect(mod!.formLabel).toBe('PA-40')
+  })
+
+  it('NC module is registered', () => {
+    const mod = getStateModule('NC')
+    expect(mod).toBeDefined()
+    expect(mod!.stateCode).toBe('NC')
+    expect(mod!.formLabel).toBe('NC Form D-400')
+  })
+
   it('getSupportedStates returns all registered states', () => {
     const states = getSupportedStates()
     expect(states.length).toBeGreaterThanOrEqual(6)
@@ -46,33 +60,8 @@ describe('State Engine — registry', () => {
     expect(states.find(s => s.code === 'MD')).toBeDefined()
     expect(states.find(s => s.code === 'NJ')).toBeDefined()
     expect(states.find(s => s.code === 'VA')).toBeDefined()
-  it('PA module is registered', () => {
-    const mod = getStateModule('PA')
-    expect(mod).toBeDefined()
-    expect(mod!.stateCode).toBe('PA')
-    expect(mod!.formLabel).toBe('PA-40')
-  })
-
-  it('getSupportedStates returns CA and PA', () => {
-    const states = getSupportedStates()
-    expect(states.find(s => s.code === 'CA')).toBeDefined()
     expect(states.find(s => s.code === 'PA')).toBeDefined()
-  it('getSupportedStates returns CA and DC', () => {
-    const states = getSupportedStates()
-    expect(states.length).toBeGreaterThanOrEqual(2)
-    expect(states.find(s => s.code === 'CA')).toBeDefined()
     expect(states.find(s => s.code === 'DC')).toBeDefined()
-  it('NC module is registered', () => {
-    const mod = getStateModule('NC')
-    expect(mod).toBeDefined()
-    expect(mod!.stateCode).toBe('NC')
-    expect(mod!.formLabel).toBe('NC Form D-400')
-  })
-
-  it('getSupportedStates returns CA and NC', () => {
-    const states = getSupportedStates()
-    expect(states.length).toBeGreaterThanOrEqual(2)
-    expect(states.find(s => s.code === 'CA')).toBeDefined()
     expect(states.find(s => s.code === 'NC')).toBeDefined()
   })
 
@@ -112,31 +101,6 @@ describe('State Engine — computeAll integration', () => {
       w2s: [{
         id: 'w2-1', employerEin: '12-3456789', employerName: 'Test', box1: 9000000, box2: 900000, box3: 9000000, box4: 558000, box5: 9000000, box6: 130500, box7: 0, box8: 0, box10: 0, box11: 0,
         box12: [], box13StatutoryEmployee: false, box13RetirementPlan: false, box13ThirdPartySickPay: false, box14: '', box15State: 'MD', box16StateWages: 9000000, box17StateIncomeTax: 350000,
-  it('stateResults contains PA when PA is in stateReturns', () => {
-    const tr = makeTr({
-      stateReturns: [{ stateCode: 'PA', residencyType: 'full-year' }],
-      w2s: [{
-        id: 'w2-1',
-        employerEin: '12-3456789',
-        employerName: 'Test',
-        box1: 10000000,
-        box2: 1500000,
-        box3: 10000000,
-        box4: 620000,
-        box5: 10000000,
-        box6: 145000,
-        box7: 0,
-        box8: 0,
-        box10: 0,
-        box11: 0,
-        box12: [],
-        box13StatutoryEmployee: false,
-        box13RetirementPlan: false,
-        box13ThirdPartySickPay: false,
-        box14: '',
-        box15State: 'PA',
-        box16StateWages: 10000000,
-        box17StateIncomeTax: 500000,
       }],
     })
     const result = computeAll(tr)
@@ -146,6 +110,18 @@ describe('State Engine — computeAll integration', () => {
     expect(result.stateResults[0].stateAGI).toBeGreaterThan(0)
     expect(result.stateResults[0].stateWithholding).toBe(350000)
     expect(result.values.has('form502.mdAGI')).toBe(true)
+  })
+
+  it('stateResults contains PA when PA is in stateReturns', () => {
+    const tr = makeTr({
+      stateReturns: [{ stateCode: 'PA', residencyType: 'full-year' }],
+      w2s: [{
+        id: 'w2-1', employerEin: '12-3456789', employerName: 'Test', box1: 10000000, box2: 1500000, box3: 10000000, box4: 620000, box5: 10000000, box6: 145000, box7: 0, box8: 0, box10: 0, box11: 0,
+        box12: [], box13StatutoryEmployee: false, box13RetirementPlan: false, box13ThirdPartySickPay: false, box14: '', box15State: 'PA', box16StateWages: 10000000, box17StateIncomeTax: 500000,
+      }],
+    })
+    const result = computeAll(tr)
+    expect(result.stateResults).toHaveLength(1)
     expect(result.stateResults[0].stateCode).toBe('PA')
     expect(result.stateResults[0].formLabel).toBe('PA-40')
     expect(result.stateResults[0].stateWithholding).toBe(500000)
@@ -284,9 +260,6 @@ describe('State Engine — computeAll integration', () => {
   it('stateResults contains MA when MA is in stateReturns', () => {
     const tr = makeTr({
       stateReturns: [{ stateCode: 'MA', residencyType: 'full-year' }],
-  it('PA traced values appear in values map', () => {
-    const tr = makeTr({
-      stateReturns: [{ stateCode: 'PA', residencyType: 'full-year' }],
       w2s: [{
         id: 'w2-1',
         employerEin: '12-3456789',
@@ -342,7 +315,6 @@ describe('State Engine — computeAll integration', () => {
         box13ThirdPartySickPay: false,
         box14: '',
         box15State: 'VA',
-        box15State: 'PA',
         box16StateWages: 10000000,
         box17StateIncomeTax: 500000,
       }],
@@ -356,6 +328,36 @@ describe('State Engine — computeAll integration', () => {
     expect(result.values.has('form760.vaAGI')).toBe(true)
     expect(result.values.has('form760.vaTaxableIncome')).toBe(true)
     expect(result.values.has('form760.vaTax')).toBe(true)
+  })
+
+  it('PA traced values appear in values map', () => {
+    const tr = makeTr({
+      stateReturns: [{ stateCode: 'PA', residencyType: 'full-year' }],
+      w2s: [{
+        id: 'w2-1',
+        employerEin: '12-3456789',
+        employerName: 'Test',
+        box1: 10000000,
+        box2: 1500000,
+        box3: 10000000,
+        box4: 620000,
+        box5: 10000000,
+        box6: 145000,
+        box7: 0,
+        box8: 0,
+        box10: 0,
+        box11: 0,
+        box12: [],
+        box13StatutoryEmployee: false,
+        box13RetirementPlan: false,
+        box13ThirdPartySickPay: false,
+        box14: '',
+        box15State: 'PA',
+        box16StateWages: 10000000,
+        box17StateIncomeTax: 500000,
+      }],
+    })
+    const result = computeAll(tr)
     expect(result.values.has('pa40.totalTaxableIncome')).toBe(true)
     expect(result.values.has('pa40.adjustedTaxableIncome')).toBe(true)
     expect(result.values.has('pa40.paTax')).toBe(true)
