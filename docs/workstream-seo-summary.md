@@ -62,7 +62,7 @@ This workstream implements Track 4 from the GitHub Pages launch plan: SEO founda
 User-agent: *
 Allow: /
 
-Sitemap: https://opentax-org.github.io/opentax/sitemap.xml
+Sitemap: https://xavierliwei.github.io/opentax/sitemap.xml
 ```
 
 Allows all crawlers full access and points to the sitemap.

@@ -327,7 +327,7 @@ Privacy-first analytics using [Plausible](https://plausible.io) (no cookies, GDP
 
 Add the Plausible snippet to every page's `<head>`:
 ```html
-<script defer data-domain="opentax-org.github.io"
+<script defer data-domain="xavierliwei.github.io"
   src="https://plausible.io/js/script.tagged-events.js"></script>
 ```
 

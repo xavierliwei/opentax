@@ -4,4 +4,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://opentax-org.github.io/opentax/sitemap.xml
+Sitemap: https://xavierliwei.github.io/opentax/sitemap.xml
