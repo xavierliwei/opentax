@@ -63,7 +63,7 @@ export function StateReturnsPage() {
       </p>
 
       <div className="mt-6 flex flex-col gap-4">
-        {supportedStates.map(({ code, label, stateName }) => (
+        {supportedStates.map(({ code, stateName }) => (
           <div key={code} className="border border-gray-200 rounded-lg p-4">
             <label className="flex items-start gap-3 cursor-pointer">
               <input
@@ -82,7 +82,7 @@ export function StateReturnsPage() {
                 <span className="font-medium text-gray-900 inline-flex items-center">
                   File {stateName} state return
                   <InfoTooltip
-                    explanation={`Check this to compute your ${label} state return alongside your federal return. You can choose full-year, part-year, or nonresident filing status below.`}
+                    explanation={`Check this to compute your ${stateName} state return alongside your federal return. You can choose full-year, part-year, or nonresident filing status below.`}
                     pubName={`${stateName} — Filing Requirements`}
                     pubUrl={code === 'CA'
                       ? 'https://www.ftb.ca.gov/file/personal/residency-status/index.html'
@@ -105,7 +105,7 @@ export function StateReturnsPage() {
                   />
                 </span>
                 <p className="text-sm text-gray-500 mt-0.5">
-                  Enables {label} computation.
+                  Enables {stateName} state tax computation.
                 </p>
               </div>
             </label>
@@ -140,7 +140,7 @@ export function StateReturnsPage() {
                           <div>
                             <span className="text-sm font-medium text-gray-900">
                               {opt.label}
-                              {disabled && <span className="text-xs text-gray-400 ml-1">(coming soon)</span>}
+                              {disabled && <span className="text-xs text-gray-400 ml-2">&mdash; coming soon</span>}
                             </span>
                             <p className="text-xs text-gray-500">{opt.description}</p>
                           </div>

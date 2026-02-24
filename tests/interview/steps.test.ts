@@ -73,6 +73,14 @@ describe('steps.ts — visibility logic', () => {
     expect(step.section).toBe('review')
   })
 
+  it('state review step labels follow "XX Review" pattern for sidebar readability', () => {
+    const stateReviewSteps = STEPS.filter((s) => s.id.startsWith('state-review-'))
+    expect(stateReviewSteps.length).toBeGreaterThan(0)
+    for (const step of stateReviewSteps) {
+      expect(step.label).toMatch(/^[A-Z]{2} Review$/)
+    }
+  })
+
   it('state-review-PA is visible only when PA is in stateReturns', () => {
     const tr = makeTr()
     const step = STEPS.find((s) => s.id === 'state-review-PA')!
