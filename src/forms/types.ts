@@ -29,6 +29,8 @@ export interface CompiledForms {
   summary: ReturnSummary
   /** State form PDFs (for separate download). Empty if no states selected. */
   statePackages: StatePackage[]
+  /** Quality gate validation result for state compilation (if states were compiled) */
+  qualityGates?: import('../rules/qualityGates').GateResult
 }
 
 /** A compiled state form package (one per state) */

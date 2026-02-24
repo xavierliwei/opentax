@@ -21,6 +21,8 @@ import type { StateComputeResult } from './stateEngine'
 import { getStateModule } from './stateRegistry'
 import { extractForm540 } from './2025/ca/module'
 import { getAllStateNodeLabels } from './stateRegistry'
+import { validateComputeResult, validateCrossStateConsistency, runAllGates } from './qualityGates'
+import type { GateResult } from './qualityGates'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -32,6 +34,8 @@ export interface ComputeResult {
   stateResults: StateComputeResult[]
   values: Map<string, TracedValue>
   executedSchedules: string[]
+  /** Quality gate validation result (populated when state returns are present) */
+  qualityGates?: GateResult
 }
 
 export interface ComputeTrace {
@@ -266,7 +270,23 @@ export function computeAll(model: TaxReturn): ComputeResult {
     )
   }
 
-  return { form1040, scheduleB, form540, stateResults, values, executedSchedules }
+  // Run quality gates on state computation results
+  let qualityGates: GateResult | undefined
+  if (stateResults.length > 0) {
+    const gateResults: GateResult[] = []
+    for (const sr of stateResults) {
+      const config = stateReturns.find(c => c.stateCode === sr.stateCode)
+      if (config) {
+        gateResults.push(validateComputeResult(sr, config))
+      }
+    }
+    gateResults.push(
+      validateCrossStateConsistency(model, stateResults, form1040.line11.amount),
+    )
+    qualityGates = runAllGates(gateResults)
+  }
+
+  return { form1040, scheduleB, form540, stateResults, values, executedSchedules, qualityGates }
 }
 
 // ── collectAllValues ─────────────────────────────────────────────
