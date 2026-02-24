@@ -216,9 +216,9 @@ describe('State Engine — computeAll integration', () => {
       }],
     })
     const result = computeAll(tr)
-    expect(result.values.has('pa40.totalIncome')).toBe(true)
-    expect(result.values.has('pa40.taxableIncome')).toBe(true)
-    expect(result.values.has('pa40.tax')).toBe(true)
+    expect(result.values.has('pa40.totalTaxableIncome')).toBe(true)
+    expect(result.values.has('pa40.adjustedTaxableIncome')).toBe(true)
+    expect(result.values.has('pa40.paTax')).toBe(true)
   })
 })
 
