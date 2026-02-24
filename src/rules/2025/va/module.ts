@@ -1,3 +1,7 @@
+/**
+ * VA State Module — Wraps Form 760 computation into the StateRulesModule interface
+ */
+
 import type { TaxReturn, StateReturnConfig } from '../../../model/types'
 import type { Form1040Result } from '../form1040'
 import type { TracedValue } from '../../../model/traced'
@@ -6,8 +10,9 @@ import type { StateRulesModule, StateComputeResult, StateReviewResultLine, State
 import { computeForm760 } from './form760'
 import type { Form760Result } from './form760'
 
+/** Map a Form760Result into the standardised StateComputeResult */
 function toStateResult(form760: Form760Result): StateComputeResult {
-  const isPartYear = form760.residencyType !== 'full-year'
+  const isPartYear = form760.residencyType === 'part-year'
   return {
     stateCode: 'VA',
     formLabel: isPartYear ? 'VA Form 760PY' : 'VA Form 760',
@@ -15,7 +20,7 @@ function toStateResult(form760: Form760Result): StateComputeResult {
     stateAGI: form760.vaAGI,
     stateTaxableIncome: form760.vaTaxableIncome,
     stateTax: form760.vaTax,
-    stateCredits: form760.exemptions,
+    stateCredits: form760.totalCredits,
     taxAfterCredits: form760.taxAfterCredits,
     stateWithholding: form760.stateWithholding,
     overpaid: form760.overpaid,
@@ -25,108 +30,121 @@ function toStateResult(form760: Form760Result): StateComputeResult {
   }
 }
 
+/** Node labels for VA trace nodes */
 const VA_NODE_LABELS: Record<string, string> = {
   'form760.vaAGI': 'Virginia adjusted gross income',
-  'form760.vaSourceIncome': 'Virginia-source income (apportioned)',
+  'form760.vaSourceIncome': 'VA-source income (apportioned)',
+  'form760.apportionmentRatio': 'VA residency apportionment ratio',
   'form760.vaDeduction': 'Virginia deduction',
+  'form760.vaExemptions': 'Virginia personal exemptions',
   'form760.vaTaxableIncome': 'Virginia taxable income',
-  'form760.vaTax': 'Virginia tax',
-  'form760.exemptions': 'Virginia personal/dependent exemptions',
-  'form760.taxAfterCredits': 'Virginia tax after credits',
+  'form760.vaTax': 'Virginia income tax',
+  'form760.lowIncomeCredit': 'VA low-income credit',
+  'form760.taxAfterCredits': 'VA tax after credits',
   'form760.stateWithholding': 'VA state income tax withheld',
   'form760.overpaid': 'VA overpaid (refund)',
   'form760.amountOwed': 'VA amount you owe',
+  'scheduleADJ.ageDeduction': 'VA age deduction (age 65+)',
+  'scheduleADJ.additions': 'VA income additions',
+  'scheduleADJ.subtractions': 'VA income subtractions',
 }
 
+/** Build traced values for the VA explainability graph */
 function collectVATracedValues(result: StateComputeResult): Map<string, TracedValue> {
   const form760 = result.detail as Form760Result
   const values = new Map<string, TracedValue>()
 
+  const vaAGIInputs = ['form1040.line11']
+  if (form760.vaAdjustments.ageDeduction > 0) vaAGIInputs.push('scheduleADJ.ageDeduction')
+
+  if (form760.vaAdjustments.ageDeduction > 0) {
+    values.set('scheduleADJ.ageDeduction', tracedFromComputation(
+      form760.vaAdjustments.ageDeduction, 'scheduleADJ.ageDeduction', [],
+      'VA age deduction (age 65+)',
+    ))
+  }
+  if (form760.vaAdjustments.subtractions > 0) {
+    values.set('scheduleADJ.subtractions', tracedFromComputation(
+      form760.vaAdjustments.subtractions, 'scheduleADJ.subtractions',
+      form760.vaAdjustments.ageDeduction > 0 ? ['scheduleADJ.ageDeduction'] : [],
+      'VA income subtractions',
+    ))
+  }
+
   values.set('form760.vaAGI', tracedFromComputation(
-    form760.vaAGI,
-    'form760.vaAGI',
-    ['form1040.line11'],
-    'Virginia adjusted gross income',
+    form760.vaAGI, 'form760.vaAGI', vaAGIInputs, 'Virginia adjusted gross income',
   ))
 
   if (form760.vaSourceIncome !== undefined) {
     values.set('form760.vaSourceIncome', tracedFromComputation(
-      form760.vaSourceIncome,
-      'form760.vaSourceIncome',
-      ['form760.vaAGI'],
-      'Virginia-source income',
+      form760.vaSourceIncome, 'form760.vaSourceIncome', ['form760.vaAGI'],
+      `VA-source income (${Math.round(form760.apportionmentRatio * 100)}% of VA AGI)`,
     ))
   }
 
   values.set('form760.vaDeduction', tracedFromComputation(
-    form760.deductionUsed,
-    'form760.vaDeduction',
-    [],
+    form760.deductionUsed, 'form760.vaDeduction', [],
     `VA ${form760.deductionMethod} deduction`,
   ))
 
+  values.set('form760.vaExemptions', tracedFromComputation(
+    form760.totalExemptions, 'form760.vaExemptions', [],
+    'Virginia personal exemptions',
+  ))
+
   values.set('form760.vaTaxableIncome', tracedFromComputation(
-    form760.vaTaxableIncome,
-    'form760.vaTaxableIncome',
-    [form760.vaSourceIncome !== undefined ? 'form760.vaSourceIncome' : 'form760.vaAGI', 'form760.vaDeduction'],
+    form760.vaTaxableIncome, 'form760.vaTaxableIncome',
+    ['form760.vaAGI', 'form760.vaDeduction', 'form760.vaExemptions'],
     'Virginia taxable income',
   ))
 
   values.set('form760.vaTax', tracedFromComputation(
-    form760.vaTax,
-    'form760.vaTax',
-    ['form760.vaTaxableIncome'],
-    'Virginia tax',
+    form760.vaTax, 'form760.vaTax', ['form760.vaTaxableIncome'], 'Virginia tax',
   ))
 
-  values.set('form760.exemptions', tracedFromComputation(
-    form760.exemptions,
-    'form760.exemptions',
-    [],
-    'Virginia exemptions',
-  ))
+  if (form760.lowIncomeCredit > 0) {
+    values.set('form760.lowIncomeCredit', tracedFromComputation(
+      form760.lowIncomeCredit, 'form760.lowIncomeCredit', ['form760.vaTax'],
+      'VA low-income credit',
+    ))
+  }
 
+  const taxAfterInputs = ['form760.vaTax']
+  if (form760.lowIncomeCredit > 0) taxAfterInputs.push('form760.lowIncomeCredit')
   values.set('form760.taxAfterCredits', tracedFromComputation(
-    form760.taxAfterCredits,
-    'form760.taxAfterCredits',
-    ['form760.vaTax', 'form760.exemptions'],
-    'Virginia tax after credits',
+    form760.taxAfterCredits, 'form760.taxAfterCredits', taxAfterInputs,
+    'VA tax after credits',
   ))
 
   if (form760.stateWithholding > 0) {
     values.set('form760.stateWithholding', tracedFromComputation(
-      form760.stateWithholding,
-      'form760.stateWithholding',
-      [],
-      'VA state withholding',
+      form760.stateWithholding, 'form760.stateWithholding', [],
+      'VA state income tax withheld',
     ))
   }
 
+  const resultInputs = ['form760.taxAfterCredits']
+  if (form760.stateWithholding > 0) resultInputs.push('form760.stateWithholding')
   if (form760.overpaid > 0) {
     values.set('form760.overpaid', tracedFromComputation(
-      form760.overpaid,
-      'form760.overpaid',
-      ['form760.taxAfterCredits', 'form760.stateWithholding'],
-      'VA refund',
+      form760.overpaid, 'form760.overpaid', resultInputs, 'VA overpaid (refund)',
     ))
   }
-
   if (form760.amountOwed > 0) {
     values.set('form760.amountOwed', tracedFromComputation(
-      form760.amountOwed,
-      'form760.amountOwed',
-      ['form760.taxAfterCredits', 'form760.stateWithholding'],
-      'VA amount owed',
+      form760.amountOwed, 'form760.amountOwed', resultInputs, 'VA amount you owe',
     ))
   }
 
   return values
 }
 
+/** Helper to safely extract Form760Result from StateComputeResult.detail */
 function d(result: StateComputeResult): Form760Result {
   return result.detail as Form760Result
 }
 
+/** Config-driven review layout for the generic StateReviewPage */
 const VA_REVIEW_LAYOUT: StateReviewSection[] = [
   {
     title: 'Income',
@@ -136,34 +154,66 @@ const VA_REVIEW_LAYOUT: StateReviewSection[] = [
         nodeId: 'form1040.line11',
         getValue: (r) => d(r).federalAGI,
         tooltip: {
-          explanation: 'Virginia starts with your federal adjusted gross income from Form 1040 line 11.',
-          pubName: 'Virginia Form 760 Instructions',
-          pubUrl: 'https://www.tax.virginia.gov/forms/search?title=760',
+          explanation: 'Your federal adjusted gross income from Form 1040 Line 11.',
+          pubName: 'VA Form 760 Instructions — Line 1',
+          pubUrl: 'https://www.tax.virginia.gov/form-760-instructions',
         },
       },
       {
-        label: 'VA AGI',
+        label: 'Schedule ADJ Subtractions',
+        nodeId: 'scheduleADJ.subtractions',
+        getValue: (r) => d(r).vaAdjustments.subtractions,
+        tooltip: {
+          explanation: 'Virginia subtractions from federal AGI, including the age deduction for filers 65+.',
+          pubName: 'VA Schedule ADJ Instructions',
+          pubUrl: 'https://www.tax.virginia.gov/schedule-adj-instructions',
+        },
+        showWhen: (r) => d(r).vaAdjustments.subtractions > 0,
+      },
+      {
+        label: 'Virginia AGI',
         nodeId: 'form760.vaAGI',
         getValue: (r) => r.stateAGI,
         tooltip: {
-          explanation: 'Virginia adjusted gross income starts from federal AGI with Virginia-specific adjustments.',
-          pubName: 'Virginia Form 760 Instructions',
-          pubUrl: 'https://www.tax.virginia.gov/forms/search?title=760',
+          explanation: 'Virginia AGI = Federal AGI + additions - subtractions.',
+          pubName: 'VA Form 760 Instructions — Line 5',
+          pubUrl: 'https://www.tax.virginia.gov/form-760-instructions',
         },
+      },
+      {
+        label: 'VA-Source Income',
+        nodeId: 'form760.vaSourceIncome',
+        getValue: (r) => d(r).vaSourceIncome ?? r.stateAGI,
+        tooltip: {
+          explanation: 'For part-year residents, the portion of VA AGI allocated to Virginia based on days of residency.',
+          pubName: 'VA Form 760PY Instructions',
+          pubUrl: 'https://www.tax.virginia.gov/form-760py-instructions',
+        },
+        showWhen: (r) => d(r).residencyType === 'part-year',
       },
     ],
   },
   {
-    title: 'Deductions',
+    title: 'Deductions & Exemptions',
     items: [
       {
         label: 'VA Deduction',
         nodeId: 'form760.vaDeduction',
         getValue: (r) => d(r).deductionUsed,
         tooltip: {
-          explanation: 'Virginia uses the larger of Virginia standard deduction or eligible itemized deduction.',
-          pubName: 'Virginia Form 760 Instructions',
-          pubUrl: 'https://www.tax.virginia.gov/forms/search?title=760',
+          explanation: 'Virginia uses the larger of the VA standard deduction ($8,000 single / $16,000 MFJ) or VA itemized deductions. VA itemized conforms to federal except state income tax cannot be deducted.',
+          pubName: 'VA Form 760 Instructions — Line 6',
+          pubUrl: 'https://www.tax.virginia.gov/form-760-instructions',
+        },
+      },
+      {
+        label: 'VA Exemptions',
+        nodeId: 'form760.vaExemptions',
+        getValue: (r) => d(r).totalExemptions,
+        tooltip: {
+          explanation: 'Virginia personal exemptions: $930 per filer and dependent. Additional $800 for filers age 65+ or blind.',
+          pubName: 'VA Form 760 Instructions — Line 7',
+          pubUrl: 'https://www.tax.virginia.gov/form-760-instructions',
         },
       },
       {
@@ -171,9 +221,9 @@ const VA_REVIEW_LAYOUT: StateReviewSection[] = [
         nodeId: 'form760.vaTaxableIncome',
         getValue: (r) => r.stateTaxableIncome,
         tooltip: {
-          explanation: 'Virginia taxable income after deductions.',
-          pubName: 'Virginia Form 760 Instructions',
-          pubUrl: 'https://www.tax.virginia.gov/forms/search?title=760',
+          explanation: "Virginia taxable income = VA AGI minus deductions minus exemptions. Taxed using Virginia's 4-bracket rate schedule (2% to 5.75%).",
+          pubName: 'VA 2025 Tax Rate Schedule',
+          pubUrl: 'https://www.tax.virginia.gov/individual-income-tax',
         },
       },
     ],
@@ -182,33 +232,34 @@ const VA_REVIEW_LAYOUT: StateReviewSection[] = [
     title: 'Tax & Credits',
     items: [
       {
-        label: 'VA Tax',
+        label: 'Virginia Tax',
         nodeId: 'form760.vaTax',
         getValue: (r) => d(r).vaTax,
         tooltip: {
-          explanation: 'Virginia tax computed using the state rate schedule.',
-          pubName: 'Virginia Tax Rate Schedule',
-          pubUrl: 'https://www.tax.virginia.gov/individual-income-tax-rates',
+          explanation: 'Virginia income tax from 4-bracket schedule. All income taxed at ordinary rates.',
+          pubName: 'VA 2025 Tax Rate Schedule',
+          pubUrl: 'https://www.tax.virginia.gov/individual-income-tax',
         },
       },
       {
-        label: 'VA Exemptions',
-        nodeId: 'form760.exemptions',
-        getValue: (r) => d(r).exemptions,
+        label: 'Low-Income Credit',
+        nodeId: 'form760.lowIncomeCredit',
+        getValue: (r) => d(r).lowIncomeCredit,
         tooltip: {
-          explanation: 'Virginia personal and dependent exemptions reduce tax.',
-          pubName: 'Virginia Form 760 Instructions',
-          pubUrl: 'https://www.tax.virginia.gov/forms/search?title=760',
+          explanation: 'Nonrefundable credit for filers with VA taxable income at or below the federal poverty level.',
+          pubName: 'VA Schedule CR Instructions',
+          pubUrl: 'https://www.tax.virginia.gov/schedule-cr-instructions',
         },
+        showWhen: (r) => d(r).lowIncomeCredit > 0,
       },
       {
         label: 'VA Tax After Credits',
         nodeId: 'form760.taxAfterCredits',
         getValue: (r) => r.taxAfterCredits,
         tooltip: {
-          explanation: 'Net Virginia tax after exemptions and credits.',
-          pubName: 'Virginia Form 760 Instructions',
-          pubUrl: 'https://www.tax.virginia.gov/forms/search?title=760',
+          explanation: 'Virginia tax after credits. Compared against withholding to determine refund or amount owed.',
+          pubName: 'VA Form 760 Instructions — Line 13',
+          pubUrl: 'https://www.tax.virginia.gov/form-760-instructions',
         },
       },
     ],
@@ -221,9 +272,9 @@ const VA_REVIEW_LAYOUT: StateReviewSection[] = [
         nodeId: 'form760.stateWithholding',
         getValue: (r) => r.stateWithholding,
         tooltip: {
-          explanation: 'Virginia tax withheld from W-2 forms.',
-          pubName: 'Virginia Form 760 Instructions',
-          pubUrl: 'https://www.tax.virginia.gov/forms/search?title=760',
+          explanation: 'Virginia state income tax withheld from your W-2(s) Box 17.',
+          pubName: 'VA Form 760 Instructions — Line 18',
+          pubUrl: 'https://www.tax.virginia.gov/form-760-instructions',
         },
         showWhen: (r) => r.stateWithholding > 0,
       },
