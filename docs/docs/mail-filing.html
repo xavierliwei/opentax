@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>How to File by Mail (Federal + State) — OpenTax</title>
+  <meta name="description" content="Step-by-step guide to printing, signing, and mailing your federal and state tax returns prepared with OpenTax. Includes mailing address resources for all supported states." />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="How to File by Mail (Federal + State) — OpenTax" />
+  <meta property="og:description" content="Step-by-step guide to printing, signing, and mailing your tax returns prepared with OpenTax." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://xavierliwei.github.io/opentax/docs/mail-filing.html" />
+
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <link rel="canonical" href="https://xavierliwei.github.io/opentax/docs/mail-filing.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          colors: {
+            brand: { DEFAULT: '#1e40af', light: '#2563eb' },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+  </style>
+</head>
+<body class="font-sans text-gray-900 antialiased">
+
+  <!-- ───────────────── Header ───────────────── -->
+  <header class="relative bg-gradient-to-br from-gray-900 via-brand to-brand-light text-white overflow-hidden">
+    <div class="absolute inset-0 opacity-10">
+      <div class="absolute top-10 left-10 w-72 h-72 bg-white rounded-full blur-3xl"></div>
+      <div class="absolute bottom-10 right-10 w-96 h-96 bg-blue-400 rounded-full blur-3xl"></div>
+    </div>
+
+    <nav class="relative max-w-6xl mx-auto flex items-center justify-between px-6 py-5">
+      <a href="../" class="flex items-center gap-3 hover:opacity-90 transition-opacity">
+        <img src="../favicon.svg" alt="OpenTax logo" class="w-8 h-8" />
+        <span class="text-lg font-bold tracking-tight">OpenTax</span>
+      </a>
+      <div class="flex items-center gap-6 text-sm font-medium">
+        <a href="../" class="hover:text-blue-200 transition-colors hidden sm:inline">Home</a>
+        <a href="../trust/" class="hover:text-blue-200 transition-colors hidden sm:inline">Trust Center</a>
+        <a href="../demo/" class="hover:text-blue-200 transition-colors hidden sm:inline">Demo</a>
+        <a href="./" class="hover:text-blue-200 transition-colors hidden sm:inline">Docs</a>
+        <a href="https://github.com/xavierliwei/opentax" target="_blank" rel="noopener"
+           class="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 backdrop-blur px-4 py-2 rounded-lg transition-colors">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+          GitHub
+        </a>
+      </div>
+    </nav>
+
+    <div class="relative max-w-4xl mx-auto text-center px-6 pt-12 pb-20 sm:pt-20 sm:pb-28">
+      <div class="inline-flex items-center gap-2 bg-white/10 backdrop-blur rounded-full px-4 py-1.5 text-sm font-medium mb-8">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+        Filing Guide
+      </div>
+      <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight mb-6">
+        How to File by Mail
+      </h1>
+      <p class="text-lg sm:text-xl text-blue-100 max-w-2xl mx-auto leading-relaxed">
+        OpenTax currently supports <strong>paper filing only</strong>. This guide walks you through printing, signing, and mailing your federal and state returns.
+      </p>
+    </div>
+  </header>
+
+  <!-- ───────────────── Important Notice ───────────────── -->
+  <section class="bg-amber-50 border-b border-amber-200">
+    <div class="max-w-4xl mx-auto px-6 py-5">
+      <div class="flex items-start gap-3">
+        <svg class="w-5 h-5 text-amber-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+        <div class="text-sm text-amber-800">
+          <strong>No eFile support yet.</strong> OpenTax does not electronically file returns with the IRS or any state agency. You must print your completed forms and mail them. eFile is on the roadmap.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────── Mailing Checklist ───────────────── -->
+  <section class="max-w-4xl mx-auto px-6 py-16 sm:py-20">
+    <h2 class="text-2xl sm:text-3xl font-bold tracking-tight mb-8">Mailing checklist</h2>
+    <p class="text-gray-600 mb-8">After OpenTax generates your return PDFs, follow these steps before mailing.</p>
+
+    <ol class="space-y-5">
+      <li class="flex items-start gap-4">
+        <span class="w-8 h-8 bg-brand text-white rounded-lg flex items-center justify-center text-sm font-bold shrink-0">1</span>
+        <div>
+          <h3 class="font-semibold mb-1">Print all required forms</h3>
+          <p class="text-gray-600 text-sm">Print every page of your federal return (Form 1040 and all schedules/forms) and your state return. Use standard letter-size paper (8.5" &times; 11"). Black-and-white is fine.</p>
+        </div>
+      </li>
+      <li class="flex items-start gap-4">
+        <span class="w-8 h-8 bg-brand text-white rounded-lg flex items-center justify-center text-sm font-bold shrink-0">2</span>
+        <div>
+          <h3 class="font-semibold mb-1">Sign and date where required</h3>
+          <p class="text-gray-600 text-sm">Sign the bottom of Form 1040 (page 2). If filing jointly, both spouses must sign. State returns also have a signature line&mdash;check the last page of each state form. Use ink (not pencil).</p>
+        </div>
+      </li>
+      <li class="flex items-start gap-4">
+        <span class="w-8 h-8 bg-brand text-white rounded-lg flex items-center justify-center text-sm font-bold shrink-0">3</span>
+        <div>
+          <h3 class="font-semibold mb-1">Attach W-2 and 1099 copies</h3>
+          <p class="text-gray-600 text-sm">Attach Copy B of every W-2 to the front of your federal Form 1040. If any 1099 shows federal tax withheld, attach that too. State returns typically require Copy 2 of your W-2&mdash;check your state's instructions.</p>
+        </div>
+      </li>
+      <li class="flex items-start gap-4">
+        <span class="w-8 h-8 bg-brand text-white rounded-lg flex items-center justify-center text-sm font-bold shrink-0">4</span>
+        <div>
+          <h3 class="font-semibold mb-1">Include payment if you owe a balance</h3>
+          <p class="text-gray-600 text-sm">If your return shows a balance due, include a check or money order payable to "United States Treasury" (federal) or the appropriate state agency. Write your SSN, tax year, and form number on the check. Include the payment voucher (Form 1040-V for federal) if applicable.</p>
+        </div>
+      </li>
+      <li class="flex items-start gap-4">
+        <span class="w-8 h-8 bg-brand text-white rounded-lg flex items-center justify-center text-sm font-bold shrink-0">5</span>
+        <div>
+          <h3 class="font-semibold mb-1">Mail with tracking</h3>
+          <p class="text-gray-600 text-sm">Use USPS Certified Mail with return receipt, or another trackable service. This gives you proof of the postmark date (the IRS treats the postmark as your filing date) and proof of delivery.</p>
+        </div>
+      </li>
+      <li class="flex items-start gap-4">
+        <span class="w-8 h-8 bg-brand text-white rounded-lg flex items-center justify-center text-sm font-bold shrink-0">6</span>
+        <div>
+          <h3 class="font-semibold mb-1">Keep copies of everything</h3>
+          <p class="text-gray-600 text-sm">Keep a copy of your completed return, all attachments, and your mailing receipt. The IRS recommends keeping tax records for at least three years.</p>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <!-- ───────────────── Federal Mailing ───────────────── -->
+  <section class="bg-gray-50 border-y border-gray-200">
+    <div class="max-w-4xl mx-auto px-6 py-16 sm:py-20">
+      <h2 class="text-2xl sm:text-3xl font-bold tracking-tight mb-4">Federal return mailing address</h2>
+      <p class="text-gray-600 mb-6">The IRS mailing address depends on which state you live in and whether you're including a payment. Rather than listing addresses that may change, use the official IRS page:</p>
+
+      <a href="https://www.irs.gov/filing/where-to-file-paper-tax-returns-with-or-without-a-payment"
+         target="_blank" rel="noopener"
+         class="inline-flex items-center gap-2 bg-brand hover:bg-brand-light text-white font-semibold px-6 py-3 rounded-xl transition-colors shadow-lg mb-6">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+        IRS: Where to File Paper Tax Returns
+      </a>
+
+      <div class="bg-white border border-gray-200 rounded-xl p-5 text-sm text-gray-600">
+        <strong class="text-gray-900">Tip:</strong> The IRS has different addresses for returns <em>with</em> a payment vs. returns <em>without</em> a payment. Make sure you select the correct address for your situation. The page above lets you look up your address by state.
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────── State Mailing ───────────────── -->
+  <section class="max-w-4xl mx-auto px-6 py-16 sm:py-20">
+    <h2 class="text-2xl sm:text-3xl font-bold tracking-tight mb-4">State return mailing addresses</h2>
+    <p class="text-gray-600 mb-8">OpenTax currently supports the following states. Each state has its own mailing address and instructions. Use the official links below to find the correct address for your state return.</p>
+
+    <div class="space-y-4">
+
+      <!-- California -->
+      <div class="bg-white border border-gray-200 rounded-xl p-5">
+        <div class="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h3 class="font-semibold text-lg">California <span class="text-gray-400 font-normal">(Form 540)</span></h3>
+            <p class="text-sm text-gray-600 mt-1">Franchise Tax Board (FTB). Mailing address depends on whether you owe, are due a refund, or are filing with no payment.</p>
+          </div>
+          <a href="https://www.ftb.ca.gov/file/ways-to-file/mail.html"
+             target="_blank" rel="noopener"
+             class="inline-flex items-center gap-1.5 text-brand text-sm font-semibold hover:underline shrink-0">
+            FTB mailing info
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- Connecticut -->
+      <div class="bg-white border border-gray-200 rounded-xl p-5">
+        <div class="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h3 class="font-semibold text-lg">Connecticut <span class="text-gray-400 font-normal">(Form CT-1040)</span></h3>
+            <p class="text-sm text-gray-600 mt-1">Department of Revenue Services (DRS). Address varies by refund vs. balance due.</p>
+          </div>
+          <a href="https://portal.ct.gov/drs/individuals/individual-tax-page"
+             target="_blank" rel="noopener"
+             class="inline-flex items-center gap-1.5 text-brand text-sm font-semibold hover:underline shrink-0">
+            CT DRS filing info
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- District of Columbia -->
+      <div class="bg-white border border-gray-200 rounded-xl p-5">
+        <div class="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h3 class="font-semibold text-lg">District of Columbia <span class="text-gray-400 font-normal">(Form D-40)</span></h3>
+            <p class="text-sm text-gray-600 mt-1">Office of Tax and Revenue (OTR). Check the D-40 instructions for the current mailing address.</p>
+          </div>
+          <a href="https://otr.cfo.dc.gov/page/individual-income-tax-forms-and-instructions"
+             target="_blank" rel="noopener"
+             class="inline-flex items-center gap-1.5 text-brand text-sm font-semibold hover:underline shrink-0">
+            DC OTR forms
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- Florida -->
+      <div class="bg-white border border-gray-200 rounded-xl p-5 bg-gray-50">
+        <div class="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h3 class="font-semibold text-lg">Florida <span class="text-gray-400 font-normal">(no state income tax)</span></h3>
+            <p class="text-sm text-gray-600 mt-1">Florida does not impose a personal income tax. No state return to mail. You only need to mail your federal return.</p>
+          </div>
+          <span class="inline-flex items-center gap-1.5 text-green-600 text-sm font-semibold shrink-0">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            No filing needed
+          </span>
+        </div>
+      </div>
+
+      <!-- Georgia -->
+      <div class="bg-white border border-gray-200 rounded-xl p-5">
+        <div class="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h3 class="font-semibold text-lg">Georgia <span class="text-gray-400 font-normal">(Form 500)</span></h3>
+            <p class="text-sm text-gray-600 mt-1">Department of Revenue. Address is printed on the Form 500 instructions; verify on the DOR website.</p>
+          </div>
+          <a href="https://dor.georgia.gov/individual-income-tax"
+             target="_blank" rel="noopener"
+             class="inline-flex items-center gap-1.5 text-brand text-sm font-semibold hover:underline shrink-0">
+            GA DOR info
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- Maryland -->
+      <div class="bg-white border border-gray-200 rounded-xl p-5">
+        <div class="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h3 class="font-semibold text-lg">Maryland <span class="text-gray-400 font-normal">(Form 502)</span></h3>
+            <p class="text-sm text-gray-600 mt-1">Comptroller of Maryland. Separate addresses for refund returns vs. balance due.</p>
+          </div>
+          <a href="https://www.marylandtaxes.gov/individual/income/filing-information.php"
+             target="_blank" rel="noopener"
+             class="inline-flex items-center gap-1.5 text-brand text-sm font-semibold hover:underline shrink-0">
+            MD filing info
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- Massachusetts -->
+      <div class="bg-white border border-gray-200 rounded-xl p-5">
+        <div class="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h3 class="font-semibold text-lg">Massachusetts <span class="text-gray-400 font-normal">(Form 1)</span></h3>
+            <p class="text-sm text-gray-600 mt-1">Department of Revenue (DOR). Mailing address is in the Form 1 instructions.</p>
+          </div>
+          <a href="https://www.mass.gov/guides/personal-income-tax-for-residents"
+             target="_blank" rel="noopener"
+             class="inline-flex items-center gap-1.5 text-brand text-sm font-semibold hover:underline shrink-0">
+            MA DOR guide
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- North Carolina -->
+      <div class="bg-white border border-gray-200 rounded-xl p-5">
+        <div class="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h3 class="font-semibold text-lg">North Carolina <span class="text-gray-400 font-normal">(Form D-400)</span></h3>
+            <p class="text-sm text-gray-600 mt-1">Department of Revenue. Address is on the D-400 instructions; different for refund vs. payment.</p>
+          </div>
+          <a href="https://www.ncdor.gov/taxes-forms/individual-income-tax"
+             target="_blank" rel="noopener"
+             class="inline-flex items-center gap-1.5 text-brand text-sm font-semibold hover:underline shrink-0">
+            NC DOR info
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- New Jersey -->
+      <div class="bg-white border border-gray-200 rounded-xl p-5">
+        <div class="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h3 class="font-semibold text-lg">New Jersey <span class="text-gray-400 font-normal">(Form NJ-1040)</span></h3>
+            <p class="text-sm text-gray-600 mt-1">Division of Taxation. Mailing address is printed on the NJ-1040 instructions.</p>
+          </div>
+          <a href="https://www.nj.gov/treasury/taxation/individuals/index.shtml"
+             target="_blank" rel="noopener"
+             class="inline-flex items-center gap-1.5 text-brand text-sm font-semibold hover:underline shrink-0">
+            NJ Taxation info
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- Pennsylvania -->
+      <div class="bg-white border border-gray-200 rounded-xl p-5">
+        <div class="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h3 class="font-semibold text-lg">Pennsylvania <span class="text-gray-400 font-normal">(Form PA-40)</span></h3>
+            <p class="text-sm text-gray-600 mt-1">Department of Revenue. The PA-40 instructions list the current mailing address.</p>
+          </div>
+          <a href="https://www.revenue.pa.gov/FormsandPublications/FormsforIndividuals/PIT/Pages/default.aspx"
+             target="_blank" rel="noopener"
+             class="inline-flex items-center gap-1.5 text-brand text-sm font-semibold hover:underline shrink-0">
+            PA Revenue forms
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- Virginia -->
+      <div class="bg-white border border-gray-200 rounded-xl p-5">
+        <div class="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h3 class="font-semibold text-lg">Virginia <span class="text-gray-400 font-normal">(Form 760)</span></h3>
+            <p class="text-sm text-gray-600 mt-1">Department of Taxation. Address varies by return type; check the Form 760 instructions.</p>
+          </div>
+          <a href="https://www.tax.virginia.gov/individual-income-tax"
+             target="_blank" rel="noopener"
+             class="inline-flex items-center gap-1.5 text-brand text-sm font-semibold hover:underline shrink-0">
+            VA Tax info
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ───────────────── Disclaimer ───────────────── -->
+  <section class="bg-gray-50 border-y border-gray-200">
+    <div class="max-w-4xl mx-auto px-6 py-10">
+      <div class="flex items-start gap-3">
+        <svg class="w-5 h-5 text-gray-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <div class="text-sm text-gray-600">
+          <strong class="text-gray-900">Disclaimer:</strong> Mailing addresses, filing requirements, and deadlines can change each tax year. Always verify the current mailing address and instructions on the official IRS or state tax agency website before mailing your return. OpenTax provides tax computation tools but does not provide tax, legal, or financial advice.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────── Back to Docs ───────────────── -->
+  <section class="max-w-4xl mx-auto px-6 py-12 text-center">
+    <a href="./" class="inline-flex items-center gap-2 text-brand font-semibold text-sm hover:underline">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 17l-5-5m0 0l5-5m-5 5h12"/></svg>
+      Back to Documentation
+    </a>
+  </section>
+
+  <!-- ───────────────── Footer ───────────────── -->
+  <footer class="bg-gray-50 border-t border-gray-200">
+    <div class="max-w-6xl mx-auto px-6 py-10">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
+        <div class="flex items-center gap-2">
+          <img src="../favicon.svg" alt="OpenTax" class="w-5 h-5" />
+          <span class="font-medium text-gray-700">OpenTax</span>
+          <span class="text-gray-300">|</span>
+          <span>MIT License</span>
+        </div>
+        <div class="flex items-center gap-4 flex-wrap justify-center">
+          <a href="../trust/" class="hover:text-brand transition-colors">Trust Center</a>
+          <span class="text-gray-300">|</span>
+          <a href="../demo/" class="hover:text-brand transition-colors">Demo</a>
+          <span class="text-gray-300">|</span>
+          <a href="../docs/" class="hover:text-brand transition-colors">Docs</a>
+          <span class="text-gray-300">|</span>
+          <a href="../privacy.html" class="hover:text-brand transition-colors">Privacy</a>
+          <span class="text-gray-300">|</span>
+          <a href="https://github.com/xavierliwei/opentax" target="_blank" rel="noopener" class="hover:text-brand transition-colors">GitHub</a>
+        </div>
+      </div>
+      <div class="text-center text-xs text-gray-400 mt-4">Not affiliated with the IRS. OpenTax is not tax advice.</div>
+    </div>
+  </footer>
+
+</body>
+</html>
