@@ -14,6 +14,7 @@ const files = [
   'f1040sb.pdf',
   'f1040sd.pdf',
   'f8949.pdf',
+  'state/CA/f540.pdf',
 ]
 
 async function enumerateFields(filename: string) {

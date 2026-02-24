@@ -31,13 +31,13 @@ async function labelFields(filename: string) {
   }
 
   const outBytes = await pdfDoc.save()
-  const outFile = `/tmp/labeled-${filename}`
+  const outFile = `/tmp/labeled-${filename.replace(/\//g, '-')}`
   writeFileSync(outFile, outBytes)
   console.log(`Wrote ${outFile}`)
 }
 
 async function main() {
-  for (const file of ['f1040.pdf', 'f1040sa.pdf', 'f1040sb.pdf', 'f1040sd.pdf', 'f8949.pdf']) {
+  for (const file of ['f1040.pdf', 'f1040sa.pdf', 'f1040sb.pdf', 'f1040sd.pdf', 'f8949.pdf', 'state/CA/f540.pdf']) {
     await labelFields(file)
   }
 }

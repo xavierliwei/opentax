@@ -1,12 +1,9 @@
 /**
- * CA Form 540 PDF generator.
+ * CA Form 540 PDF filler.
  *
- * Generates a California Form 540 (Resident Income Tax Return) PDF
- * from computed Form 540 results.
- *
- * Currently generates programmatically using pdf-lib since the official
- * FTB template is not bundled. Can be upgraded to template-based filling
- * when the official f540.pdf is available in public/forms/state/CA/.
+ * Fills the official FTB Form 540 (Resident Income Tax Return) template
+ * from computed Form 540 results. Falls back to programmatic generation
+ * when no template is available.
  */
 
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
@@ -14,9 +11,181 @@ import type { TaxReturn } from '../../model/types'
 import type { StateComputeResult } from '../../rules/stateEngine'
 import type { Form540Result } from '../../rules/2025/ca/form540'
 import type { StateFormCompiler, StateFormTemplates, StateCompiledForms } from '../stateCompiler'
-import { formatDollars, formatSSN, filingStatusLabel } from '../helpers'
+import { setTextField, setDollarField, checkBox, formatDollars, formatSSN, filingStatusLabel } from '../helpers'
+import {
+  F540_HEADER, F540_FILING_STATUS, F540_EXEMPTIONS,
+  F540_PAGE2_HEADER, F540_INCOME, F540_TAX,
+  F540_PAGE3, F540_PAGE4, F540_PAGE5,
+} from '../mappings/form540Fields'
 
-// ── Programmatic generator ────────────────────────────────────────
+// ── Template-based filler ────────────────────────────────────────
+
+async function fillForm540Template(
+  templateBytes: Uint8Array,
+  taxReturn: TaxReturn,
+  form540: Form540Result,
+): Promise<PDFDocument> {
+  const pdfDoc = await PDFDocument.load(templateBytes, { ignoreEncryption: true })
+  const form = pdfDoc.getForm()
+  try { form.deleteXFA() } catch { /* ok */ }
+
+  const tp = taxReturn.taxpayer
+
+  // ── Page 1: Header ─────────────────────────────────────────
+  setTextField(form, F540_HEADER.firstName, tp.firstName + (tp.middleInitial ? ` ${tp.middleInitial}` : ''))
+  setTextField(form, F540_HEADER.lastName, tp.lastName)
+  setTextField(form, F540_HEADER.ssn, formatSSN(tp.ssn || '000000000'))
+  setTextField(form, F540_HEADER.street, tp.address.street)
+  if (tp.address.apartment) setTextField(form, F540_HEADER.apt, tp.address.apartment)
+  setTextField(form, F540_HEADER.city, tp.address.city)
+  setTextField(form, F540_HEADER.state, tp.address.state)
+  setTextField(form, F540_HEADER.zip, tp.address.zip)
+  checkBox(form, F540_HEADER.sameAddress)
+
+  // Spouse (if MFJ)
+  if (taxReturn.spouse) {
+    const sp = taxReturn.spouse
+    setTextField(form, F540_HEADER.spouseFirstName, sp.firstName + (sp.middleInitial ? ` ${sp.middleInitial}` : ''))
+    setTextField(form, F540_HEADER.spouseLastName, sp.lastName)
+    setTextField(form, F540_HEADER.spouseSSN, formatSSN(sp.ssn))
+  }
+
+  // ── Filing status ──────────────────────────────────────────
+  const statusOptions: Record<string, string> = {
+    single: F540_FILING_STATUS.single,
+    mfj:    F540_FILING_STATUS.mfj,
+    mfs:    F540_FILING_STATUS.mfs,
+    hoh:    F540_FILING_STATUS.hoh,
+    qw:     F540_FILING_STATUS.qw,
+  }
+  const selectedStatus = statusOptions[taxReturn.filingStatus]
+  if (selectedStatus) {
+    try {
+      const radio = form.getRadioGroup(F540_FILING_STATUS.radioGroup)
+      radio.select(selectedStatus)
+    } catch { /* ok */ }
+  }
+  if (taxReturn.filingStatus === 'mfs' && taxReturn.spouse) {
+    setTextField(form, F540_FILING_STATUS.mfsSpouseName,
+      `${taxReturn.spouse.firstName} ${taxReturn.spouse.lastName}`)
+  }
+
+  // ── Exemptions (Lines 7-11) ────────────────────────────────
+  const CA_PERSONAL = 15300  // $153 in cents
+  const CA_DEPENDENT = 47500  // $475 in cents
+  const personalCount = form540.personalExemptionCredit > 0
+    ? Math.round(form540.personalExemptionCredit / CA_PERSONAL) : 0
+  const dependentCount = form540.dependentExemptionCredit > 0
+    ? Math.round(form540.dependentExemptionCredit / CA_DEPENDENT) : 0
+
+  if (personalCount > 0) {
+    setTextField(form, F540_EXEMPTIONS.line7count, String(personalCount))
+    setDollarField(form, F540_EXEMPTIONS.line7amount, form540.personalExemptionCredit)
+  }
+  if (dependentCount > 0) {
+    setTextField(form, F540_DEPENDENTS_LINE10_COUNT, String(dependentCount))
+    setDollarField(form, F540_DEPENDENTS_LINE10_AMOUNT, form540.dependentExemptionCredit)
+  }
+  // Line 11: total exemption amount (before phase-out)
+  const exemptionTotal = form540.personalExemptionCredit + form540.dependentExemptionCredit
+  setDollarField(form, F540_DEPENDENTS_LINE11, exemptionTotal)
+
+  // ── Page 2 header ──────────────────────────────────────────
+  const fullName = `${tp.firstName} ${tp.lastName}`
+  setTextField(form, F540_PAGE2_HEADER.yourName, fullName)
+  setTextField(form, F540_PAGE2_HEADER.yourSSN, formatSSN(tp.ssn || '000000000'))
+
+  // ── Dependents (Line 10) ───────────────────────────────────
+  const dependents = taxReturn.dependents ?? []
+  const depFields = [
+    { first: '540_form_2003', last: '540_form_2004', ssn: '540_form_2005', rel: '540_form_2006' },
+    { first: '540_form_2007', last: '540_form_2008', ssn: '540_form_2009', rel: '540_form_2010' },
+    { first: '540_form_2011', last: '540_form_2012', ssn: '540_form_2013', rel: '540_form_2014' },
+  ]
+  for (let i = 0; i < Math.min(dependents.length, 3); i++) {
+    const dep = dependents[i]
+    setTextField(form, depFields[i].first, dep.firstName)
+    setTextField(form, depFields[i].last, dep.lastName)
+    if (dep.ssn) setTextField(form, depFields[i].ssn, formatSSN(dep.ssn))
+    if (dep.relationship) setTextField(form, depFields[i].rel, dep.relationship)
+  }
+
+  // ── State wages (Line 12) ─────────────────────────────────
+  const stateWages = (taxReturn.w2s ?? []).reduce((sum, w) => sum + (w.box16StateWages ?? 0), 0)
+  setDollarField(form, F540_INCOME.line12, stateWages)
+
+  // ── Income (Lines 13-19) ──────────────────────────────────
+  setDollarField(form, F540_INCOME.line13, form540.federalAGI)
+  setDollarField(form, F540_INCOME.line14, form540.caAdjustments.subtractions)  // Line 14 = subtractions (column B)
+  const line15 = form540.federalAGI - form540.caAdjustments.subtractions
+  setDollarField(form, F540_INCOME.line15, line15)
+  setDollarField(form, F540_INCOME.line16, form540.caAdjustments.additions)     // Line 16 = additions (column C)
+  setDollarField(form, F540_INCOME.line17, form540.caAGI)
+  setDollarField(form, F540_INCOME.line18, form540.deductionUsed)
+  setDollarField(form, F540_INCOME.line19, form540.caTaxableIncome)
+
+  // ── Tax (Lines 31-35) ─────────────────────────────────────
+  checkBox(form, F540_TAX.taxRateSchedCB)  // We use tax rate schedule
+  setDollarField(form, F540_TAX.line31, form540.caTax)
+  setDollarField(form, F540_TAX.line32, form540.totalExemptionCredits)
+  const line33 = Math.max(0, form540.caTax - form540.totalExemptionCredits)
+  setDollarField(form, F540_TAX.line33, line33)
+  // Line 34 = 0 (no Schedule G-1/FTB 5870A)
+  setDollarField(form, F540_TAX.line35, line33) // Line 35 = Line 33 + Line 34
+
+  // ── Credits (Lines 40-48) ─────────────────────────────────
+  setDollarField(form, F540_PAGE3.line46, form540.rentersCredit)
+  const totalCredits = form540.rentersCredit  // Only renter's credit for now
+  setDollarField(form, F540_PAGE3.line47, totalCredits)
+  setDollarField(form, F540_PAGE3.line48, form540.taxAfterCredits)
+
+  // ── Other Taxes (Lines 61-64) ─────────────────────────────
+  setDollarField(form, F540_PAGE3.line62, form540.mentalHealthTax)  // Behavioral Health Services Tax
+  const totalTax = form540.taxAfterCredits + form540.mentalHealthTax
+  setDollarField(form, F540_PAGE3.line64, totalTax)
+
+  // ── Payments (Lines 71-78) ────────────────────────────────
+  setDollarField(form, F540_PAGE3.line71, form540.stateWithholding)
+  setDollarField(form, F540_PAGE3.line78, form540.totalPayments)
+
+  // ── Use Tax (Line 91) ─────────────────────────────────────
+  setTextField(form, F540_PAGE3.line91, '0')  // No use tax
+  try {
+    const useTaxRadio = form.getRadioGroup(F540_PAGE3.useTaxRadio)
+    useTaxRadio.select(F540_PAGE3.useTaxNoOwed)
+  } catch { /* ok */ }
+
+  // ── Health care coverage (Line 92) ─────────────────────────
+  checkBox(form, F540_PAGE3.line92cb)
+
+  // ── Overpaid / Tax Due (Lines 93-100) ─────────────────────
+  const line93 = form540.totalPayments  // Line 93 = Line 78 - Line 91 (use tax = 0)
+  setDollarField(form, F540_PAGE3.line93, line93)
+  setDollarField(form, F540_PAGE3.line95, line93)  // Line 95 = Line 93 (no ISR penalty)
+  setDollarField(form, F540_PAGE3.line97, form540.overpaid)
+
+  // Page 4
+  setDollarField(form, F540_PAGE4.line99, form540.overpaid)   // Line 99 = Line 97 (no amount applied to est. tax)
+  setDollarField(form, F540_PAGE4.line100, form540.amountOwed)
+
+  // Page 5
+  if (form540.amountOwed > 0) {
+    setDollarField(form, F540_PAGE5.line111, form540.amountOwed)
+  }
+  if (form540.overpaid > 0) {
+    setDollarField(form, F540_PAGE5.line115, form540.overpaid)
+  }
+
+  form.flatten()
+  return pdfDoc
+}
+
+// Constants for dependent field references used above
+const F540_DEPENDENTS_LINE10_COUNT = '540_form_2015'
+const F540_DEPENDENTS_LINE10_AMOUNT = '540_form_2016'
+const F540_DEPENDENTS_LINE11 = '540_form_2017'
+
+// ── Programmatic fallback generator ──────────────────────────────
 
 async function generateForm540(
   taxReturn: TaxReturn,
@@ -83,11 +252,11 @@ async function generateForm540(
 
   drawLine('Federal adjusted gross income', '13', `$${formatDollars(form540.federalAGI)}`)
 
-  if (form540.caAdjustments.additions > 0) {
-    drawLine('Schedule CA additions', '14', `$${formatDollars(form540.caAdjustments.additions)}`)
-  }
   if (form540.caAdjustments.subtractions > 0) {
-    drawLine('Schedule CA subtractions', '16', `($${formatDollars(form540.caAdjustments.subtractions)})`)
+    drawLine('Schedule CA subtractions', '14', `($${formatDollars(form540.caAdjustments.subtractions)})`)
+  }
+  if (form540.caAdjustments.additions > 0) {
+    drawLine('Schedule CA additions', '16', `$${formatDollars(form540.caAdjustments.additions)}`)
   }
 
   drawLine('California adjusted gross income', '17', `$${formatDollars(form540.caAGI)}`, { bold: true })
@@ -130,7 +299,7 @@ async function generateForm540(
   }
 
   if (form540.mentalHealthTax > 0) {
-    drawLine('Mental health services tax (1%)', '36', `$${formatDollars(form540.mentalHealthTax)}`)
+    drawLine('Behavioral health services tax (1%)', '62', `$${formatDollars(form540.mentalHealthTax)}`)
   }
 
   if (form540.rentersCredit > 0) {
@@ -150,7 +319,7 @@ async function generateForm540(
     drawLine('CA state income tax withheld', '71', `$${formatDollars(form540.stateWithholding)}`)
   }
 
-  drawLine('Total payments', '77', `$${formatDollars(form540.totalPayments)}`, { bold: true })
+  drawLine('Total payments', '78', `$${formatDollars(form540.totalPayments)}`, { bold: true })
   y -= 6
 
   // ── Result Section ──────────────────────────────────────────
@@ -160,9 +329,9 @@ async function generateForm540(
   y -= 16
 
   if (form540.overpaid > 0) {
-    drawLine('Overpaid (refund)', '93', `$${formatDollars(form540.overpaid)}`, { bold: true })
+    drawLine('Overpaid (refund)', '97', `$${formatDollars(form540.overpaid)}`, { bold: true })
   } else if (form540.amountOwed > 0) {
-    drawLine('Amount you owe', '97', `$${formatDollars(form540.amountOwed)}`, { bold: true })
+    drawLine('Amount you owe', '100', `$${formatDollars(form540.amountOwed)}`, { bold: true })
   } else {
     drawLine('Balance', '', '$0')
   }
@@ -184,12 +353,15 @@ export const caFormCompiler: StateFormCompiler = {
   async compile(
     taxReturn: TaxReturn,
     stateResult: StateComputeResult,
-    _templates: StateFormTemplates,
+    templates: StateFormTemplates,
   ): Promise<StateCompiledForms> {
     const form540 = stateResult.detail as Form540Result
 
-    // Generate programmatically (no official template yet)
-    const doc = await generateForm540(taxReturn, form540)
+    // Use official template when available, fall back to programmatic generation
+    const templateBytes = templates.templates.get('f540')
+    const doc = templateBytes
+      ? await fillForm540Template(templateBytes, taxReturn, form540)
+      : await generateForm540(taxReturn, form540)
 
     const formId = form540.residencyType === 'part-year' ? 'CA Form 540NR' : 'CA Form 540'
 

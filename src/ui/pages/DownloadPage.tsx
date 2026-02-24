@@ -4,6 +4,8 @@ import { useInterview } from '../../interview/useInterview.ts'
 import { InterviewNav } from './InterviewNav.tsx'
 import { compileFilingPackage } from '../../forms/compiler.ts'
 import type { FormTemplates, StatePackage } from '../../forms/types.ts'
+import type { SupportedStateCode } from '../../model/types.ts'
+import type { StateFormTemplates } from '../../forms/stateCompiler.ts'
 import { dollars } from '../../model/traced.ts'
 
 function formatCurrency(cents: number): string {
@@ -80,9 +82,20 @@ export function DownloadPage() {
         )
       }
 
+      // Load state templates (CA Form 540, etc.) — failures are non-fatal (falls back to programmatic)
+      const stateTemplateMap = new Map<SupportedStateCode, StateFormTemplates>()
+      for (const config of taxReturn.stateReturns ?? []) {
+        if (config.stateCode === 'CA') {
+          try {
+            const f540 = await loadTemplate('forms/state/CA/f540.pdf')
+            stateTemplateMap.set('CA', { templates: new Map([['f540', f540]]) })
+          } catch { /* fall back to programmatic */ }
+        }
+      }
+
       let compiled
       try {
-        compiled = await compileFilingPackage(taxReturn, templates)
+        compiled = await compileFilingPackage(taxReturn, templates, stateTemplateMap)
       } catch {
         throw new Error(
           'Failed to fill form fields. This may indicate a data issue — try reviewing your return for missing information.',
