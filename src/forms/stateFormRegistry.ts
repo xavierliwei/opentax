@@ -5,9 +5,11 @@
 import type { SupportedStateCode } from '../model/types'
 import type { StateFormCompiler } from './stateCompiler'
 import { caFormCompiler } from './fillers/form540Filler'
+import { vaFormCompiler } from './fillers/form760Filler'
 
 const STATE_COMPILERS: Map<SupportedStateCode, StateFormCompiler> = new Map([
   ['CA', caFormCompiler],
+  ['VA', vaFormCompiler],
 ])
 
 export function getStateFormCompiler(code: SupportedStateCode): StateFormCompiler | undefined {
