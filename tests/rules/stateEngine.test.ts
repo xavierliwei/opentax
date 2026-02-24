@@ -30,14 +30,22 @@ describe('State Engine — registry', () => {
     expect(mod!.formLabel).toBe('MD Form 502')
   })
 
+  it('VA module is registered', () => {
+    const mod = getStateModule('VA')
+    expect(mod).toBeDefined()
+    expect(mod!.stateCode).toBe('VA')
+    expect(mod!.formLabel).toBe('VA Form 760')
+  })
+
   it('getSupportedStates returns all registered states', () => {
     const states = getSupportedStates()
-    expect(states.length).toBeGreaterThanOrEqual(5)
+    expect(states.length).toBeGreaterThanOrEqual(6)
     expect(states.find(s => s.code === 'CA')).toBeDefined()
     expect(states.find(s => s.code === 'GA')).toBeDefined()
     expect(states.find(s => s.code === 'MA')).toBeDefined()
     expect(states.find(s => s.code === 'MD')).toBeDefined()
     expect(states.find(s => s.code === 'NJ')).toBeDefined()
+    expect(states.find(s => s.code === 'VA')).toBeDefined()
   })
 
   it('unknown state returns undefined', () => {
@@ -206,6 +214,44 @@ describe('State Engine — computeAll integration', () => {
     expect(result.stateResults[0].formLabel).toBe('MA Form 1')
     expect(result.values.has('form1.maAGI')).toBe(true)
     expect(result.values.has('form1.maIncomeTax')).toBe(true)
+  })
+
+  it('stateResults contains VA when VA is in stateReturns', () => {
+    const tr = makeTr({
+      stateReturns: [{ stateCode: 'VA', residencyType: 'full-year' }],
+      w2s: [{
+        id: 'w2-1',
+        employerEin: '12-3456789',
+        employerName: 'Test',
+        box1: 10000000,
+        box2: 1500000,
+        box3: 10000000,
+        box4: 620000,
+        box5: 10000000,
+        box6: 145000,
+        box7: 0,
+        box8: 0,
+        box10: 0,
+        box11: 0,
+        box12: [],
+        box13StatutoryEmployee: false,
+        box13RetirementPlan: false,
+        box13ThirdPartySickPay: false,
+        box14: '',
+        box15State: 'VA',
+        box16StateWages: 10000000,
+        box17StateIncomeTax: 500000,
+      }],
+    })
+    const result = computeAll(tr)
+    expect(result.stateResults).toHaveLength(1)
+    expect(result.stateResults[0].stateCode).toBe('VA')
+    expect(result.stateResults[0].formLabel).toBe('VA Form 760')
+    expect(result.stateResults[0].stateWithholding).toBe(500000)
+    expect(result.executedSchedules).toContain('VA-760')
+    expect(result.values.has('form760.vaAGI')).toBe(true)
+    expect(result.values.has('form760.vaTaxableIncome')).toBe(true)
+    expect(result.values.has('form760.vaTax')).toBe(true)
   })
 })
 

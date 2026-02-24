@@ -18,6 +18,7 @@ import { njFormCompiler } from '../../src/forms/fillers/nj1040Filler'
 import { computeAll } from '../../src/rules/engine'
 import type { TaxReturn } from '../../src/model/types'
 import { emptyTaxReturn } from '../../src/model/types'
+import { vaFormCompiler } from '../../src/forms/fillers/form760Filler'
 
 // ── Load PDF templates once ──────────────────────────────────
 
@@ -148,6 +149,31 @@ function makeNJReturn(): TaxReturn {
   }
 }
 
+function makeVAReturn(): TaxReturn {
+  return {
+    ...emptyTaxReturn(2025),
+    taxpayer: {
+      firstName: 'Test',
+      lastName: 'Virginian',
+      ssn: '987654321',
+      dateOfBirth: '1990-01-01',
+      address: { street: '123 Main St', city: 'Richmond', state: 'VA', zip: '23219' },
+    },
+    stateReturns: [{ stateCode: 'VA', residencyType: 'full-year' }],
+    w2s: [
+      makeW2({
+        id: 'w2-1',
+        employerName: 'Tech Corp',
+        box1: cents(100000),
+        box2: cents(15000),
+        box15State: 'VA',
+        box16StateWages: cents(100000),
+        box17StateIncomeTax: cents(5000),
+      }),
+    ],
+  }
+}
+
 // ── State Form Registry ──────────────────────────────────────
 
 describe('State Form Registry', () => {
@@ -179,6 +205,12 @@ describe('State Form Registry', () => {
     const compiler = getStateFormCompiler('NJ')
     expect(compiler).toBeDefined()
     expect(compiler!.stateCode).toBe('NJ')
+  })
+
+  it('VA compiler is registered', () => {
+    const compiler = getStateFormCompiler('VA')
+    expect(compiler).toBeDefined()
+    expect(compiler!.stateCode).toBe('VA')
   })
 
   it('unknown state returns undefined', () => {
@@ -280,6 +312,26 @@ describe('NJ Form NJ-1040 PDF generator', () => {
   })
 })
 
+describe('VA Form 760 PDF generator', () => {
+  it('generates a valid PDF', async () => {
+    const tr = makeVAReturn()
+    const result = computeAll(tr)
+    const stateResult = result.stateResults[0]
+
+    const compiled = await vaFormCompiler.compile(
+      tr,
+      stateResult,
+      { templates: new Map() },
+    )
+
+    expect(compiled.doc).toBeDefined()
+    expect(compiled.doc.getPageCount()).toBe(1)
+    expect(compiled.forms).toHaveLength(1)
+    expect(compiled.forms[0].formId).toBe('VA Form 760')
+    expect(compiled.forms[0].sequenceNumber).toBe('VA-01')
+  })
+})
+
 // ── Compiler integration with state forms ─────────────────────
 
 describe('compileFilingPackage — state form integration', () => {
@@ -368,6 +420,21 @@ describe('compileFilingPackage — state form integration', () => {
     const njForm = result.formsIncluded.find(f => f.formId === 'NJ Form NJ-1040')
     expect(njForm).toBeDefined()
     expect(njForm!.sequenceNumber).toBe('NJ-01')
+  })
+
+  it('VA return includes VA Form 760 in combined PDF', async () => {
+    const tr = makeVAReturn()
+
+    const result = await compileFilingPackage(tr, templates)
+
+    expect(result.statePackages).toHaveLength(1)
+    expect(result.statePackages[0].stateCode).toBe('VA')
+    expect(result.statePackages[0].label).toBe('VA Form 760')
+    expect(result.statePackages[0].pdfBytes.length).toBeGreaterThan(0)
+
+    const vaForm = result.formsIncluded.find(f => f.formId === 'VA Form 760')
+    expect(vaForm).toBeDefined()
+    expect(vaForm!.pageCount).toBe(1)
   })
 
   it('combined PDF has more pages when CA is selected', async () => {
