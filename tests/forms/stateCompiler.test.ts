@@ -65,6 +65,31 @@ function makeCAReturn(): TaxReturn {
   }
 }
 
+function makeGAReturn(): TaxReturn {
+  return {
+    ...emptyTaxReturn(2025),
+    taxpayer: {
+      firstName: 'Test',
+      lastName: 'User',
+      ssn: '123456789',
+      dateOfBirth: '1990-01-01',
+      address: { street: '123 Main St', city: 'Atlanta', state: 'GA', zip: '30301' },
+    },
+    stateReturns: [{ stateCode: 'GA', residencyType: 'full-year' }],
+    w2s: [
+      makeW2({
+        id: 'w2-1',
+        employerName: 'Tech Corp',
+        box1: cents(100000),
+        box2: cents(15000),
+        box15State: 'GA',
+        box16StateWages: cents(100000),
+        box17StateIncomeTax: cents(5000),
+      }),
+    ],
+  }
+}
+
 // ── State Form Registry ──────────────────────────────────────
 
 describe('State Form Registry', () => {
@@ -72,6 +97,12 @@ describe('State Form Registry', () => {
     const compiler = getStateFormCompiler('CA')
     expect(compiler).toBeDefined()
     expect(compiler!.stateCode).toBe('CA')
+  })
+
+  it('GA compiler is registered', () => {
+    const compiler = getStateFormCompiler('GA')
+    expect(compiler).toBeDefined()
+    expect(compiler!.stateCode).toBe('GA')
   })
 
   it('unknown state returns undefined', () => {
@@ -149,6 +180,20 @@ describe('compileFilingPackage — state form integration', () => {
     const caForm = result.formsIncluded.find(f => f.formId === 'CA Form 540')
     expect(caForm).toBeDefined()
     expect(caForm!.pageCount).toBe(1)
+  })
+
+  it('GA return includes GA Form 500 in combined PDF', async () => {
+    const tr = makeGAReturn()
+
+    const result = await compileFilingPackage(tr, templates)
+
+    expect(result.statePackages).toHaveLength(1)
+    expect(result.statePackages[0].stateCode).toBe('GA')
+    expect(result.statePackages[0].label).toBe('GA Form 500')
+
+    const gaForm = result.formsIncluded.find(f => f.formId === 'GA Form 500')
+    expect(gaForm).toBeDefined()
+    expect(gaForm!.pageCount).toBe(1)
   })
 
   it('combined PDF has more pages when CA is selected', async () => {

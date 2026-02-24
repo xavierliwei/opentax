@@ -556,7 +556,7 @@ export interface Credit {
 // ── State Return Config ────────────────────────────────────────
 
 /** Supported state codes (expand as states are added) */
-export type SupportedStateCode = 'CA'
+export type SupportedStateCode = 'CA' | 'GA'
 // Future: | 'NY' | 'NJ' | 'IL' | 'MA' | 'PA'
 
 /** Residency classification for a state return */

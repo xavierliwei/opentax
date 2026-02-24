@@ -16,10 +16,18 @@ describe('State Engine — registry', () => {
     expect(mod!.formLabel).toBe('CA Form 540')
   })
 
-  it('getSupportedStates returns CA', () => {
+  it('GA module is registered', () => {
+    const mod = getStateModule('GA')
+    expect(mod).toBeDefined()
+    expect(mod!.stateCode).toBe('GA')
+    expect(mod!.formLabel).toBe('GA Form 500')
+  })
+
+  it('getSupportedStates returns CA and GA', () => {
     const states = getSupportedStates()
-    expect(states.length).toBeGreaterThanOrEqual(1)
+    expect(states.length).toBeGreaterThanOrEqual(2)
     expect(states.find(s => s.code === 'CA')).toBeDefined()
+    expect(states.find(s => s.code === 'GA')).toBeDefined()
   })
 
   it('unknown state returns undefined', () => {
