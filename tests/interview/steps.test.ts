@@ -83,6 +83,8 @@ describe('steps.ts — visibility logic', () => {
       stateReturns: [{ stateCode: 'PA', residencyType: 'full-year' }],
     })
     expect(step.isVisible(trWithPA)).toBe(true)
+  })
+
   it('state-review-NC exists and is visible only when NC is selected', () => {
     const step = STEPS.find((s) => s.id === 'state-review-NC')!
     expect(step).toBeDefined()

@@ -118,7 +118,6 @@ export function StateReturnsPage() {
                   <div className="flex flex-col gap-1.5">
                     {RESIDENCY_OPTIONS.map((opt) => {
                       const disabled = opt.value === 'nonresident' && code !== 'DC'
-                      const disabled = opt.value === 'nonresident' && code === 'CA'
                       return (
                         <label
                           key={opt.value}
@@ -412,6 +411,9 @@ export function StateReturnsPage() {
                         </div>
                       </label>
                     )}
+                  </div>
+                )}
+
                 {code === 'CT' && (
                   <div className="mt-1">
                     <label className="block text-sm font-medium text-gray-900 inline-flex items-center gap-1">
@@ -432,6 +434,9 @@ export function StateReturnsPage() {
                       data-testid="ct-property-tax-paid"
                     />
                     <p className="text-xs text-gray-500 mt-0.5">Enter whole dollars.</p>
+                  </div>
+                )}
+
                 {code === 'FL' && (
                   <div className="mt-1 rounded-md border border-sky-200 bg-sky-50 p-3 text-xs text-sky-900">
                     Florida does not have a personal income tax. This selection tracks residency/interstate context and adds an informational PDF page to your filing packet.

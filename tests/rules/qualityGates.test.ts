@@ -16,7 +16,7 @@ import type { StateRulesModule, StateComputeResult } from '../../src/rules/state
 import type { StateFormCompiler, StateCompiledForms } from '../../src/forms/stateCompiler'
 import type { SupportedStateCode, TaxReturn, StateReturnConfig } from '../../src/model/types'
 import { emptyTaxReturn } from '../../src/model/types'
-import { getStateModule } from '../../src/rules/stateRegistry'
+import { getStateModule, getSupportedStates } from '../../src/rules/stateRegistry'
 import { getStateFormCompiler, getAllStateFormCompilers } from '../../src/forms/stateFormRegistry'
 import { computeAll } from '../../src/rules/engine'
 import { makeW2 } from '../fixtures/returns'
@@ -162,10 +162,12 @@ describe('Quality Gates — Registry Consistency', () => {
     expect(warningViolations(result).find(v => v.gate === 'registry.empty-review-layout')).toBeDefined()
   })
 
-  it('validates the real CA registry is consistent', () => {
+  it('validates the real registry is consistent', () => {
     const modules = new Map<SupportedStateCode, StateRulesModule>()
-    const mod = getStateModule('CA')
-    if (mod) modules.set('CA', mod)
+    for (const { code } of getSupportedStates()) {
+      const mod = getStateModule(code)
+      if (mod) modules.set(code, mod)
+    }
 
     const compilers = getAllStateFormCompilers()
 
