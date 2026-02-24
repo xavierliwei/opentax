@@ -41,6 +41,8 @@ import { fillForm8995 } from './fillers/form8995Filler'
 import { fillForm8995A } from './fillers/form8995aFiller'
 import { generateCoverSheet } from './fillers/coverSheet'
 import { tracedZero } from '../model/traced'
+import { validateComputeResult, validateCompilerOutput, runAllGates } from '../rules/qualityGates'
+import type { GateResult } from '../rules/qualityGates'
 
 /**
  * Compile a complete filing package for a tax return.
@@ -312,6 +314,7 @@ export async function compileFilingPackage(
 
   // ── Compile state forms ─────────────────────────────────────
   const statePackages: StatePackage[] = []
+  const stateGateResults: GateResult[] = []
 
   for (const config of taxReturn.stateReturns ?? []) {
     const stateCode = config.stateCode
@@ -322,10 +325,16 @@ export async function compileFilingPackage(
     // Compute state result
     const stateResult = stateModule.compute(taxReturn, result, config)
 
+    // Quality gate: validate compute result
+    stateGateResults.push(validateComputeResult(stateResult, config))
+
     // Get state templates (may be empty — programmatic generators don't need them)
     const stateTempl = stateTemplates?.get(stateCode) ?? { templates: new Map() }
 
     const compiled = await compiler.compile(taxReturn, stateResult, stateTempl)
+
+    // Quality gate: validate compiler output
+    stateGateResults.push(validateCompilerOutput(compiled, stateCode))
 
     // Save individual state PDF bytes for separate download
     const statePdfBytes = await compiled.doc.save()
@@ -364,11 +373,17 @@ export async function compileFilingPackage(
 
   const pdfBytes = await finalDoc.save()
 
+  // Collect quality gate result
+  const qualityGates = stateGateResults.length > 0
+    ? runAllGates(stateGateResults)
+    : undefined
+
   return {
     pdfBytes: new Uint8Array(pdfBytes),
     formsIncluded,
     summary,
     statePackages,
+    qualityGates,
   }
 }
 
