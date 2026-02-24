@@ -43,6 +43,9 @@ async function generateForm1(taxReturn: TaxReturn, form1: Form1Result): Promise<
   draw('Income', 72, 11, bold, blue)
   y -= 16
   line('Federal AGI', form1.federalAGI)
+  if (form1.maAdjustments.hsaAddBack > 0) line('HSA add-back', form1.maAdjustments.hsaAddBack)
+  if (form1.maAdjustments.ssExemption > 0) line('Social Security exemption', form1.maAdjustments.ssExemption)
+  if (form1.maAdjustments.usGovInterest > 0) line('US gov interest exemption', form1.maAdjustments.usGovInterest)
   line('Massachusetts AGI', form1.maAGI)
   if (form1.maSourceIncome !== undefined) {
     line('MA-source income (apportioned)', form1.maSourceIncome)
@@ -51,11 +54,22 @@ async function generateForm1(taxReturn: TaxReturn, form1: Form1Result): Promise<
   }
 
   y -= 4
-  draw('Tax', 72, 11, bold, blue)
+  draw('Exemptions & Deductions', 72, 11, bold, blue)
   y -= 16
   line('Personal exemption', form1.personalExemption)
+  if (form1.dependentExemption > 0) line('Dependent exemption', form1.dependentExemption)
+  if (form1.age65Exemption > 0) line('Age 65+ exemption', form1.age65Exemption)
+  if (form1.blindExemption > 0) line('Blind exemption', form1.blindExemption)
+  line('Total exemptions', form1.totalExemptions)
+  if (form1.rentDeduction > 0) line('Rent deduction (50% of rent)', form1.rentDeduction)
+
+  y -= 4
+  draw('Tax', 72, 11, bold, blue)
+  y -= 16
   line('MA taxable income', form1.maTaxableIncome)
-  line('Income tax (5%)', form1.maIncomeTax)
+  line('Base tax (5%)', form1.maBaseTax)
+  if (form1.maSurtax > 0) line('Surtax (4% over $1M)', form1.maSurtax)
+  line('Total income tax', form1.maIncomeTax)
   line('Tax after credits', form1.taxAfterCredits)
 
   y -= 4

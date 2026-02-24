@@ -581,6 +581,7 @@ export interface StateReturnConfig {
 
   // State-specific flags
   rentPaid?: boolean                  // CA renter's credit
+  rentAmount?: number                 // MA rent deduction (cents — annual rent paid)
 }
 
 // ── Tax Return (top-level) ─────────────────────────────────────
