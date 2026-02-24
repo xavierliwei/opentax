@@ -7,11 +7,13 @@ import type { StateFormCompiler } from './stateCompiler'
 import { caFormCompiler } from './fillers/form540Filler'
 import { gaFormCompiler } from './fillers/form500Filler'
 import { mdFormCompiler } from './fillers/form502Filler'
+import { njFormCompiler } from './fillers/nj1040Filler'
 
 const STATE_COMPILERS: Map<SupportedStateCode, StateFormCompiler> = new Map([
   ['CA', caFormCompiler],
   ['GA', gaFormCompiler],
   ['MD', mdFormCompiler],
+  ['NJ', njFormCompiler],
 ])
 
 export function getStateFormCompiler(code: SupportedStateCode): StateFormCompiler | undefined {

@@ -23,8 +23,25 @@ const RESIDENCY_OPTIONS: { value: ResidencyType; label: string; description: str
   },
 ]
 
+const NJ_TAX_GUIDE_URL = 'https://www.nj.gov/treasury/taxation/pdf/current/1040i.pdf'
+const NJ_RESIDENCY_OVERVIEW_URL = 'https://www.nj.gov/treasury/taxation/njit24.shtml'
+
+export function getPartYearDateError(
+  moveInDate?: string,
+  moveOutDate?: string,
+): string | null {
+  if (!moveInDate && !moveOutDate) {
+    return 'Enter at least one date for part-year residency (move-in or move-out).'
+  }
+  if (moveInDate && moveOutDate && moveInDate > moveOutDate) {
+    return 'Move-in date must be before move-out date.'
+  }
+  return null
+}
+
 export function StateReturnsPage() {
-  const stateReturns = useTaxStore((s) => s.taxReturn.stateReturns ?? [])
+  const taxReturn = useTaxStore((s) => s.taxReturn)
+  const stateReturns = taxReturn.stateReturns ?? []
   const addStateReturn = useTaxStore((s) => s.addStateReturn)
   const removeStateReturn = useTaxStore((s) => s.removeStateReturn)
   const updateStateReturn = useTaxStore((s) => s.updateStateReturn)
@@ -73,6 +90,8 @@ export function StateReturnsPage() {
                         ? 'https://dor.georgia.gov/it-511-individual-income-tax-instruction-booklet'
                       : code === 'MD'
                         ? 'https://www.marylandtaxes.gov/individual/income/tax-info/'
+                      : code === 'NJ'
+                        ? NJ_RESIDENCY_OVERVIEW_URL
                         : '#'
                     }
                   />
@@ -128,6 +147,11 @@ export function StateReturnsPage() {
                     <p className="text-xs text-amber-800 font-medium">
                       Enter the dates you lived in {stateName} during the tax year.
                     </p>
+                    {code === 'NJ' && (
+                      <p className="text-xs text-amber-700">
+                        NJ part-year and nonresident filing uses Form NJ-1040NR. OpenTax currently provides a resident estimate only.
+                      </p>
+                    )}
                     <div className="flex flex-col sm:flex-row gap-2">
                       <div className="flex-1">
                         <label className="block text-xs text-gray-600 mb-0.5">Moved in</label>
@@ -160,10 +184,11 @@ export function StateReturnsPage() {
                         <p className="text-xs text-gray-400 mt-0.5">Leave blank if Dec 31</p>
                       </div>
                     </div>
-                    {getConfig(code)?.moveInDate && getConfig(code)?.moveOutDate &&
-                     getConfig(code)!.moveInDate! > getConfig(code)!.moveOutDate! && (
-                      <p className="text-xs text-red-600">Move-in date must be before move-out date.</p>
-                    )}
+                    {(() => {
+                      const partYearDateError = getPartYearDateError(getConfig(code)?.moveInDate, getConfig(code)?.moveOutDate)
+                      if (!partYearDateError) return null
+                      return <p className="text-xs text-red-600">{partYearDateError}</p>
+                    })()}
                   </div>
                 )}
 
@@ -195,6 +220,170 @@ export function StateReturnsPage() {
                       </p>
                     </div>
                   </label>
+                )}
+
+                {code === 'NJ' && (
+                  <div className="mt-2 flex flex-col gap-3">
+                    {/* Housing type */}
+                    <fieldset>
+                      <legend className="text-sm font-medium text-gray-700 mb-1 inline-flex items-center">
+                        Housing
+                        <InfoTooltip
+                          explanation="NJ allows a property tax deduction (up to $15,000) or a $50 property tax credit. Renters use 18% of rent as deemed property tax. OpenTax auto-selects the better option."
+                          pubName="NJ Property Tax Deduction/Credit"
+                          pubUrl={NJ_TAX_GUIDE_URL}
+                        />
+                      </legend>
+                      <div className="flex flex-col gap-1.5">
+                        {([
+                          { value: 'homeowner', label: 'Homeowner' },
+                          { value: 'renter', label: 'Renter' },
+                          { value: 'neither', label: 'Neither' },
+                        ] as const).map((opt) => (
+                          <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name={`nj-housing-${code}`}
+                              value={opt.value}
+                              checked={
+                                opt.value === 'homeowner' ? getConfig(code)?.njIsHomeowner === true
+                                  : opt.value === 'renter' ? getConfig(code)?.njIsHomeowner === false
+                                  : getConfig(code)?.njIsHomeowner === undefined
+                              }
+                              onChange={() =>
+                                updateStateReturn(code as SupportedStateCode, {
+                                  njIsHomeowner: opt.value === 'homeowner' ? true : opt.value === 'renter' ? false : undefined,
+                                  ...(opt.value !== 'homeowner' ? { njPropertyTaxPaid: undefined } : {}),
+                                  ...(opt.value !== 'renter' ? { njRentPaid: undefined } : {}),
+                                })
+                              }
+                              className="mt-0.5"
+                            />
+                            <span className="text-sm text-gray-900">{opt.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
+
+                    {/* Property tax paid (homeowner) */}
+                    {getConfig(code)?.njIsHomeowner === true && (
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-0.5">Property tax paid in 2025</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          placeholder="e.g. 8500"
+                          value={getConfig(code)?.njPropertyTaxPaid ? Math.round(getConfig(code)!.njPropertyTaxPaid! / 100) : ''}
+                          onChange={(e) => {
+                            const dollars = parseInt(e.target.value, 10)
+                            updateStateReturn(code as SupportedStateCode, {
+                              njPropertyTaxPaid: isNaN(dollars) ? undefined : dollars * 100,
+                            })
+                          }}
+                          className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md"
+                          data-testid="nj-property-tax"
+                        />
+                        <p className="text-xs text-gray-400 mt-0.5">Deductible up to $15,000</p>
+                      </div>
+                    )}
+
+                    {/* Rent paid (renter) */}
+                    {getConfig(code)?.njIsHomeowner === false && (
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-0.5">Total rent paid in 2025</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          placeholder="e.g. 24000"
+                          value={getConfig(code)?.njRentPaid ? Math.round(getConfig(code)!.njRentPaid! / 100) : ''}
+                          onChange={(e) => {
+                            const dollars = parseInt(e.target.value, 10)
+                            updateStateReturn(code as SupportedStateCode, {
+                              njRentPaid: isNaN(dollars) ? undefined : dollars * 100,
+                            })
+                          }}
+                          className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md"
+                          data-testid="nj-rent-paid"
+                        />
+                        <p className="text-xs text-gray-400 mt-0.5">18% of rent counts as deemed property tax</p>
+                      </div>
+                    )}
+
+                    {/* Veteran status */}
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={getConfig(code)?.njTaxpayerVeteran ?? false}
+                        onChange={(e) =>
+                          updateStateReturn(code as SupportedStateCode, { njTaxpayerVeteran: e.target.checked || undefined })
+                        }
+                        className="mt-1 w-5 h-5 sm:w-4 sm:h-4 shrink-0"
+                      />
+                      <div>
+                        <span className="text-sm font-medium text-gray-900 inline-flex items-center">
+                          Taxpayer is a veteran
+                          <InfoTooltip
+                            explanation="Honorably discharged veterans of the U.S. Armed Forces qualify for a $6,000 NJ personal exemption."
+                            pubName="NJ Veteran Exemption"
+                            pubUrl={NJ_TAX_GUIDE_URL}
+                          />
+                        </span>
+                        <p className="text-xs text-gray-500">$6,000 exemption</p>
+                      </div>
+                    </label>
+
+                    {stateReturns.find(s => s.stateCode === code) && taxReturn.filingStatus === 'mfj' && (
+                      <label className="flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={getConfig(code)?.njSpouseVeteran ?? false}
+                          onChange={(e) =>
+                            updateStateReturn(code as SupportedStateCode, { njSpouseVeteran: e.target.checked || undefined })
+                          }
+                          className="mt-1 w-5 h-5 sm:w-4 sm:h-4 shrink-0"
+                        />
+                        <div>
+                          <span className="text-sm font-medium text-gray-900">Spouse is a veteran</span>
+                          <p className="text-xs text-gray-500">$6,000 exemption</p>
+                        </div>
+                      </label>
+                    )}
+
+                    {/* Blind/disabled */}
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={getConfig(code)?.njTaxpayerBlindDisabled ?? false}
+                        onChange={(e) =>
+                          updateStateReturn(code as SupportedStateCode, { njTaxpayerBlindDisabled: e.target.checked || undefined })
+                        }
+                        className="mt-1 w-5 h-5 sm:w-4 sm:h-4 shrink-0"
+                      />
+                      <div>
+                        <span className="text-sm font-medium text-gray-900">Taxpayer is blind or disabled</span>
+                        <p className="text-xs text-gray-500">$1,000 exemption</p>
+                      </div>
+                    </label>
+
+                    {stateReturns.find(s => s.stateCode === code) && taxReturn.filingStatus === 'mfj' && (
+                      <label className="flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={getConfig(code)?.njSpouseBlindDisabled ?? false}
+                          onChange={(e) =>
+                            updateStateReturn(code as SupportedStateCode, { njSpouseBlindDisabled: e.target.checked || undefined })
+                          }
+                          className="mt-1 w-5 h-5 sm:w-4 sm:h-4 shrink-0"
+                        />
+                        <div>
+                          <span className="text-sm font-medium text-gray-900">Spouse is blind or disabled</span>
+                          <p className="text-xs text-gray-500">$1,000 exemption</p>
+                        </div>
+                      </label>
+                    )}
+                  </div>
                 )}
               </div>
             )}
