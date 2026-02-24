@@ -329,12 +329,6 @@ describe('State Form Registry', () => {
     expect(compiler!.stateCode).toBe('DC')
   })
 
-  it('FL compiler is registered', () => {
-    const compiler = getStateFormCompiler('FL')
-    expect(compiler).toBeDefined()
-    expect(compiler!.stateCode).toBe('FL')
-  })
-
   it('NC compiler is registered', () => {
     const compiler = getStateFormCompiler('NC')
     expect(compiler).toBeDefined()
@@ -736,40 +730,6 @@ describe('compileFilingPackage — state form integration', () => {
 })
 
 // ── Part-year CA Form 540NR ───────────────────────────────────
-
-describe('compileFilingPackage — FL no-income-tax packet behavior', () => {
-  function makeFLReturn(): TaxReturn {
-    return {
-      ...emptyTaxReturn(2025),
-      taxpayer: {
-        firstName: 'Florida',
-        lastName: 'User',
-        ssn: '999887777',
-        dateOfBirth: '1990-01-01',
-        address: { street: '1 Ocean Dr', city: 'Miami', state: 'FL', zip: '33139' },
-      },
-      stateReturns: [{ stateCode: 'FL', residencyType: 'full-year' }],
-      w2s: [
-        makeW2({
-          id: 'w2-1',
-          employerName: 'Sunshine Corp',
-          box1: cents(90000),
-          box2: cents(12000),
-        }),
-      ],
-    }
-  }
-
-  it('includes a Florida informational state package', async () => {
-    const tr = makeFLReturn()
-    const result = await compileFilingPackage(tr, templates)
-
-    expect(result.statePackages).toHaveLength(1)
-    expect(result.statePackages[0].stateCode).toBe('FL')
-    expect(result.statePackages[0].label).toBe('Florida — No Income Tax')
-    expect(result.formsIncluded.some((f) => f.formId === 'FL NO-TAX')).toBe(true)
-  })
-})
 
 describe('compileFilingPackage — part-year CA (Form 540NR)', () => {
   function makePartYearCAReturn(): TaxReturn {
