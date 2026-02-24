@@ -264,6 +264,7 @@ export function computeAll(model: TaxReturn): ComputeResult {
   for (const sr of stateResults) {
     executedSchedules.push(
       sr.stateCode === 'CA' ? 'CA-540' :
+      sr.stateCode === 'MA' ? 'MA-Form1' :
       sr.stateCode === 'MD' ? 'MD-502' :
       sr.stateCode === 'NY' ? 'NY-IT201' :
       sr.stateCode === 'VA' ? 'VA-760' :
