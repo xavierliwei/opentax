@@ -191,4 +191,60 @@ describe('steps.ts — completion logic', () => {
     const step = STEPS.find((s) => s.id === 'state-returns')!
     expect(step.isComplete(tr)).toBe(true)
   })
+
+  it('state-review-CA is complete when CA full-year config exists', () => {
+    const tr = makeTr({
+      stateReturns: [{ stateCode: 'CA', residencyType: 'full-year' }],
+    })
+    const step = STEPS.find((s) => s.id === 'state-review-CA')!
+    expect(step.isComplete(tr)).toBe(true)
+  })
+
+  it('state-review-CA is incomplete when CA is not configured', () => {
+    const tr = makeTr()
+    const step = STEPS.find((s) => s.id === 'state-review-CA')!
+    expect(step.isComplete(tr)).toBe(false)
+  })
+
+  it('state-review-CA is incomplete for part-year with no dates', () => {
+    const tr = makeTr({
+      stateReturns: [{ stateCode: 'CA', residencyType: 'part-year' }],
+    })
+    const step = STEPS.find((s) => s.id === 'state-review-CA')!
+    expect(step.isComplete(tr)).toBe(false)
+  })
+
+  it('state-review-CA is complete for part-year with valid dates', () => {
+    const tr = makeTr({
+      stateReturns: [{
+        stateCode: 'CA',
+        residencyType: 'part-year',
+        moveInDate: '2025-03-01',
+        moveOutDate: '2025-09-30',
+      }],
+    })
+    const step = STEPS.find((s) => s.id === 'state-review-CA')!
+    expect(step.isComplete(tr)).toBe(true)
+  })
+
+  it('state-review-CA is incomplete for part-year with inverted dates', () => {
+    const tr = makeTr({
+      stateReturns: [{
+        stateCode: 'CA',
+        residencyType: 'part-year',
+        moveInDate: '2025-10-01',
+        moveOutDate: '2025-03-01',
+      }],
+    })
+    const step = STEPS.find((s) => s.id === 'state-review-CA')!
+    expect(step.isComplete(tr)).toBe(false)
+  })
+
+  it('state-review-PA is complete for nonresident config', () => {
+    const tr = makeTr({
+      stateReturns: [{ stateCode: 'PA', residencyType: 'nonresident' }],
+    })
+    const step = STEPS.find((s) => s.id === 'state-review-PA')!
+    expect(step.isComplete(tr)).toBe(true)
+  })
 })
