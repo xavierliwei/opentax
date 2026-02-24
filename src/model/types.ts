@@ -573,7 +573,7 @@ export interface Credit {
 // ── State Return Config ────────────────────────────────────────
 
 /** Supported state codes (expand as states are added) */
-export type SupportedStateCode = 'CA' | 'CT' | 'DC' | 'FL' | 'GA' | 'MA' | 'MD' | 'NC' | 'NJ' | 'PA' | 'VA'
+export type SupportedStateCode = 'CA' | 'CT' | 'DC' | 'FL' | 'GA' | 'MA' | 'MD' | 'NC' | 'NJ' | 'NY' | 'PA' | 'VA'
 
 /** Residency classification for a state return */
 export type ResidencyType = 'full-year' | 'part-year' | 'nonresident'

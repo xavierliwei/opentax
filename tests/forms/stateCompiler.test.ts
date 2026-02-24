@@ -18,6 +18,7 @@ import { njFormCompiler } from '../../src/forms/fillers/nj1040Filler'
 import { paFormCompiler } from '../../src/forms/fillers/formPA40Filler'
 import { dcFormCompiler } from '../../src/forms/fillers/formD40Filler'
 import { ncFormCompiler } from '../../src/forms/fillers/formD400Filler'
+import { nyFormCompiler } from '../../src/forms/fillers/formIT201Filler'
 import { computeAll } from '../../src/rules/engine'
 import type { TaxReturn } from '../../src/model/types'
 import { emptyTaxReturn } from '../../src/model/types'
@@ -278,6 +279,31 @@ function makeNCReturn(): TaxReturn {
   }
 }
 
+function makeNYReturn(): TaxReturn {
+  return {
+    ...emptyTaxReturn(2025),
+    taxpayer: {
+      firstName: 'Test',
+      lastName: 'NewYorker',
+      ssn: '123456789',
+      dateOfBirth: '1990-01-01',
+      address: { street: '350 5th Ave', city: 'New York', state: 'NY', zip: '10118' },
+    },
+    stateReturns: [{ stateCode: 'NY', residencyType: 'full-year' }],
+    w2s: [
+      makeW2({
+        id: 'w2-1',
+        employerName: 'Empire Corp',
+        box1: cents(100000),
+        box2: cents(15000),
+        box15State: 'NY',
+        box16StateWages: cents(100000),
+        box17StateIncomeTax: cents(5000),
+      }),
+    ],
+  }
+}
+
 // ── State Form Registry ──────────────────────────────────────
 
 describe('State Form Registry', () => {
@@ -339,6 +365,12 @@ describe('State Form Registry', () => {
     const compiler = getStateFormCompiler('CT')
     expect(compiler).toBeDefined()
     expect(compiler!.stateCode).toBe('CT')
+  })
+
+  it('NY compiler is registered', () => {
+    const compiler = getStateFormCompiler('NY')
+    expect(compiler).toBeDefined()
+    expect(compiler!.stateCode).toBe('NY')
   })
 
   it('unknown state returns undefined', () => {
@@ -535,6 +567,34 @@ describe('NC Form D-400 PDF generator', () => {
   })
 })
 
+describe('NY Form IT-201 PDF generator', () => {
+  it('generates a valid PDF', async () => {
+    const tr = makeNYReturn()
+    const result = computeAll(tr)
+    const stateResult = result.stateResults[0]
+
+    const compiled = await nyFormCompiler.compile(tr, stateResult, { templates: new Map() })
+
+    expect(compiled.doc).toBeDefined()
+    expect(compiled.doc.getPageCount()).toBe(1)
+    expect(compiled.forms).toHaveLength(1)
+    expect(compiled.forms[0].formId).toBe('NY Form IT-201')
+    expect(compiled.forms[0].sequenceNumber).toBe('NY-01')
+  })
+
+  it('PDF bytes can be saved and reloaded', async () => {
+    const tr = makeNYReturn()
+    const result = computeAll(tr)
+    const stateResult = result.stateResults[0]
+
+    const compiled = await nyFormCompiler.compile(tr, stateResult, { templates: new Map() })
+
+    const bytes = await compiled.doc.save()
+    const reloaded = await PDFDocument.load(bytes)
+    expect(reloaded.getPageCount()).toBe(1)
+  })
+})
+
 // ── Compiler integration with state forms ─────────────────────
 
 describe('compileFilingPackage — state form integration', () => {
@@ -683,6 +743,21 @@ describe('compileFilingPackage — state form integration', () => {
     const ctForm = result.formsIncluded.find(f => f.formId === 'CT Form CT-1040')
     expect(ctForm).toBeDefined()
     expect(ctForm!.pageCount).toBe(1)
+  })
+
+  it('NY return includes NY Form IT-201 in combined PDF', async () => {
+    const tr = makeNYReturn()
+
+    const result = await compileFilingPackage(tr, templates)
+
+    expect(result.statePackages).toHaveLength(1)
+    expect(result.statePackages[0].stateCode).toBe('NY')
+    expect(result.statePackages[0].label).toBe('NY Form IT-201')
+    expect(result.statePackages[0].pdfBytes.length).toBeGreaterThan(0)
+
+    const nyForm = result.formsIncluded.find(f => f.formId === 'NY Form IT-201')
+    expect(nyForm).toBeDefined()
+    expect(nyForm!.pageCount).toBe(1)
   })
 
   it('combined PDF has more pages when CA is selected', async () => {
