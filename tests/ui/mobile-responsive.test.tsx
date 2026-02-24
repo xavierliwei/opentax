@@ -99,8 +99,8 @@ describe('Responsive grid layouts', () => {
   })
 })
 
-describe('InterviewNav sticky positioning', () => {
-  it('has sticky bottom positioning classes for mobile', () => {
+describe('InterviewNav fixed positioning', () => {
+  it('has fixed bottom positioning classes for mobile', () => {
     const mockInterview = {
       canGoPrev: true,
       canGoNext: true,
@@ -112,7 +112,7 @@ describe('InterviewNav sticky positioning', () => {
     // Find the nav container
     const backBtn = screen.getByRole('button', { name: /back/i })
     const navContainer = backBtn.parentElement!
-    expect(navContainer.className).toContain('sticky')
+    expect(navContainer.className).toContain('fixed')
     expect(navContainer.className).toContain('bottom-0')
     expect(navContainer.className).toContain('sm:static')
   })
