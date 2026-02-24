@@ -69,7 +69,9 @@ export function StateReturnsPage() {
                     pubName={`${stateName} — Filing Requirements`}
                     pubUrl={code === 'CA'
                       ? 'https://www.ftb.ca.gov/file/personal/residency-status/index.html'
-                      : '#'
+                      : code === 'GA'
+                        ? 'https://dor.georgia.gov/it-511-individual-income-tax-instruction-booklet'
+                        : '#'
                     }
                   />
                 </span>
