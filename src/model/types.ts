@@ -5,6 +5,23 @@
  * Monetary values are in integer cents unless noted otherwise.
  */
 
+// ── Income source identifiers ─────────────────────────────────
+
+export type IncomeSourceId =
+  | 'w2'            // W-2 wages (most common, checked by default)
+  | 'interest'      // 1099-INT
+  | 'dividends'     // 1099-DIV
+  | 'unemployment'  // 1099-G
+  | 'retirement'    // 1099-R, IRA, pension
+  | 'stocks'        // 1099-B, capital gains
+  | 'rsu'           // RSU vest events
+  | 'iso'           // ISO / stock option exercises
+  | 'rental'        // Schedule E rental properties
+  | 'business'      // Schedule C self-employment
+  | 'k1'            // Schedule K-1 (partnership, S-Corp, trust)
+  | 'other'         // Other/misc income (prizes, jury duty, etc.)
+  | 'health-marketplace' // 1095-A Health Insurance Marketplace
+
 // ── Filing status ──────────────────────────────────────────────
 
 export type FilingStatus = 'single' | 'mfj' | 'mfs' | 'hoh' | 'qw'
@@ -608,6 +625,9 @@ export interface TaxReturn {
   spouse?: Taxpayer
   dependents: Dependent[]
 
+  // Income source checklist — controls which income steps appear in the sidebar
+  incomeSources: IncomeSourceId[]
+
   // Source documents
   w2s: W2[]
   form1099Bs: Form1099B[]
@@ -706,6 +726,7 @@ export function emptyTaxReturn(taxYear: number): TaxReturn {
       },
     },
     dependents: [],
+    incomeSources: ['w2'],
     w2s: [],
     form1099Bs: [],
     form1099INTs: [],

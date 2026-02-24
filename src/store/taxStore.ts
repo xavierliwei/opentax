@@ -4,6 +4,7 @@ import { openDB } from 'idb'
 import type {
   TaxReturn,
   FilingStatus,
+  IncomeSourceId,
   SupportedStateCode,
   StateReturnConfig,
   W2,
@@ -44,6 +45,7 @@ export interface TaxStoreState {
   _lastChangeSource: 'full' | 'deductions'
 
   // Actions
+  setIncomeSources: (sources: IncomeSourceId[]) => void
   setFilingStatus: (status: FilingStatus) => void
   setCanBeClaimedAsDependent: (value: boolean) => void
   setTaxpayer: (taxpayer: Partial<Taxpayer>) => void
@@ -173,6 +175,73 @@ function withDerivedCapital(taxReturn: TaxReturn): TaxReturn {
   return { ...taxReturn, capitalTransactions: transactions }
 }
 
+/**
+ * Auto-add income source IDs implied by existing data.
+ * This ensures that if data is present (e.g. from a previous session or import),
+ * the corresponding sidebar step appears without manual checklist toggling.
+ */
+function syncIncomeSources(tr: TaxReturn): TaxReturn {
+  const sources = new Set<IncomeSourceId>(tr.incomeSources ?? ['w2'])
+
+  // W-2 Box 12 code V → RSU
+  if (tr.w2s.some(w => (w.box12 ?? []).some(e => e.code === 'V'))) {
+    sources.add('rsu')
+  }
+  // RSU vest events → RSU
+  if (tr.rsuVestEvents.length > 0) {
+    sources.add('rsu')
+  }
+  // 1099-B → stocks
+  if (tr.form1099Bs.length > 0) {
+    sources.add('stocks')
+  }
+  // Schedule E → rental
+  if (tr.scheduleEProperties.length > 0) {
+    sources.add('rental')
+  }
+  // Schedule C → business
+  if (tr.scheduleCBusinesses.length > 0) {
+    sources.add('business')
+  }
+  // K-1 → k1
+  if (tr.scheduleK1s.length > 0) {
+    sources.add('k1')
+  }
+
+  const synced = Array.from(sources)
+  // Only create a new object if something changed
+  if (synced.length === (tr.incomeSources ?? []).length &&
+      synced.every(s => (tr.incomeSources ?? []).includes(s))) {
+    return tr
+  }
+  return { ...tr, incomeSources: synced }
+}
+
+/**
+ * Detect income sources from existing data in a tax return.
+ * Used during migration when incomeSources is undefined.
+ */
+function detectIncomeSources(tr: TaxReturn): IncomeSourceId[] {
+  const sources: IncomeSourceId[] = ['w2']
+
+  if (tr.form1099INTs?.length > 0) sources.push('interest')
+  if (tr.form1099DIVs?.length > 0) sources.push('dividends')
+  if (tr.form1099Gs?.length > 0) sources.push('unemployment')
+  if (tr.form1099Rs?.length > 0) sources.push('retirement')
+  if (tr.form1099Bs?.length > 0) sources.push('stocks')
+  if (tr.form1099MISCs?.length > 0) sources.push('other')
+  if (tr.rsuVestEvents?.length > 0 || tr.w2s?.some(w => (w.box12 ?? []).some(e => e.code === 'V'))) {
+    sources.push('rsu')
+  }
+  if (tr.isoExercises?.length > 0) sources.push('iso')
+  if (tr.scheduleEProperties?.length > 0) sources.push('rental')
+  if (tr.scheduleCBusinesses?.length > 0) sources.push('business')
+  if (tr.scheduleK1s?.length > 0) sources.push('k1')
+  if (tr.form1095As?.length > 0) sources.push('health-marketplace')
+
+  return sources
+}
+
 function recompute(
   taxReturn: TaxReturn,
   source: 'full' | 'deductions' = 'full',
@@ -190,6 +259,11 @@ export const useTaxStore = create<TaxStoreState>()(
       taxReturn: initialReturn,
       computeResult: computeAll(initialReturn),
       _lastChangeSource: 'full' as const,
+
+      setIncomeSources: (sources) => {
+        const tr = { ...get().taxReturn, incomeSources: sources }
+        set(recompute(tr))
+      },
 
       setFilingStatus: (status) => {
         const prev = get().taxReturn
@@ -270,15 +344,15 @@ export const useTaxStore = create<TaxStoreState>()(
       },
 
       addW2: (w2) => {
-        const tr = { ...get().taxReturn, w2s: [...get().taxReturn.w2s, w2] }
+        const tr = syncIncomeSources({ ...get().taxReturn, w2s: [...get().taxReturn.w2s, w2] })
         set(recompute(tr))
       },
 
       updateW2: (id, updates) => {
-        const tr = {
+        const tr = syncIncomeSources({
           ...get().taxReturn,
           w2s: get().taxReturn.w2s.map((w) => (w.id === id ? { ...w, ...updates } : w)),
-        }
+        })
         set(recompute(tr))
       },
 
@@ -453,25 +527,25 @@ export const useTaxStore = create<TaxStoreState>()(
       },
 
       setForm1099Bs: (forms) => {
-        const tr = withDerivedCapital({ ...get().taxReturn, form1099Bs: forms })
+        const tr = syncIncomeSources(withDerivedCapital({ ...get().taxReturn, form1099Bs: forms }))
         set(recompute(tr))
       },
 
       appendForm1099Bs: (forms) => {
         const prev = get().taxReturn
-        const tr = withDerivedCapital({
+        const tr = syncIncomeSources(withDerivedCapital({
           ...prev,
           form1099Bs: [...prev.form1099Bs, ...forms],
-        })
+        }))
         set(recompute(tr))
       },
 
       addForm1099B: (form) => {
         const prev = get().taxReturn
-        const tr = withDerivedCapital({
+        const tr = syncIncomeSources(withDerivedCapital({
           ...prev,
           form1099Bs: [...prev.form1099Bs, form],
-        })
+        }))
         set(recompute(tr))
       },
 
@@ -504,10 +578,10 @@ export const useTaxStore = create<TaxStoreState>()(
 
       addRSUVestEvent: (event) => {
         const prev = get().taxReturn
-        const tr = withDerivedCapital({
+        const tr = syncIncomeSources(withDerivedCapital({
           ...prev,
           rsuVestEvents: [...prev.rsuVestEvents, event],
-        })
+        }))
         set(recompute(tr))
       },
 
@@ -534,7 +608,7 @@ export const useTaxStore = create<TaxStoreState>()(
 
       addScheduleEProperty: (prop) => {
         const prev = get().taxReturn
-        const tr = { ...prev, scheduleEProperties: [...prev.scheduleEProperties, prop] }
+        const tr = syncIncomeSources({ ...prev, scheduleEProperties: [...prev.scheduleEProperties, prop] })
         set(recompute(tr))
       },
 
@@ -714,7 +788,7 @@ export const useTaxStore = create<TaxStoreState>()(
 
       addScheduleC: (biz) => {
         const prev = get().taxReturn
-        const tr = { ...prev, scheduleCBusinesses: [...prev.scheduleCBusinesses, biz] }
+        const tr = syncIncomeSources({ ...prev, scheduleCBusinesses: [...prev.scheduleCBusinesses, biz] })
         set(recompute(tr))
       },
 
@@ -740,7 +814,7 @@ export const useTaxStore = create<TaxStoreState>()(
 
       addScheduleK1: (k1) => {
         const prev = get().taxReturn
-        const tr = { ...prev, scheduleK1s: [...prev.scheduleK1s, k1] }
+        const tr = syncIncomeSources({ ...prev, scheduleK1s: [...prev.scheduleK1s, k1] })
         set(recompute(tr))
       },
 
@@ -907,6 +981,11 @@ export const useTaxStore = create<TaxStoreState>()(
             }]
           }
           state.taxReturn.stateReturns ??= []
+
+          // Migrate incomeSources: detect from existing data if not present
+          if (!state.taxReturn.incomeSources) {
+            state.taxReturn.incomeSources = detectIncomeSources(state.taxReturn)
+          }
 
           state.computeResult = computeAll(state.taxReturn)
         }

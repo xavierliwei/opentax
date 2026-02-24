@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { STEPS } from '../../src/interview/steps.ts'
 import { emptyTaxReturn } from '../../src/model/types.ts'
-import type { TaxReturn } from '../../src/model/types.ts'
+import type { TaxReturn, IncomeSourceId } from '../../src/model/types.ts'
 
 function makeTr(overrides: Partial<TaxReturn> = {}): TaxReturn {
   return { ...emptyTaxReturn(2025), ...overrides }
@@ -9,8 +9,8 @@ function makeTr(overrides: Partial<TaxReturn> = {}): TaxReturn {
 
 describe('steps.ts — visibility logic', () => {
   it('has expected total steps (including dynamic state review steps)', () => {
-    // 21 static + dynamic state review steps (CA, PA)
-    expect(STEPS.length).toBeGreaterThanOrEqual(23)
+    // 22 static + dynamic state review steps (CA, PA, etc.)
+    expect(STEPS.length).toBeGreaterThanOrEqual(24)
   })
 
   it('spouse-info is hidden when filing status is single', () => {
@@ -25,7 +25,7 @@ describe('steps.ts — visibility logic', () => {
     expect(spouse.isVisible(tr)).toBe(true)
   })
 
-  it('rsu-income is hidden by default (no RSU events or W-2 code V)', () => {
+  it('rsu-income is hidden by default (no RSU events, no W-2 code V, rsu not in incomeSources)', () => {
     const tr = makeTr()
     const rsu = STEPS.find((s) => s.id === 'rsu-income')!
     expect(rsu.isVisible(tr)).toBe(false)
@@ -44,6 +44,12 @@ describe('steps.ts — visibility logic', () => {
         totalFmv: 1500000,
       }],
     })
+    const rsu = STEPS.find((s) => s.id === 'rsu-income')!
+    expect(rsu.isVisible(tr)).toBe(true)
+  })
+
+  it('rsu-income is visible when rsu is in incomeSources', () => {
+    const tr = makeTr({ incomeSources: ['w2', 'rsu'] })
     const rsu = STEPS.find((s) => s.id === 'rsu-income')!
     expect(rsu.isVisible(tr)).toBe(true)
   })
@@ -103,6 +109,95 @@ describe('steps.ts — visibility logic', () => {
 
     const trWithNC = makeTr({ stateReturns: [{ stateCode: 'NC', residencyType: 'full-year' }] })
     expect(step.isVisible(trWithNC)).toBe(true)
+  })
+})
+
+describe('steps.ts — income-sources step', () => {
+  it('income-sources step exists in getting-started section', () => {
+    const step = STEPS.find((s) => s.id === 'income-sources')!
+    expect(step).toBeDefined()
+    expect(step.section).toBe('getting-started')
+    expect(step.label).toBe('What Applies')
+  })
+
+  it('income-sources step is always visible', () => {
+    const tr = makeTr()
+    const step = STEPS.find((s) => s.id === 'income-sources')!
+    expect(step.isVisible(tr)).toBe(true)
+  })
+
+  it('income-sources step is always complete', () => {
+    const tr = makeTr()
+    const step = STEPS.find((s) => s.id === 'income-sources')!
+    expect(step.isComplete(tr)).toBe(true)
+  })
+
+  it('income-sources step comes after dependents and before state-returns', () => {
+    const depIdx = STEPS.findIndex((s) => s.id === 'dependents')
+    const srcIdx = STEPS.findIndex((s) => s.id === 'income-sources')
+    const stateIdx = STEPS.findIndex((s) => s.id === 'state-returns')
+    expect(srcIdx).toBeGreaterThan(depIdx)
+    expect(srcIdx).toBeLessThan(stateIdx)
+  })
+})
+
+describe('steps.ts — income step visibility gated by incomeSources', () => {
+  const incomeStepMap: [string, IncomeSourceId][] = [
+    ['w2-income', 'w2'],
+    ['interest-income', 'interest'],
+    ['dividend-income', 'dividends'],
+    ['misc-income', 'other'],
+    ['1099g-income', 'unemployment'],
+    ['retirement-income', 'retirement'],
+    ['rental-income', 'rental'],
+    ['stock-sales', 'stocks'],
+    ['iso-exercises', 'iso'],
+    ['schedule-c', 'business'],
+    ['schedule-k1', 'k1'],
+  ]
+
+  for (const [stepId, sourceId] of incomeStepMap) {
+    it(`${stepId} is hidden when ${sourceId} is not in incomeSources`, () => {
+      const tr = makeTr({ incomeSources: [] })
+      const step = STEPS.find((s) => s.id === stepId)!
+      expect(step).toBeDefined()
+      expect(step.isVisible(tr)).toBe(false)
+    })
+
+    it(`${stepId} is visible when ${sourceId} is in incomeSources`, () => {
+      const tr = makeTr({ incomeSources: [sourceId] })
+      const step = STEPS.find((s) => s.id === stepId)!
+      expect(step.isVisible(tr)).toBe(true)
+    })
+  }
+
+  it('w2-income is visible by default (w2 is in default incomeSources)', () => {
+    const tr = makeTr()
+    const step = STEPS.find((s) => s.id === 'w2-income')!
+    expect(step.isVisible(tr)).toBe(true)
+  })
+
+  it('interest-income is hidden by default', () => {
+    const tr = makeTr()
+    const step = STEPS.find((s) => s.id === 'interest-income')!
+    expect(step.isVisible(tr)).toBe(false)
+  })
+
+  it('form-1095a is hidden by default and visible when health-marketplace is in incomeSources', () => {
+    const tr = makeTr()
+    const step = STEPS.find((s) => s.id === 'form-1095a')!
+    expect(step.isVisible(tr)).toBe(false)
+
+    const trWith = makeTr({ incomeSources: ['w2', 'health-marketplace'] })
+    expect(step.isVisible(trWith)).toBe(true)
+  })
+})
+
+describe('steps.ts — step ordering', () => {
+  it('prior-year comes after state-returns in getting-started', () => {
+    const stateIdx = STEPS.findIndex((s) => s.id === 'state-returns')
+    const priorIdx = STEPS.findIndex((s) => s.id === 'prior-year')
+    expect(priorIdx).toBeGreaterThan(stateIdx)
   })
 })
 

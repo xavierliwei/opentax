@@ -7,6 +7,7 @@ import { FilingStatusPage } from '../ui/pages/FilingStatusPage.tsx'
 import { PersonalInfoPage } from '../ui/pages/PersonalInfoPage.tsx'
 import { SpouseInfoPage } from '../ui/pages/SpouseInfoPage.tsx'
 import { DependentsPage } from '../ui/pages/DependentsPage.tsx'
+import { IncomeSourcesPage } from '../ui/pages/IncomeSourcesPage.tsx'
 import { W2IncomePage } from '../ui/pages/W2IncomePage.tsx'
 import { InterestIncomePage } from '../ui/pages/InterestIncomePage.tsx'
 import { DividendIncomePage } from '../ui/pages/DividendIncomePage.tsx'
@@ -67,7 +68,13 @@ function stateReviewSteps(): InterviewStep[] {
   }))
 }
 
+/** Helper: check if an income source is selected (with IndexedDB migration safety) */
+function hasSource(tr: TaxReturn, id: string): boolean {
+  return (tr.incomeSources ?? ['w2']).includes(id as never)
+}
+
 export const STEPS: InterviewStep[] = [
+  // ── Getting Started ───────────────────────────────────────────
   {
     id: 'welcome',
     label: 'Welcome',
@@ -125,13 +132,13 @@ export const STEPS: InterviewStep[] = [
     component: DependentsPage,
   },
   {
-    id: 'prior-year',
-    label: 'Prior Year',
-    path: '/interview/prior-year',
+    id: 'income-sources',
+    label: 'What Applies',
+    path: '/interview/income-sources',
     section: 'getting-started',
     isVisible: () => true,
     isComplete: () => true,
-    component: PriorYearPage,
+    component: IncomeSourcesPage,
   },
   {
     id: 'state-returns',
@@ -143,11 +150,22 @@ export const STEPS: InterviewStep[] = [
     component: StateReturnsPage,
   },
   {
+    id: 'prior-year',
+    label: 'Prior Year',
+    path: '/interview/prior-year',
+    section: 'getting-started',
+    isVisible: () => true,
+    isComplete: () => true,
+    component: PriorYearPage,
+  },
+
+  // ── Income ────────────────────────────────────────────────────
+  {
     id: 'w2-income',
     label: 'W-2 Income',
     path: '/interview/w2-income',
     section: 'income',
-    isVisible: () => true,
+    isVisible: (tr) => hasSource(tr, 'w2'),
     isComplete: (tr) => tr.w2s.length > 0,
     component: W2IncomePage,
   },
@@ -156,7 +174,7 @@ export const STEPS: InterviewStep[] = [
     label: 'Interest',
     path: '/interview/interest-income',
     section: 'income',
-    isVisible: () => true,
+    isVisible: (tr) => hasSource(tr, 'interest'),
     isComplete: () => true,
     component: InterestIncomePage,
   },
@@ -165,7 +183,7 @@ export const STEPS: InterviewStep[] = [
     label: 'Dividends',
     path: '/interview/dividend-income',
     section: 'income',
-    isVisible: () => true,
+    isVisible: (tr) => hasSource(tr, 'dividends'),
     isComplete: () => true,
     component: DividendIncomePage,
   },
@@ -174,7 +192,7 @@ export const STEPS: InterviewStep[] = [
     label: 'Other Income',
     path: '/interview/misc-income',
     section: 'income',
-    isVisible: () => true,
+    isVisible: (tr) => hasSource(tr, 'other'),
     isComplete: () => true,
     component: MiscIncomePage,
   },
@@ -183,7 +201,7 @@ export const STEPS: InterviewStep[] = [
     label: 'Unemployment',
     path: '/interview/1099g-income',
     section: 'income',
-    isVisible: () => true,
+    isVisible: (tr) => hasSource(tr, 'unemployment'),
     isComplete: () => true,
     component: Form1099GPage,
   },
@@ -192,7 +210,7 @@ export const STEPS: InterviewStep[] = [
     label: 'Retirement',
     path: '/interview/retirement-income',
     section: 'income',
-    isVisible: () => true,
+    isVisible: (tr) => hasSource(tr, 'retirement'),
     isComplete: () => true,
     component: RetirementIncomePage,
   },
@@ -201,7 +219,7 @@ export const STEPS: InterviewStep[] = [
     label: 'Rental Income',
     path: '/interview/rental-income',
     section: 'income',
-    isVisible: () => true,
+    isVisible: (tr) => hasSource(tr, 'rental'),
     isComplete: () => true,
     component: ScheduleEPage,
   },
@@ -210,7 +228,7 @@ export const STEPS: InterviewStep[] = [
     label: 'Stock Sales',
     path: '/interview/stock-sales',
     section: 'income',
-    isVisible: () => true,
+    isVisible: (tr) => hasSource(tr, 'stocks'),
     isComplete: () => true,
     component: StockSalesPage,
   },
@@ -220,6 +238,7 @@ export const STEPS: InterviewStep[] = [
     path: '/interview/rsu-income',
     section: 'income',
     isVisible: (tr) =>
+      hasSource(tr, 'rsu') ||
       tr.rsuVestEvents.length > 0 ||
       tr.w2s.some((w) => w.box12.some((e) => e.code === 'V')),
     isComplete: () => true,
@@ -230,7 +249,7 @@ export const STEPS: InterviewStep[] = [
     label: 'ISO Exercises',
     path: '/interview/iso-exercises',
     section: 'income',
-    isVisible: () => true,
+    isVisible: (tr) => hasSource(tr, 'iso'),
     isComplete: () => true,
     component: ISOExercisesPage,
   },
@@ -239,7 +258,7 @@ export const STEPS: InterviewStep[] = [
     label: 'Business Income',
     path: '/interview/schedule-c',
     section: 'income',
-    isVisible: () => true,
+    isVisible: (tr) => hasSource(tr, 'business'),
     isComplete: () => true,
     component: ScheduleCPage,
   },
@@ -248,16 +267,18 @@ export const STEPS: InterviewStep[] = [
     label: 'K-1 Income',
     path: '/interview/schedule-k1',
     section: 'income',
-    isVisible: () => true,
+    isVisible: (tr) => hasSource(tr, 'k1'),
     isComplete: () => true,
     component: ScheduleK1Page,
   },
+
+  // ── Deductions & Credits ──────────────────────────────────────
   {
     id: 'form-1095a',
     label: 'Health Insurance (1095-A)',
     path: '/interview/form-1095a',
     section: 'deductions-credits',
-    isVisible: () => true,
+    isVisible: (tr) => hasSource(tr, 'health-marketplace'),
     isComplete: () => true,
     component: Form1095APage,
   },
@@ -279,6 +300,8 @@ export const STEPS: InterviewStep[] = [
     isComplete: () => true,
     component: CreditsPage,
   },
+
+  // ── Review ────────────────────────────────────────────────────
   {
     id: 'review',
     label: 'Federal Review',
@@ -290,6 +313,8 @@ export const STEPS: InterviewStep[] = [
   },
   // Dynamic state review steps (one per supported state)
   ...stateReviewSteps(),
+
+  // ── Download ──────────────────────────────────────────────────
   {
     id: 'download',
     label: 'Download',
