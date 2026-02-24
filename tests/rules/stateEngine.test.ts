@@ -364,6 +364,207 @@ describe('State Engine — computeAll integration', () => {
   })
 })
 
+describe('State Engine — STATE-GAP-001: MD county selector', () => {
+  it('uses the selected county rate for local tax', () => {
+    const tr = makeTr({
+      stateReturns: [{ stateCode: 'MD', residencyType: 'full-year', county: 'worcester' }],
+      w2s: [{
+        id: 'w2-1', employerEin: '12-3456789', employerName: 'Test',
+        box1: 10000000, box2: 1500000, box3: 10000000, box4: 620000,
+        box5: 10000000, box6: 145000, box7: 0, box8: 0, box10: 0, box11: 0,
+        box12: [], box13StatutoryEmployee: false, box13RetirementPlan: false,
+        box13ThirdPartySickPay: false, box14: '', box15State: 'MD',
+        box16StateWages: 10000000, box17StateIncomeTax: 350000,
+      }],
+    })
+    const result = computeAll(tr)
+    expect(result.stateResults).toHaveLength(1)
+    const md = result.stateResults[0]
+    expect(md.stateCode).toBe('MD')
+    // Worcester has the lowest rate (2.25%), so local tax should be lower
+    // than default Montgomery (3.20%)
+    const trDefault = makeTr({
+      stateReturns: [{ stateCode: 'MD', residencyType: 'full-year', county: 'montgomery' }],
+      w2s: tr.w2s,
+    })
+    const resultDefault = computeAll(trDefault)
+    expect(md.detail).toBeDefined()
+    // Worcester 2.25% < Montgomery 3.20% → lower total tax
+    expect(md.taxAfterCredits).toBeLessThan(resultDefault.stateResults[0].taxAfterCredits)
+  })
+
+  it('defaults to montgomery when no county is specified', () => {
+    const tr = makeTr({
+      stateReturns: [{ stateCode: 'MD', residencyType: 'full-year' }],
+      w2s: [{
+        id: 'w2-1', employerEin: '12-3456789', employerName: 'Test',
+        box1: 10000000, box2: 1500000, box3: 10000000, box4: 620000,
+        box5: 10000000, box6: 145000, box7: 0, box8: 0, box10: 0, box11: 0,
+        box12: [], box13StatutoryEmployee: false, box13RetirementPlan: false,
+        box13ThirdPartySickPay: false, box14: '', box15State: 'MD',
+        box16StateWages: 10000000, box17StateIncomeTax: 350000,
+      }],
+    })
+    const trExplicit = makeTr({
+      stateReturns: [{ stateCode: 'MD', residencyType: 'full-year', county: 'montgomery' }],
+      w2s: tr.w2s,
+    })
+    const result = computeAll(tr)
+    const resultExplicit = computeAll(trExplicit)
+    expect(result.stateResults[0].taxAfterCredits).toBe(resultExplicit.stateResults[0].taxAfterCredits)
+  })
+})
+
+describe('State Engine — STATE-GAP-002: MA rent deduction', () => {
+  it('applies rent deduction when rentAmount is provided', () => {
+    const baseW2 = {
+      id: 'w2-1', employerEin: '12-3456789', employerName: 'Test',
+      box1: 10000000, box2: 1500000, box3: 10000000, box4: 620000,
+      box5: 10000000, box6: 145000, box7: 0, box8: 0, box10: 0, box11: 0,
+      box12: [] as never[], box13StatutoryEmployee: false, box13RetirementPlan: false,
+      box13ThirdPartySickPay: false, box14: '', box15State: 'MA' as const,
+      box16StateWages: 10000000, box17StateIncomeTax: 350000,
+    }
+    // With $24,000 rent → 50% = $12,000 → capped at $4,000
+    const trRent = makeTr({
+      stateReturns: [{ stateCode: 'MA', residencyType: 'full-year', rentAmount: 2400000 }],
+      w2s: [baseW2],
+    })
+    const trNoRent = makeTr({
+      stateReturns: [{ stateCode: 'MA', residencyType: 'full-year' }],
+      w2s: [baseW2],
+    })
+    const withRent = computeAll(trRent)
+    const withoutRent = computeAll(trNoRent)
+    // Rent deduction reduces taxable income → lower tax
+    expect(withRent.stateResults[0].taxAfterCredits).toBeLessThan(
+      withoutRent.stateResults[0].taxAfterCredits,
+    )
+  })
+
+  it('caps rent deduction at $4,000 (50% of rent)', () => {
+    const baseW2 = {
+      id: 'w2-1', employerEin: '12-3456789', employerName: 'Test',
+      box1: 10000000, box2: 1500000, box3: 10000000, box4: 620000,
+      box5: 10000000, box6: 145000, box7: 0, box8: 0, box10: 0, box11: 0,
+      box12: [] as never[], box13StatutoryEmployee: false, box13RetirementPlan: false,
+      box13ThirdPartySickPay: false, box14: '', box15State: 'MA' as const,
+      box16StateWages: 10000000, box17StateIncomeTax: 350000,
+    }
+    // $24,000 rent (50% = $12,000, cap = $4,000)
+    const tr24k = makeTr({
+      stateReturns: [{ stateCode: 'MA', residencyType: 'full-year', rentAmount: 2400000 }],
+      w2s: [baseW2],
+    })
+    // $48,000 rent (50% = $24,000, cap = $4,000) — same deduction
+    const tr48k = makeTr({
+      stateReturns: [{ stateCode: 'MA', residencyType: 'full-year', rentAmount: 4800000 }],
+      w2s: [baseW2],
+    })
+    const result24k = computeAll(tr24k)
+    const result48k = computeAll(tr48k)
+    expect(result24k.stateResults[0].taxAfterCredits).toBe(
+      result48k.stateResults[0].taxAfterCredits,
+    )
+  })
+})
+
+describe('State Engine — STATE-GAP-003: PA §529 deduction', () => {
+  it('reduces PA taxable income by 529 contribution amount', () => {
+    const baseW2 = {
+      id: 'w2-1', employerEin: '12-3456789', employerName: 'Test',
+      box1: 10000000, box2: 1500000, box3: 10000000, box4: 620000,
+      box5: 10000000, box6: 145000, box7: 0, box8: 0, box10: 0, box11: 0,
+      box12: [] as never[], box13StatutoryEmployee: false, box13RetirementPlan: false,
+      box13ThirdPartySickPay: false, box14: '', box15State: 'PA' as const,
+      box16StateWages: 10000000, box17StateIncomeTax: 500000,
+    }
+    // $5,000 contribution
+    const trWith529 = makeTr({
+      stateReturns: [{ stateCode: 'PA', residencyType: 'full-year', contributions529: 500000 }],
+      w2s: [baseW2],
+    })
+    const trNo529 = makeTr({
+      stateReturns: [{ stateCode: 'PA', residencyType: 'full-year' }],
+      w2s: [baseW2],
+    })
+    const with529 = computeAll(trWith529)
+    const without529 = computeAll(trNo529)
+    expect(with529.stateResults[0].taxAfterCredits).toBeLessThan(
+      without529.stateResults[0].taxAfterCredits,
+    )
+    // Tax savings should be ~$5,000 × 3.07% = $153.50 → 15350 cents
+    const savings = without529.stateResults[0].taxAfterCredits - with529.stateResults[0].taxAfterCredits
+    expect(savings).toBeGreaterThan(15000) // at least $150
+    expect(savings).toBeLessThan(16000) // at most $160
+  })
+
+  it('caps 529 deduction at $18,000 per beneficiary', () => {
+    const baseW2 = {
+      id: 'w2-1', employerEin: '12-3456789', employerName: 'Test',
+      box1: 10000000, box2: 1500000, box3: 10000000, box4: 620000,
+      box5: 10000000, box6: 145000, box7: 0, box8: 0, box10: 0, box11: 0,
+      box12: [] as never[], box13StatutoryEmployee: false, box13RetirementPlan: false,
+      box13ThirdPartySickPay: false, box14: '', box15State: 'PA' as const,
+      box16StateWages: 10000000, box17StateIncomeTax: 500000,
+    }
+    // $18,000 contribution (at cap)
+    const trAtCap = makeTr({
+      stateReturns: [{ stateCode: 'PA', residencyType: 'full-year', contributions529: 1800000 }],
+      w2s: [baseW2],
+    })
+    // $30,000 contribution (over cap)
+    const trOverCap = makeTr({
+      stateReturns: [{ stateCode: 'PA', residencyType: 'full-year', contributions529: 3000000 }],
+      w2s: [baseW2],
+    })
+    const atCap = computeAll(trAtCap)
+    const overCap = computeAll(trOverCap)
+    // Same tax since both are capped at $18,000
+    expect(atCap.stateResults[0].taxAfterCredits).toBe(
+      overCap.stateResults[0].taxAfterCredits,
+    )
+  })
+})
+
+describe('State Engine — STATE-GAP-004: NJ college-student dependent exemption', () => {
+  it('adds $1,000 exemption per college student dependent', () => {
+    const baseW2 = {
+      id: 'w2-1', employerEin: '12-3456789', employerName: 'Test',
+      box1: 10000000, box2: 1500000, box3: 10000000, box4: 620000,
+      box5: 10000000, box6: 145000, box7: 0, box8: 0, box10: 0, box11: 0,
+      box12: [] as never[], box13StatutoryEmployee: false, box13RetirementPlan: false,
+      box13ThirdPartySickPay: false, box14: '', box15State: 'NJ' as const,
+      box16StateWages: 10000000, box17StateIncomeTax: 300000,
+    }
+    const dep = {
+      firstName: 'Alex', lastName: 'Smith', ssn: '111-22-3333',
+      relationship: 'son', monthsLived: 12, dateOfBirth: '2005-03-15',
+    }
+    // Without college student flag
+    const trNone = makeTr({
+      dependents: [dep],
+      stateReturns: [{ stateCode: 'NJ', residencyType: 'full-year' }],
+      w2s: [baseW2],
+    })
+    // With college student flag
+    const trCollege = makeTr({
+      dependents: [dep],
+      stateReturns: [{
+        stateCode: 'NJ', residencyType: 'full-year',
+        njDependentCollegeStudents: ['111-22-3333'],
+      }],
+      w2s: [baseW2],
+    })
+    const withoutCollege = computeAll(trNone)
+    const withCollege = computeAll(trCollege)
+    // College student adds $1,000 exemption → lower taxable income → lower tax
+    expect(withCollege.stateResults[0].taxAfterCredits).toBeLessThan(
+      withoutCollege.stateResults[0].taxAfterCredits,
+    )
+  })
+})
+
 describe('State Engine — migration', () => {
   it('legacy caResident=true without stateReturns still computes CA via new engine', () => {
     // This tests that the engine now uses stateReturns (not caResident)
