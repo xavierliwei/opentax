@@ -781,10 +781,10 @@ function HSASection() {
 
       {/* Contributions */}
       <CurrencyInput
-        label="Your HSA contributions"
+        label="Your direct HSA contributions"
         value={contributions}
         onChange={(v) => setHSA({ contributions: v })}
-        helperText={`Limit: ${formatCurrency(totalLimit)}${catchUp > 0 ? ` (includes ${formatCurrency(HSA_CATCHUP_AMOUNT)} catch-up)` : ''}`}
+        helperText={`Personal/direct contributions only — not employer or payroll deductions (W-2 Box 12 code W). Limit: ${formatCurrency(totalLimit)}${catchUp > 0 ? ` (includes ${formatCurrency(HSA_CATCHUP_AMOUNT)} catch-up)` : ''}`}
       />
 
       {employerContributions > 0 && (

@@ -450,6 +450,30 @@ function parseW2Positional(items: RawItem[]): Map<string, ExtractedField> {
     }
   }
 
+  // Box 12a–12d: code + amount pairs
+  for (const slot of ['12a', '12b', '12c', '12d'] as const) {
+    const label = page1.find((it) => it.str.trim() === slot)
+    if (!label) continue
+
+    // The code cell is a 1-2 letter uppercase code near the label
+    const codeItem = page1.find((it) =>
+      /^[A-Z]{1,2}$/.test(it.str.trim()) &&
+      it.y > label.y - 5 && it.y <= label.y + 30 &&
+      Math.abs(it.x - label.x) < 60 &&
+      it !== label,
+    )
+    if (codeItem) {
+      fields.set(`box${slot}_code`, textField(codeItem.str.trim()))
+
+      // Dollar amount near the code
+      const amt = findDollarBelow(page1, codeItem, 60, 30)
+        ?? findDollarBelow(page1, label, 60, 40)
+      if (amt !== null) {
+        fields.set(`box${slot}_amount`, field(amt))
+      }
+    }
+  }
+
   return fields
 }
 
@@ -768,6 +792,16 @@ function parseW2LineScan(lineTexts: string[]): Map<string, ExtractedField> {
     if (stateMatch && /state/i.test(t)) {
       fields.set('box15State', textField(stateMatch[1]))
       break
+    }
+  }
+
+  // Box 12a–12d: code + amount pairs
+  for (const t of lineTexts) {
+    const m = t.match(/\b12([a-d])\b\s+(?:(?:code|Code)\s+)?([A-Z]{1,2})\s+\$?([\d,]+(?:\.\d{2})?)\b/i)
+    if (m) {
+      const slot = m[1].toLowerCase()
+      fields.set(`box12${slot}_code`, textField(m[2].toUpperCase()))
+      fields.set(`box12${slot}_amount`, field(parseCents(m[3])))
     }
   }
 

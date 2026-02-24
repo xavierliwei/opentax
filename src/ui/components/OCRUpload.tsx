@@ -187,7 +187,12 @@ export function OCRUpload({ formType: expectedFormType }: OCRUploadProps) {
             box8: 0,
             box10: 0,
             box11: 0,
-            box12: [],
+            box12: (['a', 'b', 'c', 'd'] as const)
+              .map(slot => ({
+                code: fieldValues.get(`box12${slot}_code`) ?? '',
+                amount: Number(fieldValues.get(`box12${slot}_amount`)) || 0,
+              }))
+              .filter(e => e.code !== ''),
             box13StatutoryEmployee: false,
             box13RetirementPlan: false,
             box13ThirdPartySickPay: false,
