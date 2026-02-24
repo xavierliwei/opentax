@@ -556,8 +556,8 @@ export interface Credit {
 // ── State Return Config ────────────────────────────────────────
 
 /** Supported state codes (expand as states are added) */
-export type SupportedStateCode = 'CA'
-// Future: | 'NY' | 'NJ' | 'IL' | 'MA' | 'PA'
+export type SupportedStateCode = 'CA' | 'PA'
+// Future: | 'NY' | 'NJ' | 'IL' | 'MA'
 
 /** Residency classification for a state return */
 export type ResidencyType = 'full-year' | 'part-year' | 'nonresident'
@@ -581,6 +581,7 @@ export interface StateReturnConfig {
 
   // State-specific flags
   rentPaid?: boolean                  // CA renter's credit
+  contributions529?: number           // PA §529 deduction (cents)
 }
 
 // ── Tax Return (top-level) ─────────────────────────────────────

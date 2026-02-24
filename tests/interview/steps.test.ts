@@ -9,8 +9,8 @@ function makeTr(overrides: Partial<TaxReturn> = {}): TaxReturn {
 
 describe('steps.ts — visibility logic', () => {
   it('has expected total steps (including dynamic state review steps)', () => {
-    // 21 static + 1 dynamic (CA) = 22
-    expect(STEPS.length).toBeGreaterThanOrEqual(22)
+    // 21 static + dynamic state review steps (CA, PA)
+    expect(STEPS.length).toBeGreaterThanOrEqual(23)
   })
 
   it('spouse-info is hidden when filing status is single', () => {
@@ -71,6 +71,18 @@ describe('steps.ts — visibility logic', () => {
   it('state-review-CA has section=review', () => {
     const step = STEPS.find((s) => s.id === 'state-review-CA')!
     expect(step.section).toBe('review')
+  })
+
+  it('state-review-PA is visible only when PA is in stateReturns', () => {
+    const tr = makeTr()
+    const step = STEPS.find((s) => s.id === 'state-review-PA')!
+    expect(step).toBeDefined()
+    expect(step.isVisible(tr)).toBe(false)
+
+    const trWithPA = makeTr({
+      stateReturns: [{ stateCode: 'PA', residencyType: 'full-year' }],
+    })
+    expect(step.isVisible(trWithPA)).toBe(true)
   })
 })
 

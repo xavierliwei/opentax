@@ -12,6 +12,7 @@ import { simpleW2Return, makeW2 } from '../fixtures/returns'
 import { cents } from '../../src/model/traced'
 import { getStateFormCompiler } from '../../src/forms/stateFormRegistry'
 import { caFormCompiler } from '../../src/forms/fillers/form540Filler'
+import { paFormCompiler } from '../../src/forms/fillers/formPA40Filler'
 import { computeAll } from '../../src/rules/engine'
 import type { TaxReturn } from '../../src/model/types'
 import { emptyTaxReturn } from '../../src/model/types'
@@ -65,6 +66,31 @@ function makeCAReturn(): TaxReturn {
   }
 }
 
+function makePAReturn(): TaxReturn {
+  return {
+    ...emptyTaxReturn(2025),
+    taxpayer: {
+      firstName: 'Test',
+      lastName: 'User',
+      ssn: '123456789',
+      dateOfBirth: '1990-01-01',
+      address: { street: '123 Main St', city: 'Pittsburgh', state: 'PA', zip: '15222' },
+    },
+    stateReturns: [{ stateCode: 'PA', residencyType: 'full-year' }],
+    w2s: [
+      makeW2({
+        id: 'w2-1',
+        employerName: 'Tech Corp',
+        box1: cents(100000),
+        box2: cents(15000),
+        box15State: 'PA',
+        box16StateWages: cents(100000),
+        box17StateIncomeTax: cents(2500),
+      }),
+    ],
+  }
+}
+
 // ── State Form Registry ──────────────────────────────────────
 
 describe('State Form Registry', () => {
@@ -72,6 +98,12 @@ describe('State Form Registry', () => {
     const compiler = getStateFormCompiler('CA')
     expect(compiler).toBeDefined()
     expect(compiler!.stateCode).toBe('CA')
+  })
+
+  it('PA compiler is registered', () => {
+    const compiler = getStateFormCompiler('PA')
+    expect(compiler).toBeDefined()
+    expect(compiler!.stateCode).toBe('PA')
   })
 
   it('unknown state returns undefined', () => {
@@ -118,6 +150,26 @@ describe('CA Form 540 PDF generator', () => {
   })
 })
 
+describe('PA-40 PDF generator', () => {
+  it('generates a valid PDF', async () => {
+    const tr = makePAReturn()
+    const result = computeAll(tr)
+    const stateResult = result.stateResults[0]
+
+    const compiled = await paFormCompiler.compile(
+      tr,
+      stateResult,
+      { templates: new Map() },
+    )
+
+    expect(compiled.doc).toBeDefined()
+    expect(compiled.doc.getPageCount()).toBe(1)
+    expect(compiled.forms).toHaveLength(1)
+    expect(compiled.forms[0].formId).toBe('PA-40')
+    expect(compiled.forms[0].sequenceNumber).toBe('PA-01')
+  })
+})
+
 // ── Compiler integration with state forms ─────────────────────
 
 describe('compileFilingPackage — state form integration', () => {
@@ -149,6 +201,21 @@ describe('compileFilingPackage — state form integration', () => {
     const caForm = result.formsIncluded.find(f => f.formId === 'CA Form 540')
     expect(caForm).toBeDefined()
     expect(caForm!.pageCount).toBe(1)
+  })
+
+  it('PA return includes PA-40 in combined PDF', async () => {
+    const tr = makePAReturn()
+
+    const result = await compileFilingPackage(tr, templates)
+
+    expect(result.statePackages).toHaveLength(1)
+    expect(result.statePackages[0].stateCode).toBe('PA')
+    expect(result.statePackages[0].label).toBe('PA-40')
+    expect(result.statePackages[0].pdfBytes.length).toBeGreaterThan(0)
+
+    const paForm = result.formsIncluded.find(f => f.formId === 'PA-40')
+    expect(paForm).toBeDefined()
+    expect(paForm!.pageCount).toBe(1)
   })
 
   it('combined PDF has more pages when CA is selected', async () => {

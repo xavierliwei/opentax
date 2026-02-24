@@ -69,7 +69,9 @@ export function StateReturnsPage() {
                     pubName={`${stateName} — Filing Requirements`}
                     pubUrl={code === 'CA'
                       ? 'https://www.ftb.ca.gov/file/personal/residency-status/index.html'
-                      : '#'
+                      : code === 'PA'
+                        ? 'https://www.revenue.pa.gov/TaxTypes/PIT/Pages/default.aspx'
+                        : '#'
                     }
                   />
                 </span>
