@@ -10,8 +10,8 @@ export interface LayoutConfig {
   vGap: number
 }
 
-const DESKTOP: LayoutConfig = { nodeWidth: 260, nodeHeight: 80, hGap: 40, vGap: 60 }
-const MOBILE: LayoutConfig = { nodeWidth: 180, nodeHeight: 64, hGap: 24, vGap: 40 }
+const DESKTOP: LayoutConfig = { nodeWidth: 260, nodeHeight: 90, hGap: 60, vGap: 80 }
+const MOBILE: LayoutConfig = { nodeWidth: 180, nodeHeight: 72, hGap: 36, vGap: 56 }
 
 // Legacy exports for any external consumers
 export const NODE_WIDTH = DESKTOP.nodeWidth
