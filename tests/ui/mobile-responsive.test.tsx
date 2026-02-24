@@ -99,8 +99,8 @@ describe('Responsive grid layouts', () => {
   })
 })
 
-describe('InterviewNav sticky positioning', () => {
-  it('has sticky bottom positioning classes for mobile', () => {
+describe('InterviewNav fixed positioning', () => {
+  it('has fixed bottom positioning classes for mobile', () => {
     const mockInterview = {
       canGoPrev: true,
       canGoNext: true,
