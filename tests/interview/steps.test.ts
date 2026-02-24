@@ -72,6 +72,18 @@ describe('steps.ts — visibility logic', () => {
     const step = STEPS.find((s) => s.id === 'state-review-CA')!
     expect(step.section).toBe('review')
   })
+
+  it('state-review-NC exists and is visible only when NC is selected', () => {
+    const step = STEPS.find((s) => s.id === 'state-review-NC')!
+    expect(step).toBeDefined()
+    expect(step.section).toBe('review')
+
+    const tr = makeTr()
+    expect(step.isVisible(tr)).toBe(false)
+
+    const trWithNC = makeTr({ stateReturns: [{ stateCode: 'NC', residencyType: 'full-year' }] })
+    expect(step.isVisible(trWithNC)).toBe(true)
+  })
 })
 
 describe('steps.ts — section assignments', () => {
