@@ -24,3 +24,10 @@ test-results
 *.njsproj
 *.sln
 *.sw?
+
+# Local tax datastore (must never be committed)
+opentax.db
+opentax.db-shm
+opentax.db-wal
+*.sqlite
+*.sqlite3
