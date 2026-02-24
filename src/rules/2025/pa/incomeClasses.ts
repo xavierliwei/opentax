@@ -97,27 +97,32 @@ export function classifyPAIncome(
   const unreimbursedExpenses = 0
   const netCompensation = Math.max(0, compensation - unreimbursedExpenses)
 
+  // Classes 2–8: For nonresidents, only PA-source income is taxable.
+  // Since we cannot determine PA-source investment income without
+  // additional source tracking, nonresidents report $0 for classes 2–8
+  // (only PA-sourced compensation via W-2 Box 15 is included).
+
   // Class 2 — Interest
   // PA taxes ALL interest including federally tax-exempt (from non-PA issuers)
-  const interest = model.form1099INTs.reduce(
+  const interest = isNonresident ? 0 : model.form1099INTs.reduce(
     (sum, f) => sum + f.box1 + (f.box8 ?? 0), 0,
   )
 
   // Class 3 — Dividends (ordinary + capital gain distributions from 1099-DIV)
   // Capital gain distributions go to Class 3, NOT Class 5
-  const dividends = model.form1099DIVs.reduce(
+  const dividends = isNonresident ? 0 : model.form1099DIVs.reduce(
     (sum, f) => sum + f.box1a + f.box2a, 0,
   )
 
   // Class 4 — Net Business Income (Schedule C net profit, floor at 0)
-  const netBusinessIncome = Math.max(0,
+  const netBusinessIncome = isNonresident ? 0 : Math.max(0,
     model.scheduleCBusinesses.reduce((sum, sc) => sum + scheduleCNetProfit(sc), 0),
   )
 
   // Class 5 — Net Gains from Property (floor at 0)
   // PA does NOT allow the federal $3K capital loss deduction
   // Use 1099-B data (not capitalTransactions which include adjustments)
-  const netGains = Math.max(0,
+  const netGains = isNonresident ? 0 : Math.max(0,
     model.form1099Bs.reduce((sum, f) => {
       const basis = f.costBasis ?? 0
       return sum + (f.proceeds - basis)
@@ -125,14 +130,14 @@ export function classifyPAIncome(
   )
 
   // Class 6 — Rents, Royalties (Schedule E net, floor at 0)
-  const rentsRoyalties = Math.max(0,
+  const rentsRoyalties = isNonresident ? 0 : Math.max(0,
     model.scheduleEProperties.reduce(
       (sum, p) => sum + scheduleENetIncome(p), 0,
     ),
   )
 
   // Class 7 — Estate/Trust Income (K-1 trust-estate, floor at 0)
-  const estateTrustIncome = Math.max(0,
+  const estateTrustIncome = isNonresident ? 0 : Math.max(0,
     model.scheduleK1s
       .filter(k1 => k1.entityType === 'trust-estate')
       .reduce((sum, k1) => sum + k1.ordinaryIncome, 0),

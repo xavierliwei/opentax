@@ -582,7 +582,8 @@ export interface StateReturnConfig {
   rentPaid?: boolean                  // CA renter's credit
   county?: string                     // MD county/city code for local tax rate
   rentAmount?: number                 // MA rent deduction (cents — annual rent paid)
-  contributions529?: number           // PA §529 deduction (cents)
+  contributions529?: number           // PA §529 deduction (cents) — legacy single total
+  contributions529PerBeneficiary?: { name?: string; amount: number }[]  // PA §529 per-beneficiary (cents)
   ctPropertyTaxPaid?: number          // CT property tax credit base (cents)
   dcCommuterResidentState?: 'MD' | 'VA' | 'OTHER' // DC nonresident commuter status
 

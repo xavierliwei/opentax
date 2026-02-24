@@ -29,6 +29,7 @@ import {
   MA_AGE65_EXEMPTION,
   MA_RENT_DEDUCTION_RATE,
   MA_RENT_DEDUCTION_CAP,
+  MA_EITC_RATE,
 } from './constants'
 import { computeMAAdjustments, type MAAdjustmentsResult } from './adjustments'
 
@@ -56,7 +57,8 @@ export interface Form1Result {
   maSurtax: number                    // 4% on income > $1M
   maIncomeTax: number                 // baseTax + surtax
 
-  // Credits (reserved for future expansion)
+  // Credits
+  maEITC: number                    // 30% of federal EITC (refundable)
   totalCredits: number
 
   // Tax after credits
@@ -236,8 +238,11 @@ export function computeForm1(
 
   const maIncomeTax = maBaseTax + maSurtax
 
-  // ── Credits (reserved for future expansion) ────────────────
-  const totalCredits = 0
+  // ── Credits ──────────────────────────────────────────────────
+  // MA EITC: 30% of federal EITC (refundable)
+  const federalEITC = form1040.line27.amount
+  const maEITC = federalEITC > 0 ? Math.round(federalEITC * MA_EITC_RATE) : 0
+  const totalCredits = maEITC
 
   // ── Tax after credits ──────────────────────────────────────
   const taxAfterCredits = Math.max(0, maIncomeTax - totalCredits)
@@ -251,7 +256,8 @@ export function computeForm1(
     return sum
   }, 0)
 
-  const totalPayments = stateWithholding
+  // MA EITC is refundable — applied as a payment
+  const totalPayments = stateWithholding + maEITC
 
   // ── Refund or amount owed ──────────────────────────────────
   const overpaid = totalPayments > taxAfterCredits
@@ -279,6 +285,7 @@ export function computeForm1(
     maSurtax,
     maIncomeTax,
 
+    maEITC,
     totalCredits,
     taxAfterCredits,
 

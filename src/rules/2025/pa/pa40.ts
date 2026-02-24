@@ -8,9 +8,9 @@
  * All amounts in integer cents.
  */
 
-import type { TaxReturn, StateReturnConfig } from '../../../model/types'
+import type { TaxReturn, StateReturnConfig, FilingStatus } from '../../../model/types'
 import type { Form1040Result } from '../form1040'
-import { PA_TAX_RATE, PA_529_DEDUCTION_LIMIT_PER_BENEFICIARY } from './constants'
+import { PA_TAX_RATE, PA_529_DEDUCTION_LIMIT_PER_BENEFICIARY, PA_529_DEDUCTION_LIMIT_MFJ } from './constants'
 import { classifyPAIncome, sumPositiveClasses } from './incomeClasses'
 import { computeScheduleSP } from './scheduleSP'
 import type { PAIncomeClasses } from './incomeClasses'
@@ -98,13 +98,29 @@ export function computeApportionmentRatio(
 
 /**
  * Compute §529 deduction (Line 10).
- * Cap at $18,000 per beneficiary ($36,000 MFJ).
- * Phase 1: single beneficiary assumed.
+ * Per-beneficiary cap: $18,000 single / $36,000 MFJ per beneficiary.
+ *
+ * If contributions529PerBeneficiary is provided, each entry is capped
+ * individually and then summed. Otherwise, the flat contributions529
+ * total is capped at the per-beneficiary limit for the filing status.
  */
-function compute529Deduction(config: StateReturnConfig): number {
+function compute529Deduction(config: StateReturnConfig, filingStatus: FilingStatus): number {
+  const perBeneficiaryLimit = filingStatus === 'mfj'
+    ? PA_529_DEDUCTION_LIMIT_MFJ
+    : PA_529_DEDUCTION_LIMIT_PER_BENEFICIARY
+
+  // Per-beneficiary array: cap each entry individually, then sum
+  if (config.contributions529PerBeneficiary && config.contributions529PerBeneficiary.length > 0) {
+    return config.contributions529PerBeneficiary.reduce((sum, entry) => {
+      if (entry.amount <= 0) return sum
+      return sum + Math.min(entry.amount, perBeneficiaryLimit)
+    }, 0)
+  }
+
+  // Legacy single total: cap at per-beneficiary limit (assumes 1 beneficiary)
   const contributed = config.contributions529 ?? 0
   if (contributed <= 0) return 0
-  return Math.min(contributed, PA_529_DEDUCTION_LIMIT_PER_BENEFICIARY)
+  return Math.min(contributed, perBeneficiaryLimit)
 }
 
 /**
@@ -133,7 +149,7 @@ export function computePA40(
   const totalPATaxableIncome = sumPositiveClasses(incomeClasses)
 
   // Step 3: Apply deductions (§529 only in Phase 1)
-  const deductions529 = compute529Deduction(config)
+  const deductions529 = compute529Deduction(config, model.filingStatus)
   const adjustedTaxableIncome = Math.max(0, totalPATaxableIncome - deductions529)
 
   // Step 4: Compute flat tax

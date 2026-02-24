@@ -233,6 +233,66 @@ describe('PA-40 — §529 deduction', () => {
     const result = computePA(model)
     expect(result.deductions529).toBe(0)
   })
+
+  it('MFJ $30K contribution → capped at $36K (MFJ per-beneficiary limit)', () => {
+    const model: TaxReturn = {
+      ...emptyTaxReturn(2025),
+      filingStatus: 'mfj',
+      w2s: [makeW2({ id: 'w2-1', employerName: 'X', box1: cents(100000), box2: cents(10000) })],
+    }
+    const config = paConfig({ contributions529: cents(30000) })
+    const result = computePA(model, config)
+
+    // MFJ allows up to $36K per beneficiary; $30K is under the cap
+    expect(result.deductions529).toBe(cents(30000))
+  })
+
+  it('MFJ $40K contribution → capped at $36K', () => {
+    const model: TaxReturn = {
+      ...emptyTaxReturn(2025),
+      filingStatus: 'mfj',
+      w2s: [makeW2({ id: 'w2-1', employerName: 'X', box1: cents(100000), box2: cents(10000) })],
+    }
+    const config = paConfig({ contributions529: cents(40000) })
+    const result = computePA(model, config)
+
+    expect(result.deductions529).toBe(cents(36000))
+  })
+
+  it('per-beneficiary: two beneficiaries capped individually', () => {
+    const model: TaxReturn = {
+      ...emptyTaxReturn(2025),
+      w2s: [makeW2({ id: 'w2-1', employerName: 'X', box1: cents(100000), box2: cents(10000) })],
+    }
+    const config = paConfig({
+      contributions529PerBeneficiary: [
+        { name: 'Child A', amount: cents(20000) },  // capped at $18K
+        { name: 'Child B', amount: cents(10000) },   // under cap
+      ],
+    })
+    const result = computePA(model, config)
+
+    // $18K (capped) + $10K = $28K
+    expect(result.deductions529).toBe(cents(28000))
+  })
+
+  it('per-beneficiary MFJ: each capped at $36K', () => {
+    const model: TaxReturn = {
+      ...emptyTaxReturn(2025),
+      filingStatus: 'mfj',
+      w2s: [makeW2({ id: 'w2-1', employerName: 'X', box1: cents(200000), box2: cents(20000) })],
+    }
+    const config = paConfig({
+      contributions529PerBeneficiary: [
+        { name: 'Child A', amount: cents(36000) },   // at MFJ cap
+        { name: 'Child B', amount: cents(40000) },   // capped at $36K
+      ],
+    })
+    const result = computePA(model, config)
+
+    // $36K + $36K = $72K
+    expect(result.deductions529).toBe(cents(72000))
+  })
 })
 
 // ── Tax forgiveness integration ─────────────────────────────────

@@ -12,6 +12,11 @@ export interface FormD400Result {
   ncDeductions: number
   ncAGI: number
 
+  // Addition/deduction detail
+  hsaAddBack: number
+  ssExemption: number
+  usGovInterest: number
+
   standardDeduction: number
   ncTaxableIncome: number
   ncTax: number
@@ -74,8 +79,21 @@ export function computeFormD400(
   const ratio = config ? computeNCApportionmentRatio(config, model.taxYear) : 1
 
   const federalAGI = form1040.line11.amount
-  const ncAdditions = 0
-  const ncDeductions = 0
+
+  // ── NC Additions (D-400 Schedule S, Part A) ─────────────────
+  // HSA deduction add-back: NC does not conform to IRC §223
+  const hsaAddBack = form1040.hsaResult?.deductibleAmount ?? 0
+  const ncAdditions = hsaAddBack
+
+  // ── NC Deductions (D-400 Schedule S, Part B) ────────────────
+  // Social Security benefits: NC fully exempts SS income
+  const ssExemption = form1040.line6b.amount
+  // US government obligation interest (Treasury bonds, I-bonds, etc.)
+  const usGovInterest = model.form1099INTs.reduce(
+    (sum, f) => sum + f.box3, 0,
+  )
+  const ncDeductions = ssExemption + usGovInterest
+
   const ncAGI = federalAGI + ncAdditions - ncDeductions
 
   const standardDeduction = NC_STANDARD_DEDUCTION[model.filingStatus]
@@ -101,6 +119,9 @@ export function computeFormD400(
     ncAdditions,
     ncDeductions,
     ncAGI,
+    hsaAddBack,
+    ssExemption,
+    usGovInterest,
     standardDeduction,
     ncTaxableIncome,
     ncTax,

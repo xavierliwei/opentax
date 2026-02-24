@@ -8,7 +8,7 @@ import { computeFormCT1040, type FormCT1040Result } from './formCT1040'
 function toStateResult(ct: FormCT1040Result): StateComputeResult {
   return {
     stateCode: 'CT',
-    formLabel: 'CT Form CT-1040',
+    formLabel: ct.residencyType === 'part-year' ? 'CT Form CT-1040NR/PY' : 'CT Form CT-1040',
     residencyType: ct.residencyType,
     stateAGI: ct.ctAGI,
     stateTaxableIncome: ct.ctTaxableIncome,
@@ -18,6 +18,7 @@ function toStateResult(ct: FormCT1040Result): StateComputeResult {
     stateWithholding: ct.stateWithholding,
     overpaid: ct.overpaid,
     amountOwed: ct.amountOwed,
+    apportionmentRatio: ct.apportionmentRatio,
     detail: ct,
   }
 }

@@ -27,9 +27,47 @@ export interface FormCT1040Result {
   overpaid: number
   amountOwed: number
   residencyType: StateReturnConfig['residencyType']
+  apportionmentRatio: number
+  ctSourceIncome?: number
 }
 
 const c = (dollars: number): number => Math.round(dollars * 100)
+
+function isLeapYear(year: number): boolean {
+  return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0
+}
+
+export function computeCTApportionmentRatio(config: StateReturnConfig, taxYear: number): number {
+  if (config.residencyType === 'full-year') return 1
+  if (config.residencyType === 'nonresident') return 0
+
+  const daysInYear = isLeapYear(taxYear) ? 366 : 365
+  const dayMs = 86400000
+  const yearStart = Date.UTC(taxYear, 0, 1)
+  const yearEnd = Date.UTC(taxYear, 11, 31)
+
+  let start = yearStart
+  let end = yearEnd
+
+  if (config.moveInDate) {
+    const [y, m, d] = config.moveInDate.split('-').map(Number)
+    const parsed = Date.UTC(y, m - 1, d)
+    if (!Number.isNaN(parsed)) start = parsed
+  }
+
+  if (config.moveOutDate) {
+    const [y, m, d] = config.moveOutDate.split('-').map(Number)
+    const parsed = Date.UTC(y, m - 1, d)
+    if (!Number.isNaN(parsed)) end = parsed
+  }
+
+  if (start < yearStart) start = yearStart
+  if (end > yearEnd) end = yearEnd
+  if (end < start) return 0
+
+  const daysInState = Math.round((end - start) / dayMs) + 1
+  return Math.min(1, Math.max(0, daysInState / daysInYear))
+}
 
 function linearTableAmount(x: number, start: number, end: number, maxAmount: number): number {
   if (x <= start) return 0
@@ -60,19 +98,28 @@ export function computePersonalExemption(ctAGI: number, filingStatus: FilingStat
 export function computeFormCT1040(model: TaxReturn, federal: Form1040Result, config: StateReturnConfig, schedule1?: ScheduleCT1Result): FormCT1040Result {
   const ctSchedule1 = schedule1 ?? computeScheduleCT1(model, federal)
   const ctAGI = ctSchedule1.ctAGI
+  const ratio = computeCTApportionmentRatio(config, model.taxYear)
+
   const ex = computePersonalExemption(ctAGI, model.filingStatus)
   const ctTaxableIncome = Math.max(0, ctAGI - ex.effectiveExemption)
 
   const bracketTax = computeBracketTax(ctTaxableIncome, CT_TAX_BRACKETS[model.filingStatus])
   const tableC_addBack = computeTableCAddBack(ctAGI, model.filingStatus)
   const tableD_recapture = computeTableDRecapture(ctAGI, model.filingStatus)
-  const ctIncomeTax = bracketTax + tableC_addBack + tableD_recapture
+  const fullYearTax = bracketTax + tableC_addBack + tableD_recapture
+  // Part-year: apportion income tax by days-in-state ratio
+  const ctIncomeTax = ratio < 1 ? Math.round(fullYearTax * ratio) : fullYearTax
 
   const propertyTaxCredit = Math.min(
     ctIncomeTax,
     computePropertyTaxCredit(ctAGI, model.filingStatus, config.ctPropertyTaxPaid ?? 0),
   )
-  const hasQualifyingChildren = model.dependents.some((d) => d.relationship.toLowerCase().includes('son') || d.relationship.toLowerCase().includes('daughter') || d.relationship.toLowerCase().includes('child'))
+  const hasQualifyingChildren = model.dependents.some((d) => {
+    const rel = d.relationship.toLowerCase()
+    return rel === 'son' || rel === 'daughter' || rel === 'child'
+      || rel === 'stepson' || rel === 'stepdaughter' || rel === 'stepchild'
+      || rel === 'foster child' || rel === 'foster_child'
+  })
   const ctEITC = computeCTEITC(federal.line27.amount, hasQualifyingChildren, config.residencyType === 'full-year')
 
   const totalNonrefundableCredits = propertyTaxCredit
@@ -86,6 +133,8 @@ export function computeFormCT1040(model: TaxReturn, federal: Form1040Result, con
 
   const overpaid = Math.max(0, totalPayments - taxAfterCredits)
   const amountOwed = Math.max(0, taxAfterCredits - totalPayments)
+
+  const ctSourceIncome = ratio < 1 ? Math.round(ctAGI * ratio) : undefined
 
   return {
     federalAGI: ctSchedule1.federalAGI,
@@ -109,5 +158,7 @@ export function computeFormCT1040(model: TaxReturn, federal: Form1040Result, con
     overpaid,
     amountOwed,
     residencyType: config.residencyType,
+    apportionmentRatio: ratio,
+    ctSourceIncome,
   }
 }
