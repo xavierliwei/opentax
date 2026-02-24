@@ -4,6 +4,7 @@ import { getSupportedStates } from '../../rules/stateRegistry.ts'
 import { InfoTooltip } from '../components/InfoTooltip.tsx'
 import { InterviewNav } from './InterviewNav.tsx'
 import type { SupportedStateCode, ResidencyType } from '../../model/types.ts'
+import { MD_COUNTIES, MD_DEFAULT_COUNTY } from '../../rules/2025/md/constants.ts'
 
 const RESIDENCY_OPTIONS: { value: ResidencyType; label: string; description: string }[] = [
   {
@@ -250,6 +251,93 @@ export function StateReturnsPage() {
                   </label>
                 )}
 
+                {code === 'MD' && (
+                  <div className="mt-2">
+                    <label className="block text-sm font-medium text-gray-900 inline-flex items-center gap-1">
+                      County / city
+                      <InfoTooltip
+                        explanation="Maryland levies a local income tax on top of the state tax. The rate varies by county from 2.25% (Worcester) to 3.20% (several counties). Baltimore City has its own rate."
+                        pubName="MD Local Tax Rates"
+                        pubUrl="https://www.marylandtaxes.gov/individual/income/tax-info/local-tax-rates.php"
+                      />
+                    </label>
+                    <select
+                      value={getConfig(code)?.county ?? MD_DEFAULT_COUNTY}
+                      onChange={(e) => updateStateReturn(code as SupportedStateCode, { county: e.target.value })}
+                      className="mt-1 w-full sm:w-72 px-2 py-1.5 text-sm border border-gray-300 rounded-md"
+                      data-testid="md-county-select"
+                    >
+                      {Object.entries(MD_COUNTIES).map(([key, info]) => (
+                        <option key={key} value={key}>
+                          {info.name} ({(info.rate * 100).toFixed(2)}%)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {code === 'MA' && (
+                  <div className="mt-2">
+                    <label className="block text-sm font-medium text-gray-900 inline-flex items-center gap-1">
+                      Rent paid in Massachusetts
+                      <InfoTooltip
+                        explanation="Massachusetts allows a deduction of 50% of rent paid for your principal residence, capped at $4,000 ($2,000 for MFS). Enter the total annual rent you paid in 2025."
+                        pubName="MA Rent Deduction"
+                        pubUrl="https://www.mass.gov/info-details/massachusetts-income-tax-deductions"
+                      />
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      placeholder="e.g. 24000"
+                      value={getConfig(code)?.rentAmount ? Math.round(getConfig(code)!.rentAmount! / 100) : ''}
+                      onChange={(e) => {
+                        const dollars = parseInt(e.target.value, 10)
+                        updateStateReturn(code as SupportedStateCode, {
+                          rentAmount: isNaN(dollars) ? undefined : dollars * 100,
+                        })
+                      }}
+                      className="mt-1 w-full sm:w-64 px-2 py-1.5 text-sm border border-gray-300 rounded-md"
+                      data-testid="ma-rent-amount"
+                    />
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Enter whole dollars. Deduction = 50% of rent, up to $4,000.
+                    </p>
+                  </div>
+                )}
+
+                {code === 'PA' && (
+                  <div className="mt-2">
+                    <label className="block text-sm font-medium text-gray-900 inline-flex items-center gap-1">
+                      IRC §529 contributions
+                      <InfoTooltip
+                        explanation="Pennsylvania allows a deduction for contributions to IRC §529 education savings plans, up to $18,000 per beneficiary ($36,000 MFJ). Enter total contributions made in 2025."
+                        pubName="PA §529 Deduction"
+                        pubUrl="https://www.revenue.pa.gov/TaxTypes/PIT/Pages/default.aspx"
+                      />
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      placeholder="e.g. 5000"
+                      value={getConfig(code)?.contributions529 ? Math.round(getConfig(code)!.contributions529! / 100) : ''}
+                      onChange={(e) => {
+                        const dollars = parseInt(e.target.value, 10)
+                        updateStateReturn(code as SupportedStateCode, {
+                          contributions529: isNaN(dollars) ? undefined : dollars * 100,
+                        })
+                      }}
+                      className="mt-1 w-full sm:w-64 px-2 py-1.5 text-sm border border-gray-300 rounded-md"
+                      data-testid="pa-529-contributions"
+                    />
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Enter whole dollars. Deductible up to $18,000 per beneficiary.
+                    </p>
+                  </div>
+                )}
+
                 {code === 'NJ' && (
                   <div className="mt-2 flex flex-col gap-3">
                     {/* Housing type */}
@@ -411,6 +499,58 @@ export function StateReturnsPage() {
                         </div>
                       </label>
                     )}
+
+                    {/* College-student dependents */}
+                    {taxReturn.dependents.length > 0 && (() => {
+                      const collegeEligible = taxReturn.dependents.filter((dep) => {
+                        if (!dep.dateOfBirth) return false
+                        const birthYear = parseInt(dep.dateOfBirth.split('-')[0], 10)
+                        if (isNaN(birthYear)) return false
+                        return taxReturn.taxYear - birthYear < 22
+                      })
+                      if (collegeEligible.length === 0) return null
+                      const selected = getConfig(code)?.njDependentCollegeStudents ?? []
+                      return (
+                        <fieldset>
+                          <legend className="text-sm font-medium text-gray-700 mb-1 inline-flex items-center">
+                            Full-time college students (under 22)
+                            <InfoTooltip
+                              explanation="NJ provides an additional $1,000 exemption for each dependent who is a full-time college student under age 22. Check all that apply."
+                              pubName="NJ Dependent Exemptions"
+                              pubUrl={NJ_TAX_GUIDE_URL}
+                            />
+                          </legend>
+                          <div className="flex flex-col gap-1.5">
+                            {collegeEligible.map((dep) => {
+                              const depId = dep.ssn || `${dep.firstName}-${dep.lastName}`
+                              const isChecked = selected.includes(depId)
+                              return (
+                                <label key={depId} className="flex items-center gap-2 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={(e) => {
+                                      const next = e.target.checked
+                                        ? [...selected, depId]
+                                        : selected.filter((id) => id !== depId)
+                                      updateStateReturn(code as SupportedStateCode, {
+                                        njDependentCollegeStudents: next.length > 0 ? next : undefined,
+                                      })
+                                    }}
+                                    className="w-4 h-4 shrink-0"
+                                    data-testid={`nj-college-student-${depId}`}
+                                  />
+                                  <span className="text-sm text-gray-900">
+                                    {dep.firstName} {dep.lastName}
+                                  </span>
+                                </label>
+                              )
+                            })}
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">$1,000 additional exemption each</p>
+                        </fieldset>
+                      )
+                    })()}
                   </div>
                 )}
 
