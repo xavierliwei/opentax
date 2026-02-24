@@ -12,6 +12,7 @@ import { simpleW2Return, makeW2 } from '../fixtures/returns'
 import { cents } from '../../src/model/traced'
 import { getStateFormCompiler } from '../../src/forms/stateFormRegistry'
 import { caFormCompiler } from '../../src/forms/fillers/form540Filler'
+import { mdFormCompiler } from '../../src/forms/fillers/form502Filler'
 import { computeAll } from '../../src/rules/engine'
 import type { TaxReturn } from '../../src/model/types'
 import { emptyTaxReturn } from '../../src/model/types'
@@ -51,17 +52,22 @@ function makeCAReturn(): TaxReturn {
       address: { street: '123 Main St', city: 'San Jose', state: 'CA', zip: '95112' },
     },
     stateReturns: [{ stateCode: 'CA', residencyType: 'full-year' }],
-    w2s: [
-      makeW2({
-        id: 'w2-1',
-        employerName: 'Tech Corp',
-        box1: cents(100000),
-        box2: cents(15000),
-        box15State: 'CA',
-        box16StateWages: cents(100000),
-        box17StateIncomeTax: cents(5000),
-      }),
-    ],
+    w2s: [makeW2({ id: 'w2-1', employerName: 'Tech Corp', box1: cents(100000), box2: cents(15000), box15State: 'CA', box16StateWages: cents(100000), box17StateIncomeTax: cents(5000) })],
+  }
+}
+
+function makeMDReturn(): TaxReturn {
+  return {
+    ...emptyTaxReturn(2025),
+    taxpayer: {
+      firstName: 'Mary',
+      lastName: 'Land',
+      ssn: '123456789',
+      dateOfBirth: '1990-01-01',
+      address: { street: '1 Pratt St', city: 'Baltimore', state: 'MD', zip: '21201' },
+    },
+    stateReturns: [{ stateCode: 'MD', residencyType: 'full-year' }],
+    w2s: [makeW2({ id: 'w2-1', employerName: 'Harbor Corp', box1: cents(90000), box2: cents(12000), box15State: 'MD', box16StateWages: cents(90000), box17StateIncomeTax: cents(3200) })],
   }
 }
 
@@ -105,6 +111,12 @@ describe('State Form Registry', () => {
     expect(compiler!.stateCode).toBe('GA')
   })
 
+  it('MD compiler is registered', () => {
+    const compiler = getStateFormCompiler('MD')
+    expect(compiler).toBeDefined()
+    expect(compiler!.stateCode).toBe('MD')
+  })
+
   it('unknown state returns undefined', () => {
     // @ts-expect-error — testing unknown state
     expect(getStateFormCompiler('XX')).toBeUndefined()
@@ -146,6 +158,26 @@ describe('CA Form 540 PDF generator', () => {
     const bytes = await compiled.doc.save()
     const reloaded = await PDFDocument.load(bytes)
     expect(reloaded.getPageCount()).toBe(1)
+  })
+})
+
+describe('MD Form 502 PDF generator', () => {
+  it('generates a valid PDF', async () => {
+    const tr = makeMDReturn()
+    const result = computeAll(tr)
+    const stateResult = result.stateResults[0]
+
+    const compiled = await mdFormCompiler.compile(
+      tr,
+      stateResult,
+      { templates: new Map() },
+    )
+
+    expect(compiled.doc).toBeDefined()
+    expect(compiled.doc.getPageCount()).toBe(1)
+    expect(compiled.forms).toHaveLength(1)
+    expect(compiled.forms[0].formId).toBe('MD Form 502')
+    expect(compiled.forms[0].sequenceNumber).toBe('MD-01')
   })
 })
 
@@ -194,6 +226,20 @@ describe('compileFilingPackage — state form integration', () => {
     const gaForm = result.formsIncluded.find(f => f.formId === 'GA Form 500')
     expect(gaForm).toBeDefined()
     expect(gaForm!.pageCount).toBe(1)
+  })
+
+  it('MD return includes MD Form 502 in combined PDF', async () => {
+    const tr = makeMDReturn()
+
+    const result = await compileFilingPackage(tr, templates)
+
+    expect(result.statePackages).toHaveLength(1)
+    expect(result.statePackages[0].stateCode).toBe('MD')
+    expect(result.statePackages[0].label).toBe('MD Form 502')
+
+    const mdForm = result.formsIncluded.find(f => f.formId === 'MD Form 502')
+    expect(mdForm).toBeDefined()
+    expect(mdForm!.pageCount).toBe(1)
   })
 
   it('combined PDF has more pages when CA is selected', async () => {

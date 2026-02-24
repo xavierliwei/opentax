@@ -258,7 +258,11 @@ export function computeAll(model: TaxReturn): ComputeResult {
   if (form1040.scheduleD) executedSchedules.push('D')
   if (form1040.scheduleE) executedSchedules.push('E')
   for (const sr of stateResults) {
-    executedSchedules.push(sr.stateCode === 'CA' ? 'CA-540' : `${sr.stateCode}`)
+    executedSchedules.push(
+      sr.stateCode === 'CA' ? 'CA-540' :
+      sr.stateCode === 'MD' ? 'MD-502' :
+      `${sr.stateCode}`,
+    )
   }
 
   return { form1040, scheduleB, form540, stateResults, values, executedSchedules }

@@ -71,6 +71,8 @@ export function StateReturnsPage() {
                       ? 'https://www.ftb.ca.gov/file/personal/residency-status/index.html'
                       : code === 'GA'
                         ? 'https://dor.georgia.gov/it-511-individual-income-tax-instruction-booklet'
+                      : code === 'MD'
+                        ? 'https://www.marylandtaxes.gov/individual/income/tax-info/'
                         : '#'
                     }
                   />
@@ -200,9 +202,9 @@ export function StateReturnsPage() {
         ))}
       </div>
 
-      {supportedStates.length === 1 && (
+      {supportedStates.length <= 2 && (
         <p className="mt-4 text-xs text-gray-400">
-          More states coming soon. Currently only {supportedStates[0].stateName} is supported.
+          More states coming soon. Currently supported: {supportedStates.map(s => s.stateName).join(', ')}.
         </p>
       )}
 

@@ -556,7 +556,7 @@ export interface Credit {
 // ── State Return Config ────────────────────────────────────────
 
 /** Supported state codes (expand as states are added) */
-export type SupportedStateCode = 'CA' | 'GA'
+export type SupportedStateCode = 'CA' | 'GA' | 'MD'
 // Future: | 'NY' | 'NJ' | 'IL' | 'MA' | 'PA'
 
 /** Residency classification for a state return */
@@ -581,6 +581,7 @@ export interface StateReturnConfig {
 
   // State-specific flags
   rentPaid?: boolean                  // CA renter's credit
+  county?: string                     // MD county/city code for local tax rate
 }
 
 // ── Tax Return (top-level) ─────────────────────────────────────
