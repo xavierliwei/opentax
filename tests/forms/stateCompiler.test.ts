@@ -12,6 +12,7 @@ import { simpleW2Return, makeW2 } from '../fixtures/returns'
 import { cents } from '../../src/model/traced'
 import { getStateFormCompiler } from '../../src/forms/stateFormRegistry'
 import { caFormCompiler } from '../../src/forms/fillers/form540Filler'
+import { maFormCompiler } from '../../src/forms/fillers/form1Filler'
 import { mdFormCompiler } from '../../src/forms/fillers/form502Filler'
 import { njFormCompiler } from '../../src/forms/fillers/nj1040Filler'
 import { computeAll } from '../../src/rules/engine'
@@ -97,6 +98,31 @@ function makeGAReturn(): TaxReturn {
   }
 }
 
+function makeMAReturn(): TaxReturn {
+  return {
+    ...emptyTaxReturn(2025),
+    taxpayer: {
+      firstName: 'Mass',
+      lastName: 'User',
+      ssn: '123456789',
+      dateOfBirth: '1990-01-01',
+      address: { street: '88 Beacon St', city: 'Boston', state: 'MA', zip: '02108' },
+    },
+    stateReturns: [{ stateCode: 'MA', residencyType: 'full-year' }],
+    w2s: [
+      makeW2({
+        id: 'w2-1',
+        employerName: 'Bay State Corp',
+        box1: cents(100000),
+        box2: cents(15000),
+        box15State: 'MA',
+        box16StateWages: cents(100000),
+        box17StateIncomeTax: cents(3500),
+      }),
+    ],
+  }
+}
+
 function makeNJReturn(): TaxReturn {
   return {
     ...emptyTaxReturn(2025),
@@ -135,6 +161,12 @@ describe('State Form Registry', () => {
     const compiler = getStateFormCompiler('GA')
     expect(compiler).toBeDefined()
     expect(compiler!.stateCode).toBe('GA')
+  })
+
+  it('MA compiler is registered', () => {
+    const compiler = getStateFormCompiler('MA')
+    expect(compiler).toBeDefined()
+    expect(compiler!.stateCode).toBe('MA')
   })
 
   it('MD compiler is registered', () => {
@@ -190,6 +222,26 @@ describe('CA Form 540 PDF generator', () => {
     const bytes = await compiled.doc.save()
     const reloaded = await PDFDocument.load(bytes)
     expect(reloaded.getPageCount()).toBe(1)
+  })
+})
+
+describe('MA Form 1 PDF generator', () => {
+  it('generates a valid PDF', async () => {
+    const tr = makeMAReturn()
+    const result = computeAll(tr)
+    const stateResult = result.stateResults[0]
+
+    const compiled = await maFormCompiler.compile(
+      tr,
+      stateResult,
+      { templates: new Map() },
+    )
+
+    expect(compiled.doc).toBeDefined()
+    expect(compiled.doc.getPageCount()).toBe(1)
+    expect(compiled.forms).toHaveLength(1)
+    expect(compiled.forms[0].formId).toBe('MA Form 1')
+    expect(compiled.forms[0].sequenceNumber).toBe('MA-01')
   })
 })
 
@@ -273,6 +325,21 @@ describe('compileFilingPackage — state form integration', () => {
     const gaForm = result.formsIncluded.find(f => f.formId === 'GA Form 500')
     expect(gaForm).toBeDefined()
     expect(gaForm!.pageCount).toBe(1)
+  })
+
+  it('MA return includes MA Form 1 in combined PDF', async () => {
+    const tr = makeMAReturn()
+
+    const result = await compileFilingPackage(tr, templates)
+
+    expect(result.statePackages).toHaveLength(1)
+    expect(result.statePackages[0].stateCode).toBe('MA')
+    expect(result.statePackages[0].label).toBe('MA Form 1')
+    expect(result.statePackages[0].pdfBytes.length).toBeGreaterThan(0)
+
+    const maForm = result.formsIncluded.find(f => f.formId === 'MA Form 1')
+    expect(maForm).toBeDefined()
+    expect(maForm!.pageCount).toBe(1)
   })
 
   it('MD return includes MD Form 502 in combined PDF', async () => {

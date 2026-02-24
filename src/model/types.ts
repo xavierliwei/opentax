@@ -556,7 +556,7 @@ export interface Credit {
 // ── State Return Config ────────────────────────────────────────
 
 /** Supported state codes (expand as states are added) */
-export type SupportedStateCode = 'CA' | 'GA' | 'MD' | 'NJ'
+export type SupportedStateCode = 'CA' | 'GA' | 'MA' | 'MD' | 'NJ'
 
 /** Residency classification for a state return */
 export type ResidencyType = 'full-year' | 'part-year' | 'nonresident'
@@ -581,6 +581,7 @@ export interface StateReturnConfig {
   // State-specific flags — CA
   rentPaid?: boolean                  // CA renter's credit
   county?: string                     // MD county/city code for local tax rate
+  rentAmount?: number                 // MA rent deduction (cents — annual rent paid)
 
   // State-specific flags — NJ
   njPropertyTaxPaid?: number          // Annual property tax (cents)

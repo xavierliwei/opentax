@@ -88,6 +88,8 @@ export function StateReturnsPage() {
                       ? 'https://www.ftb.ca.gov/file/personal/residency-status/index.html'
                       : code === 'GA'
                         ? 'https://dor.georgia.gov/it-511-individual-income-tax-instruction-booklet'
+                      : code === 'MA'
+                        ? 'https://www.mass.gov/guides/learn-about-legal-and-residency-status-in-massachusetts'
                       : code === 'MD'
                         ? 'https://www.marylandtaxes.gov/individual/income/tax-info/'
                       : code === 'NJ'
