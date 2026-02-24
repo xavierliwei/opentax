@@ -24,6 +24,10 @@ export interface StateComputeResult {
   amountOwed: number
   /** For part-year/nonresident: fraction of the year spent in the state (0–1) */
   apportionmentRatio?: number
+  /** Whether this state generally requires an income tax filing */
+  requiresIncomeTaxFiling?: boolean
+  /** Informational disclosures for UI/review/download surfaces */
+  disclosures?: string[]
   /** State-specific detail object (e.g. Form540Result) — opaque to the framework */
   detail: unknown
 }

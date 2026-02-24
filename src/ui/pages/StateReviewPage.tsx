@@ -134,10 +134,20 @@ export function StateReviewPage() {
       <p className="mt-1 text-sm text-gray-600">
         Your {stateResult.formLabel.split(' ')[0]} state return
         {stateResult.residencyType === 'part-year' && stateResult.apportionmentRatio !== undefined
-          ? ` (part-year resident \u2014 ${Math.round(stateResult.apportionmentRatio * 100)}% CA)`
+          ? ` (part-year resident \u2014 ${Math.round(stateResult.apportionmentRatio * 100)}% ${stateResult.stateCode})`
           : ''
         }. Click [?] to see how any number was calculated.
       </p>
+
+      {(stateResult.disclosures ?? []).length > 0 && (
+        <div className="mt-3 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+          <ul className="list-disc pl-5 space-y-1">
+            {(stateResult.disclosures ?? []).map((disclosure) => (
+              <li key={disclosure}>{disclosure}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {stateModule.reviewLayout.map((section) => {
         const visibleItems = section.items.filter(

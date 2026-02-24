@@ -86,7 +86,7 @@ export function StateReturnsPage() {
                   <legend className="text-sm font-medium text-gray-700 mb-1">Residency status</legend>
                   <div className="flex flex-col gap-1.5">
                     {RESIDENCY_OPTIONS.map((opt) => {
-                      const disabled = opt.value === 'nonresident' // Not yet supported
+                      const disabled = opt.value === 'nonresident' && code === 'CA'
                       return (
                         <label
                           key={opt.value}
@@ -191,6 +191,12 @@ export function StateReturnsPage() {
                       </p>
                     </div>
                   </label>
+                )}
+
+                {code === 'FL' && (
+                  <div className="mt-1 rounded-md border border-sky-200 bg-sky-50 p-3 text-xs text-sky-900">
+                    Florida does not have a personal income tax. This selection tracks residency/interstate context and adds an informational PDF page to your filing packet.
+                  </div>
                 )}
               </div>
             )}

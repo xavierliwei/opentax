@@ -175,6 +175,11 @@ export function DownloadPage() {
       {stateResults.map(sr => (
         <div key={sr.stateCode} className="mt-4 border border-gray-200 rounded-lg p-4 sm:p-6 flex flex-col gap-1 text-sm">
           <h2 className="font-semibold text-gray-900 mb-2">{sr.formLabel}</h2>
+          {sr.requiresIncomeTaxFiling === false && (
+            <div className="mb-2 text-xs text-blue-800 bg-blue-50 border border-blue-200 rounded px-2 py-1">
+              No personal state income tax filing required.
+            </div>
+          )}
           {sr.residencyType === 'part-year' && sr.apportionmentRatio !== undefined && (
             <div className="flex justify-between">
               <span className="text-gray-600">{sr.stateCode} Residency:</span>
@@ -206,6 +211,11 @@ export function DownloadPage() {
               <span className="text-tax-red font-medium">{sr.stateCode} Amount Owed:</span>
               <span className="font-bold text-tax-red">{formatCurrency(sr.amountOwed)}</span>
             </div>
+          )}
+          {(sr.disclosures ?? []).length > 0 && (
+            <ul className="mt-2 list-disc pl-4 text-xs text-gray-600 space-y-0.5">
+              {(sr.disclosures ?? []).map((d) => <li key={d}>{d}</li>)}
+            </ul>
           )}
         </div>
       ))}
