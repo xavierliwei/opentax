@@ -149,4 +149,53 @@ describe('validateFederalReturn', () => {
     const result = validateFederalReturn(model)
     expect(result.hasErrors).toBe(false)
   })
+
+  it('warns when IRA taxable amount is not determined (Form 8606 workflow)', () => {
+    const model = {
+      ...emptyTaxReturn(2025),
+      form1099Rs: [
+        {
+          id: 'r-1',
+          payerName: 'Custodian',
+          box1: cents(15000),
+          box2a: 0,
+          box2bTaxableNotDetermined: true,
+          box2bTotalDistribution: true,
+          box3: 0,
+          box4: 0,
+          box5: 0,
+          box7: '7',
+          iraOrSep: true,
+        },
+      ],
+    }
+
+    const result = validateFederalReturn(model)
+    const item = result.items.find(i => i.code === 'FORM_8606_BASIS_NOT_SUPPORTED')
+    expect(item).toBeDefined()
+    expect(item!.severity).toBe('warning')
+  })
+
+  it('shows Form 2210 + 4868 guidance when return has balance due', () => {
+    const model = {
+      ...emptyTaxReturn(2025),
+      w2s: [
+        makeW2({
+          id: 'w2-1',
+          employerName: 'Acme',
+          box1: cents(100000),
+          box2: 0,
+        }),
+      ],
+    }
+
+    const computed = {
+      line37: { amount: cents(1200), source: 'computed', inputs: [] },
+    } as any
+
+    const result = validateFederalReturn(model, computed)
+    expect(result.items.find(i => i.code === 'FORM_2210_NOT_COMPUTED')).toBeDefined()
+    expect(result.items.find(i => i.code === 'FORM_4868_EXTENSION_WORKFLOW')).toBeDefined()
+  })
+
 })

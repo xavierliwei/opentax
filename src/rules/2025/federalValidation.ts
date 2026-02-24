@@ -392,11 +392,49 @@ function validateForeignTaxCredit(model: TaxReturn): FederalValidationItem[] {
   return items
 }
 
+
+function validateUnsupportedFormsWave1(
+  model: TaxReturn,
+  result?: Form1040Result,
+): FederalValidationItem[] {
+  const items: FederalValidationItem[] = []
+
+  const iraDistributions = (model.form1099Rs ?? []).filter(r => r.iraOrSep)
+  if (iraDistributions.some(r => r.box2bTaxableNotDetermined)) {
+    items.push({
+      code: 'FORM_8606_BASIS_NOT_SUPPORTED',
+      severity: 'warning',
+      message: 'One or more IRA distributions have "taxable amount not determined" checked on Form 1099-R. OpenTax does not prepare Form 8606 basis calculations (nondeductible traditional IRA basis, Roth conversions, or pro-rata allocation). Enter a validated taxable amount in Box 2a or complete Form 8606 with a tax professional to avoid over/under-reporting taxable IRA income.',
+      irsCitation: 'Form 8606 / Publication 590-B',
+      category: 'unsupported',
+    })
+  }
+
+  if ((result?.line37.amount ?? 0) > 0) {
+    items.push({
+      code: 'FORM_2210_NOT_COMPUTED',
+      severity: 'info',
+      message: 'You have a balance due on Form 1040 Line 37. OpenTax does not compute the Form 2210 underpayment penalty safe-harbor analysis. The IRS may bill a penalty/interest later, or you may need to file Form 2210 manually if an exception applies.',
+      irsCitation: 'Form 2210 / Form 1040 Line 38',
+      category: 'unsupported',
+    })
+
+    items.push({
+      code: 'FORM_4868_EXTENSION_WORKFLOW',
+      severity: 'info',
+      message: 'If you need more time to file, submit Form 4868 by the filing deadline. OpenTax does not currently file or generate Form 4868. An extension gives more time to file, not more time to pay — pay your expected balance due by the deadline to reduce penalties and interest.',
+      irsCitation: 'Form 4868 / Publication 17',
+      category: 'unsupported',
+    })
+  }
+
+  return items
+}
 function validateUnsupportedSchedules(_model: TaxReturn): FederalValidationItem[] {
   return [{
     code: 'SUPPORTED_SCOPE',
     severity: 'info',
-    message: 'Supported: W-2 wages, self-employment (Schedule C/SE), QBI deduction (Form 8995 with partial 8995-A above-threshold handling), investment income, retirement distributions (1099-R), Social Security benefits (SSA-1099), rental income (Schedule E), capital gains (Schedule D/8949), Premium Tax Credit (Form 8962/1095-A), Foreign Tax Credit (Form 1116 passive category), K-1 passthrough income (ordinary, rental, interest, dividends, capital gains, guaranteed payments, Box 14 SE earnings), K-1 rental loss PAL guardrail, HSA (Form 8889), education credits, energy credits, and common deductions. Not yet supported: farm income (Schedule F), general-category FTC, FTC carryover, full Form 8582 passive activity loss computation, and full complex Form 8995-A/SSTB edge cases.',
+    message: 'Supported: W-2 wages, self-employment (Schedule C/SE), QBI deduction (Form 8995 with partial 8995-A above-threshold handling), investment income, retirement distributions (1099-R), Social Security benefits (SSA-1099), rental income (Schedule E), capital gains (Schedule D/8949), Premium Tax Credit (Form 8962/1095-A), Foreign Tax Credit (Form 1116 passive category), K-1 passthrough income (ordinary, rental, interest, dividends, capital gains, guaranteed payments, Box 14 SE earnings), K-1 rental loss PAL guardrail, HSA (Form 8889), education credits, energy credits, and common deductions. Not yet supported: farm income (Schedule F), Form 8606 basis tracking, Form 2210 underpayment penalty computation, Form 4868 extension filing workflow, general-category FTC, FTC carryover, full Form 8582 passive activity loss computation, and full complex Form 8995-A/SSTB edge cases.',
     irsCitation: 'Form 1040',
     category: 'unsupported',
   }]
@@ -410,7 +448,7 @@ function validateUnsupportedSchedules(_model: TaxReturn): FederalValidationItem[
  */
 export function validateFederalReturn(
   model: TaxReturn,
-  _result?: Form1040Result,
+  result?: Form1040Result,
 ): FederalValidationResult {
   const items: FederalValidationItem[] = [
     ...validateFormSSA1099(model),
@@ -424,6 +462,7 @@ export function validateFederalReturn(
     ...validateK1(model),
     ...validateForeignTaxCredit(model),
     ...validateUnsupportedSchedules(model),
+    ...validateUnsupportedFormsWave1(model, result),
   ]
 
   return {
