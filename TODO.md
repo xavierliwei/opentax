@@ -5,16 +5,16 @@
 Lines that still need real computation:
 
 ### Line 8 — Other Income (via Schedule 1, Part I)
-- [ ] Alimony received (Line 2a, pre-2019 agreements)
+- [x] Alimony received (Line 2a, pre-2019 agreements)
 - [ ] Other income: gambling, jury duty, cancellation of debt, etc. (Line 9)
 
 ### Line 10 — Adjustments to Income (via Schedule 1, Part II)
-- [ ] Educator expenses deduction ($300 max) (Line 11)
-- [ ] Self-employed SEP/SIMPLE/qualified plans (Line 16)
-- [ ] Self-employed health insurance deduction (Line 17)
+- [x] Educator expenses deduction ($300 max) (Line 11)
+- [x] Self-employed SEP/SIMPLE/qualified plans (Line 16)
+- [x] Self-employed health insurance deduction (Line 17)
 
 ### Line 23 — Schedule 2, Part II (Other Taxes)
-- [ ] Household employment taxes — Schedule H
+- [x] Household employment taxes — Schedule H (simplified: user enters computed amount)
 
 ---
 

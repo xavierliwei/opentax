@@ -76,6 +76,18 @@ import { validateFederalReturn } from './federalValidation'
 import type { FederalValidationResult } from './federalValidation'
 import { computeK1Aggregate, computeK1RentalPAL } from './scheduleK1'
 import type { K1AggregateResult, K1RentalPALResult } from './scheduleK1'
+import {
+  computeAlimonyReceived,
+  computeEducatorExpenses,
+  computeSEHealthInsurance,
+  computeSESepSimple,
+} from './schedule1Adjustments'
+import type {
+  AlimonyReceivedResult,
+  EducatorExpensesResult,
+  SEHealthInsuranceResult,
+  SESepSimpleResult,
+} from './schedule1Adjustments'
 
 // ── Line 1a — Wages, salaries, tips ────────────────────────────
 // Sum of all W-2 Box 1 values.
@@ -369,13 +381,22 @@ export function computeLine10(
   hsaDeduction: HSAResult | null,
   studentLoanDeduction: StudentLoanDeductionResult | null,
   seDeductibleHalf: number = 0,
+  educatorExpenses: EducatorExpensesResult | null = null,
+  seSepSimple: SESepSimpleResult | null = null,
+  seHealthInsurance: SEHealthInsuranceResult | null = null,
 ): TracedValue {
   const ira = iraDeduction?.deductibleAmount ?? 0
   const hsa = hsaDeduction?.deductibleAmount ?? 0
   const studentLoan = studentLoanDeduction?.deductibleAmount ?? 0
-  const amount = ira + hsa + studentLoan + seDeductibleHalf
+  const educator = educatorExpenses?.totalDeduction ?? 0
+  const sep = seSepSimple?.deductibleAmount ?? 0
+  const seHealth = seHealthInsurance?.deductibleAmount ?? 0
+  const amount = ira + hsa + studentLoan + seDeductibleHalf + educator + sep + seHealth
   const inputs: string[] = []
+  if (educator > 0) inputs.push('adjustments.educatorExpenses')
   if (seDeductibleHalf > 0) inputs.push('adjustments.seDeductibleHalf')
+  if (sep > 0) inputs.push('adjustments.seSepSimple')
+  if (seHealth > 0) inputs.push('adjustments.seHealthInsurance')
   if (ira > 0) inputs.push('adjustments.ira')
   if (hsa > 0) inputs.push('adjustments.hsa')
   if (studentLoan > 0) inputs.push('adjustments.studentLoan')
@@ -766,6 +787,7 @@ export function computeLine23(
   niit: NIITResult | null,
   additionalMedicare: AdditionalMedicareTaxResult | null,
   selfEmploymentTax: number = 0,
+  householdEmploymentTaxes: number = 0,
 ): TracedValue {
   const hsaDistPenalty = hsaDeduction?.distributionPenalty ?? 0
   const hsaExcessPenalty = hsaDeduction?.excessPenalty ?? 0
@@ -773,11 +795,12 @@ export function computeLine23(
   const earlyPenalty = earlyWithdrawal?.penaltyAmount ?? 0
   const niitAmount = niit?.niitAmount ?? 0
   const additionalMedicareAmount = additionalMedicare?.additionalTax ?? 0
-  const total = hsaPenalties + earlyPenalty + niitAmount + additionalMedicareAmount + selfEmploymentTax
+  const total = hsaPenalties + earlyPenalty + niitAmount + additionalMedicareAmount + selfEmploymentTax + householdEmploymentTaxes
 
   if (total > 0) {
     const inputs: string[] = []
     if (selfEmploymentTax > 0) inputs.push('scheduleSE.line6')
+    if (householdEmploymentTaxes > 0) inputs.push('scheduleH.totalTax')
     if (hsaPenalties > 0) inputs.push('hsa.penalties')
     if (earlyPenalty > 0) inputs.push('form5329.earlyWithdrawalPenalty')
     if (niitAmount > 0) inputs.push('form8960.niit')
@@ -1055,6 +1078,13 @@ export interface Form1040Result {
   // HSA deduction detail (Form 8889)
   hsaResult: HSAResult | null
 
+  // Schedule 1 additional adjustments
+  alimonyReceivedResult: AlimonyReceivedResult | null
+  educatorExpensesResult: EducatorExpensesResult | null
+  seSepSimpleResult: SESepSimpleResult | null
+  seHealthInsuranceResult: SEHealthInsuranceResult | null
+  householdEmploymentTaxes: number  // cents (Schedule H → Schedule 2 Line 9)
+
   // AMT detail (Form 6251)
   amtResult: AMTResult | null
 
@@ -1200,7 +1230,14 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     }
   }
 
-  // Schedule 1 (compute if there is 1099-MISC income, 1099-G income, Schedule E, Schedule C, or K-1 passthrough)
+  // ── Schedule 1 additional adjustments (no income dependency) ──────
+  const alimonyReceivedResult = computeAlimonyReceived(model)
+  const educatorExpensesResult = computeEducatorExpenses(model)
+  const seSepSimpleResult = computeSESepSimple(model)
+  const seHealthInsuranceResult = computeSEHealthInsurance(model, scheduleCNetProfit)
+  const householdEmploymentTaxes = model.householdEmploymentTaxes ?? 0
+
+  // Schedule 1 (compute if there is 1099-MISC income, 1099-G income, Schedule E, Schedule C, K-1, or alimony)
   const has1099MISCIncome = (model.form1099MISCs ?? []).some(
     f => f.box1 > 0 || f.box2 > 0 || f.box3 > 0,
   )
@@ -1208,9 +1245,10 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     f => f.box1 > 0 || f.box2 > 0,
   )
   const hasK1Passthrough = (k1ResultForSchedule1?.totalPassthroughIncome ?? 0) !== 0
-  const needSchedule1 = has1099MISCIncome || has1099GIncome || hasScheduleEProperties || hasScheduleC || hasK1Passthrough || hasSEIncome
+  const hasAlimony = alimonyReceivedResult !== null
+  const needSchedule1 = has1099MISCIncome || has1099GIncome || hasScheduleEProperties || hasScheduleC || hasK1Passthrough || hasSEIncome || hasAlimony
   const schedule1 = needSchedule1
-    ? computeSchedule1(model, scheduleE ?? undefined, scheduleCResult ?? undefined, scheduleSEResult ?? undefined, k1ResultForSchedule1 ?? undefined)
+    ? computeSchedule1(model, scheduleE ?? undefined, scheduleCResult ?? undefined, scheduleSEResult ?? undefined, k1ResultForSchedule1 ?? undefined, alimonyReceivedResult)
     : null
 
   // ── HSA (computed early — no dependency on Line 9) ──────
@@ -1285,7 +1323,10 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   const studentLoanDeduction = computeStudentLoanDeduction(model, studentLoanMAGI)
 
   const seDeductibleHalf = scheduleSEResult?.deductibleHalfCents ?? 0
-  const line10 = computeLine10(iraDeduction, hsaResult, studentLoanDeduction, seDeductibleHalf)
+  const line10 = computeLine10(
+    iraDeduction, hsaResult, studentLoanDeduction, seDeductibleHalf,
+    educatorExpensesResult, seSepSimpleResult, seHealthInsuranceResult,
+  )
   const line11 = computeLine11(line9, line10)
 
   // ── Deductions ──────────────────────────────────────────
@@ -1433,7 +1474,7 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   const additionalMedicareTaxResult = computeAdditionalMedicareTax(model)
 
   const selfEmploymentTax = scheduleSEResult?.totalSETax ?? 0
-  const line23 = computeLine23(hsaResult, earlyWithdrawalPenalty, niitResult, additionalMedicareTaxResult, selfEmploymentTax)
+  const line23 = computeLine23(hsaResult, earlyWithdrawalPenalty, niitResult, additionalMedicareTaxResult, selfEmploymentTax, householdEmploymentTaxes)
   const line24 = computeLine24(line22, line23)
 
   // ── Payments & refundable credits ──────────────────────
@@ -1511,6 +1552,11 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     iraDeduction,
     studentLoanDeduction,
     hsaResult,
+    alimonyReceivedResult,
+    educatorExpensesResult,
+    seSepSimpleResult,
+    seHealthInsuranceResult,
+    householdEmploymentTaxes,
     amtResult,
     earlyWithdrawalPenalty,
     niitResult,
