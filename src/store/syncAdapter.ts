@@ -1,7 +1,7 @@
 /**
  * Sync adapter — connects the P2 Zustand store to the plugin HTTP API.
  *
- * Subscribes to Zustand state changes → POST /api/sync
+ * Subscribes to Zustand state changes → POST /api/v1/sync
  * Listens to SSE stateChanged events → imports into Zustand store
  * Loop guard prevents SSE-triggered mutations from POST-ing back.
  */
@@ -31,7 +31,7 @@ export function connectToServer(config: SyncConfig): () => void {
   }
 
   // ── Initial sync: merge intelligently ─────────────────────────
-  fetch(`${serverUrl}/api/status`)
+  fetch(`${serverUrl}/api/v1/status`)
     .then((res) => res.json())
     .then((data: { taxReturn: TaxReturn; stateVersion: number }) => {
       const localState = useTaxStore.getState()
@@ -45,7 +45,7 @@ export function connectToServer(config: SyncConfig): () => void {
 
       if (localHasData) {
         localVersion = data.stateVersion
-        fetch(`${serverUrl}/api/sync`, {
+        fetch(`${serverUrl}/api/v1/sync`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -79,7 +79,7 @@ export function connectToServer(config: SyncConfig): () => void {
     if (isRemoteUpdate) return
     if (state._lastChangeSource === 'deductions') return
 
-    fetch(`${serverUrl}/api/sync`, {
+    fetch(`${serverUrl}/api/v1/sync`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -99,13 +99,13 @@ export function connectToServer(config: SyncConfig): () => void {
   })
 
   // ── Listen to SSE for remote changes ──────────────────────────
-  const eventSource = new EventSource(`${serverUrl}/api/events`)
+  const eventSource = new EventSource(`${serverUrl}/api/v1/events`)
 
   eventSource.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data)
       if (data.type === 'stateChanged' && data.stateVersion > localVersion) {
-        fetch(`${serverUrl}/api/status`)
+        fetch(`${serverUrl}/api/v1/status`)
           .then((res) => res.json())
           .then((status: { taxReturn: TaxReturn; stateVersion: number }) => {
             importRemote(status.taxReturn, status.stateVersion)
@@ -155,7 +155,7 @@ export function autoConnect(serverUrl?: string): () => void {
       : 'http://localhost:7891')
   let aborted = false
 
-  fetch(`${url}/api/gap-analysis`, { signal: AbortSignal.timeout(2000) })
+  fetch(`${url}/api/v1/gap-analysis`, { signal: AbortSignal.timeout(2000) })
     .then((res) => {
       if (res.ok && !aborted) {
         activeDisconnect = connectToServer({ serverUrl: url })
