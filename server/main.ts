@@ -6,8 +6,10 @@ const workspace = process.env.OPENTAX_WORKSPACE ?? '.'
 const staticDir = process.env.OPENTAX_STATIC_DIR ?? './dist'
 const port = parseInt(process.env.OPENTAX_PORT ?? '7891', 10)
 
+const corsOrigin = process.env.OPENTAX_CORS_ORIGIN
+
 const service = new TaxService(workspace)
-const http = createHttpService(service, { port, staticDir })
+const http = createHttpService(service, { port, staticDir, corsOrigin })
 
 http.start().then(() => {
   logger.info('OpenTax server started', {

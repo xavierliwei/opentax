@@ -1,7 +1,8 @@
 /**
  * HTTP background service — serves the dashboard API and SSE event stream.
  *
- * Runs on port 7890 using node:http. CORS is open (trusted Tailscale network).
+ * Runs on port 7890 using node:http. CORS is restricted to configured origins
+ * (defaults to localhost). Security headers are applied to all responses.
  */
 
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
@@ -11,6 +12,7 @@ import type { TaxService } from '../service/TaxService.ts'
 import { analyzeGaps } from '../service/GapAnalysis.ts'
 import { serializeComputeResult } from './serialize.ts'
 import { logger } from '../utils/logger.ts'
+import { setSecurityHeaders, setCorsHeaders, parseCorsOrigins, type CorsConfig } from './securityHeaders.ts'
 
 const log = logger.child({ component: 'http' })
 
@@ -43,11 +45,20 @@ const MIME_TYPES: Record<string, string> = {
 export interface HttpServiceOptions {
   port?: number
   staticDir?: string
+  /** Comma-separated allowed CORS origins, or a pre-parsed CorsConfig. */
+  corsOrigin?: string | CorsConfig
 }
 
 export function createHttpService(service: TaxService, options: HttpServiceOptions = {}) {
   const port = options.port ?? DEFAULT_PORT
   const staticDir = options.staticDir
+
+  // Parse CORS config — accept a string (from env var) or a pre-built config
+  const corsConfig: CorsConfig =
+    typeof options.corsOrigin === 'string'
+      ? parseCorsOrigins(options.corsOrigin)
+      : options.corsOrigin ?? parseCorsOrigins(process.env.OPENTAX_CORS_ORIGIN)
+
   const sseClients = new Set<ServerResponse>()
 
   // Push SSE events on state changes
@@ -64,14 +75,7 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
     }
   })
 
-  function setCors(res: ServerResponse) {
-    res.setHeader('Access-Control-Allow-Origin', '*')
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
-  }
-
   function sendJson(res: ServerResponse, data: unknown, status = 200) {
-    setCors(res)
     res.writeHead(status, { 'Content-Type': 'application/json' })
     res.end(JSON.stringify(data))
   }
@@ -117,6 +121,9 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
     const url = new URL(req.url ?? '/', `http://localhost:${port}`)
     const path = url.pathname
 
+    // Apply security headers to every response
+    setSecurityHeaders(req, res)
+
     // Log response when finished
     res.on('finish', () => {
       // Skip SSE connections — they stay open for a long time
@@ -132,11 +139,14 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
 
     // CORS preflight
     if (req.method === 'OPTIONS') {
-      setCors(res)
+      setCorsHeaders(req, res, corsConfig)
       res.writeHead(204)
       res.end()
       return
     }
+
+    // Set CORS headers for all non-preflight requests
+    setCorsHeaders(req, res, corsConfig)
 
     // GET /api/status
     if (req.method === 'GET' && path === '/api/status') {
@@ -159,7 +169,6 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
 
     // GET /api/events (SSE)
     if (req.method === 'GET' && path === '/api/events') {
-      setCors(res)
       // Flush headers immediately; disable chunked encoding for SSE
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
@@ -301,7 +310,12 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
       })
     },
     server,
-    port,
+    /** The port the server is listening on (resolves OS-assigned port when 0). */
+    get port(): number {
+      const addr = server.address()
+      if (addr && typeof addr === 'object') return addr.port
+      return port
+    },
   }
 
   return svc
