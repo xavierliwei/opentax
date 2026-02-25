@@ -435,6 +435,63 @@ describe('MA Form 1 PDF generator', () => {
     expect(compiled.forms[0].formId).toBe('MA Form 1')
     expect(compiled.forms[0].sequenceNumber).toBe('MA-01')
   })
+
+  it('PDF bytes can be saved and reloaded', async () => {
+    const tr = makeMAReturn()
+    const result = computeAll(tr)
+    const stateResult = result.stateResults[0]
+
+    const compiled = await maFormCompiler.compile(
+      tr,
+      stateResult,
+      { templates: new Map() },
+    )
+
+    const bytes = await compiled.doc.save()
+    const reloaded = await PDFDocument.load(bytes)
+    expect(reloaded.getPageCount()).toBe(1)
+  })
+
+  it('part-year generates Form 1-NR/PY label', async () => {
+    const tr: TaxReturn = {
+      ...emptyTaxReturn(2025),
+      taxpayer: {
+        firstName: 'Part',
+        lastName: 'Year',
+        ssn: '123456789',
+        dateOfBirth: '1990-01-01',
+        address: { street: '88 Beacon St', city: 'Boston', state: 'MA', zip: '02108' },
+      },
+      stateReturns: [{
+        stateCode: 'MA',
+        residencyType: 'part-year',
+        moveInDate: '2025-01-01',
+        moveOutDate: '2025-06-30',
+      }],
+      w2s: [
+        makeW2({
+          id: 'w2-1',
+          employerName: 'Bay State Corp',
+          box1: cents(100000),
+          box2: cents(15000),
+          box15State: 'MA',
+          box16StateWages: cents(100000),
+          box17StateIncomeTax: cents(3500),
+        }),
+      ],
+    }
+
+    const result = computeAll(tr)
+    const stateResult = result.stateResults[0]
+
+    const compiled = await maFormCompiler.compile(
+      tr,
+      stateResult,
+      { templates: new Map() },
+    )
+
+    expect(compiled.forms[0].formId).toBe('MA Form 1-NR/PY')
+  })
 })
 
 describe('PA-40 PDF generator', () => {

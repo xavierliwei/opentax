@@ -88,7 +88,7 @@ async function generateForm1(taxReturn: TaxReturn, form1: Form1Result): Promise<
 
 export const maFormCompiler: StateFormCompiler = {
   stateCode: 'MA',
-  templateFiles: ['form1.pdf'],
+  templateFiles: [],
   async compile(taxReturn: TaxReturn, stateResult: StateComputeResult, _templates: StateFormTemplates): Promise<StateCompiledForms> {
     const form1 = stateResult.detail as Form1Result
     const doc = await generateForm1(taxReturn, form1)

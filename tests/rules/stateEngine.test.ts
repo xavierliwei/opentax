@@ -51,6 +51,14 @@ describe('State Engine — registry', () => {
     expect(mod!.formLabel).toBe('NC Form D-400')
   })
 
+  it('MA module is registered', () => {
+    const mod = getStateModule('MA')
+    expect(mod).toBeDefined()
+    expect(mod!.stateCode).toBe('MA')
+    expect(mod!.formLabel).toBe('MA Form 1')
+    expect(mod!.stateName).toBe('Massachusetts')
+  })
+
   it('NY module is registered', () => {
     const mod = getStateModule('NY')
     expect(mod).toBeDefined()
@@ -320,8 +328,11 @@ describe('State Engine — computeAll integration', () => {
     expect(result.stateResults).toHaveLength(1)
     expect(result.stateResults[0].stateCode).toBe('MA')
     expect(result.stateResults[0].formLabel).toBe('MA Form 1')
+    expect(result.stateResults[0].stateWithholding).toBe(350000)
+    expect(result.executedSchedules).toContain('MA-Form1')
     expect(result.values.has('form1.maAGI')).toBe(true)
     expect(result.values.has('form1.maIncomeTax')).toBe(true)
+    expect(result.values.has('form1.taxAfterCredits')).toBe(true)
   })
 
   it('stateResults contains VA when VA is in stateReturns', () => {
