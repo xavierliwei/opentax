@@ -154,92 +154,15 @@ async function fillFormCT1040Template(
   // Line 9: Tax from tax tables or tax calculation schedule
   drawDollarAtPos(pages, font, CT1040_INCOME.line9, ct.bracketTax)
 
-  // Line 10: Credit from Table C (amount of tax credit)
-  // Table C gives a credit that reduces the bracket tax;
-  // the add-back is the reduction of that credit
-  const tableCCredit = ct.bracketTax > 0 ? Math.max(0, ct.bracketTax - ct.tableC_addBack - (ct.bracketTax - ct.tableC_addBack < 0 ? 0 : 0)) : 0
-  // Actually: Line 10 = bracket_tax * credit_rate from Table C
-  // And Line 11 = Line 9 - Line 10
-  // The addBack is the portion of the credit that gets "added back" (reduced)
-  // So the actual credit from Table C = bracketTax - (bracketTax - tableC_addBack) ...
-  // Simpler: Line 11 = bracketTax - credit + tableC_addBack
-  // We know: ctIncomeTax = bracketTax + tableC_addBack + tableD_recapture (before apportionment)
-  // And line11 = line9 - line10, line12 = line11 + tableD_recapture
-  // So: line10 (the credit) = bracketTax - (ctIncomeTax / ratio - tableD_recapture) if ratio=1
-  // For full year: ctIncomeTax = bracketTax + tableC_addBack + tableD_recapture
-  // line11 = bracketTax - line10, line12 = line11 + tableD_recapture = ctIncomeTax
-  // So: line11 = ctIncomeTax - tableD_recapture = bracketTax + tableC_addBack
-  // line10 = bracketTax - line11 = bracketTax - (bracketTax + tableC_addBack) = -tableC_addBack
-  // That can't be right. Let me re-read the CT-1040 instructions:
-  // Line 9 = tax from tables, Line 10 = credit amount from Table C
-  // Table C gives you a percentage of Line 9 as a credit (e.g. 75%)
-  // Line 11 = Line 9 - Line 10 (net after credit)
-  // Then Table D recapture adds back some of the credit for high earners
-  // Line 12 = Line 11 + recapture from Schedule 2 = CT income tax
+  // Line 10: Credit from Table C
+  // The computation model uses tableC_addBack as an additional tax amount for
+  // high earners.  On the CT-1040 form, Line 10 is the Table C credit (a
+  // percentage of Line 9), Line 11 = Line 9 - Line 10, and Line 12 adds back
+  // Table D recapture.  Since we only store the net addBack, we leave Line 10
+  // empty when there is no separate credit to display.
   //
-  // So: bracketTax = Line 9
-  //     tableC credit = bracketTax * rate (unknown rate, but we can derive)
-  //     Line 11 = bracketTax - tableC credit
-  //     tableC_addBack is the amount added back (i.e. reduction of the credit)
-  //     Effective credit = full_credit - addBack
-  //     ctIncomeTax = bracketTax - effective_credit + tableD_recapture
-  //     = bracketTax - (full_credit - addBack) + tableD_recapture
-  //     We know ctIncomeTax = bracketTax + tableC_addBack + tableD_recapture
-  //     So: full_credit = bracketTax + tableC_addBack + tableD_recapture - bracketTax + full_credit - addBack - tableD_recapture
-  //     Hmm, this is circular. Let me just compute:
-  //     If ctIncomeTax = bracketTax + tableC_addBack + tableD_recapture (the formula from formCT1040.ts line 109)
-  //     Then the net Line 10 credit to show = 0 (because there IS no separate credit, the addBack IS the adjustment)
-  //     Actually looking at formCT1040.ts more carefully:
-  //     fullYearTax = bracketTax + tableC_addBack + tableD_recapture
-  //     This means the computation already incorporates Table C add-back as an addition to tax.
-  //     So on the form:
-  //     Line 9 = bracketTax (raw bracket computation)
-  //     Line 10 = credit from Table C (we don't have the raw credit, we have the addBack)
-  //     Line 11 = Line 9 - Line 10
-  //     Line 12 = Line 11 + tableD_recapture
-  //
-  //     We need: Line 12 = ctIncomeTax (before apportionment, for full year)
-  //     ctIncomeTax = bracketTax + tableC_addBack + tableD_recapture
-  //     Line 12 = (bracketTax - Line10) + tableD_recapture = ctIncomeTax
-  //     So: Line10 = bracketTax - ctIncomeTax + tableD_recapture
-  //         Line10 = bracketTax - (bracketTax + tableC_addBack + tableD_recapture) + tableD_recapture
-  //         Line10 = -tableC_addBack
-  //     That's negative which doesn't make sense for a "credit" line.
-  //
-  //     RE-READING: The Table C add-back is not added to tax, it's the amount by which
-  //     the credit is reduced. The "3% tax credit" from Table C is a credit that
-  //     high-income taxpayers lose. The tableC_addBack represents how much of
-  //     the credit they lose.
-  //
-  //     Full credit from Table C = bracketTax * 0.03 (or some percentage)
-  //     Effective credit = full_credit - tableC_addBack (phase-out)
-  //     Net tax = bracketTax - effective_credit + tableD_recapture
-  //
-  //     But formCT1040.ts says: fullYearTax = bracketTax + tableC_addBack + tableD_recapture
-  //     This means: net_tax = bracketTax + tableC_addBack + tableD_recapture
-  //     => bracketTax - effective_credit + tableD_recapture = bracketTax + tableC_addBack + tableD_recapture
-  //     => effective_credit = -tableC_addBack
-  //
-  //     This doesn't work. The computation model must be using tableC_addBack as
-  //     an ADDITIONAL tax amount (not a reduction of credit). Looking at the computation:
-  //     computeTableCAddBack returns linearTableAmount(...) which returns 0 to maxAddBack.
-  //     For low income: 0 add-back. For high income: full maxAddBack.
-  //     So tableC_addBack is literally an extra tax on top of bracket tax for high earners.
-  //
-  //     On the actual form, this maps to:
-  //     Line 9  = bracketTax (base tax)
-  //     Line 10 = 0 (no credit for simplicity, or we skip it)
-  //     Line 11 = bracketTax (Line 9 - Line 10)
-  //     Line 12 = bracketTax + tableC_addBack + tableD_recapture = ctIncomeTax
-
-  // For the form, we'll show the intermediate values
-  const fullYearTax = ct.apportionmentRatio < 1
-    ? Math.round(ct.ctIncomeTax / ct.apportionmentRatio)
-    : ct.ctIncomeTax
-  const line10Credit = 0  // Table C credit (would need raw credit rate to compute; skip for now)
-  const line11 = ct.bracketTax - line10Credit
-  drawDollarAtPos(pages, font, CT1040_INCOME.line10, line10Credit)
-  drawDollarAtPos(pages, font, CT1040_INCOME.line11, line11)
+  // Line 11 = bracketTax (Line 9 minus the zero credit)
+  drawDollarAtPos(pages, font, CT1040_INCOME.line11, ct.bracketTax)
 
   // Line 11a–11c: Table D recapture details (left column)
   if (ct.tableD_recapture > 0) {
