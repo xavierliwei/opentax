@@ -17,6 +17,7 @@ import { serializeComputeResult } from './serialize.ts'
 import { taxReturnStrictSchema } from '../../src/model/schemas.ts'
 import { logger } from '../utils/logger.ts'
 import { setSecurityHeaders, setCorsHeaders, parseCorsOrigins, type CorsConfig } from './securityHeaders.ts'
+import { createRateLimiter, type RateLimitOptions } from './rateLimit.ts'
 
 const log = logger.child({ component: 'http' })
 
@@ -57,6 +58,8 @@ export interface HttpServiceOptions {
   staticDir?: string
   /** Comma-separated allowed CORS origins, or a pre-parsed CorsConfig. */
   corsOrigin?: string | CorsConfig
+  /** Rate limit configuration for mutation endpoints. */
+  rateLimiter?: RateLimitOptions
 }
 
 /**
@@ -83,6 +86,11 @@ export function resolveApiRoute(path: string): { route: string; legacy: boolean 
 export function createHttpService(service: TaxService, options: HttpServiceOptions = {}) {
   const port = options.port ?? DEFAULT_PORT
   const staticDir = options.staticDir
+
+  // Create rate limiter for mutation endpoints
+  const rateLimiter = createRateLimiter(
+    options.rateLimiter ?? { windowMs: 60_000, maxRequests: 60 },
+  )
 
   // Parse CORS config — accept a string (from env var) or a pre-built config
   const corsConfig: CorsConfig =
@@ -263,6 +271,18 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
 
       // POST sync
       if (req.method === 'POST' && route === 'sync') {
+        // Rate limit by client IP
+        const clientIp = req.socket.remoteAddress ?? 'unknown'
+        const rateResult = rateLimiter.check(clientIp)
+        if (!rateResult.allowed) {
+          const retryAfterSeconds = Math.ceil(rateResult.retryAfterMs / 1000)
+          res.setHeader('Retry-After', String(retryAfterSeconds))
+          log.warn('Rate limit exceeded', { clientIp, retryAfterMs: rateResult.retryAfterMs })
+          sendJson(res, { error: 'rate_limited', retryAfterMs: rateResult.retryAfterMs }, 429, legacy)
+          req.resume() // drain the request so the socket can be freed
+          return
+        }
+
         // Reject early if Content-Length exceeds the limit
         const contentLength = req.headers['content-length']
         if (contentLength != null && parseInt(contentLength, 10) > MAX_BODY_SIZE) {
@@ -387,6 +407,7 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
     },
     stop() {
       return new Promise<void>((resolve, reject) => {
+        rateLimiter.destroy()
         for (const client of sseClients) {
           client.end()
         }
