@@ -216,6 +216,10 @@ describe('State Engine — computeAll integration', () => {
     expect(result.stateResults[0].stateCode).toBe('NJ')
     expect(result.stateResults[0].formLabel).toBe('NJ Form NJ-1040')
     expect(result.stateResults[0].stateWithholding).toBe(300000)
+    expect(result.executedSchedules).toContain('NJ-1040')
+    expect(result.values.has('nj1040.njGrossIncome')).toBe(true)
+    expect(result.values.has('nj1040.taxableIncome')).toBe(true)
+    expect(result.values.has('nj1040.njTax')).toBe(true)
   })
 
   it('stateResults contains NY when NY is in stateReturns', () => {

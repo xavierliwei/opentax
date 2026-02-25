@@ -490,6 +490,18 @@ describe('NJ Form NJ-1040 PDF generator', () => {
     expect(compiled.forms[0].formId).toBe('NJ Form NJ-1040')
     expect(compiled.forms[0].sequenceNumber).toBe('NJ-01')
   })
+
+  it('PDF bytes can be saved and reloaded', async () => {
+    const tr = makeNJReturn()
+    const result = computeAll(tr)
+    const stateResult = result.stateResults[0]
+
+    const compiled = await njFormCompiler.compile(tr, stateResult, { templates: new Map() })
+
+    const bytes = await compiled.doc.save()
+    const reloaded = await PDFDocument.load(bytes)
+    expect(reloaded.getPageCount()).toBe(1)
+  })
 })
 
 describe('VA Form 760 PDF generator', () => {
