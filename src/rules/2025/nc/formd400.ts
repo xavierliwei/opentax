@@ -14,6 +14,7 @@ export interface FormD400Result {
 
   // Addition/deduction detail
   hsaAddBack: number
+  stateLocalTaxAddBack: number
   ssExemption: number
   usGovInterest: number
 
@@ -83,7 +84,13 @@ export function computeFormD400(
   // ── NC Additions (D-400 Schedule S, Part A) ─────────────────
   // HSA deduction add-back: NC does not conform to IRC §223
   const hsaAddBack = form1040.hsaResult?.deductibleAmount ?? 0
-  const ncAdditions = hsaAddBack
+  // State/local income tax deduction add-back: if the filer claimed state/local
+  // income taxes as an itemized deduction on federal Schedule A, NC requires
+  // adding that amount back because NC uses its own standard deduction.
+  const stateLocalTaxAddBack = model.deductions.method === 'itemized'
+    ? (model.deductions.itemized?.stateLocalIncomeTaxes ?? 0)
+    : 0
+  const ncAdditions = hsaAddBack + stateLocalTaxAddBack
 
   // ── NC Deductions (D-400 Schedule S, Part B) ────────────────
   // Social Security benefits: NC fully exempts SS income
@@ -120,6 +127,7 @@ export function computeFormD400(
     ncDeductions,
     ncAGI,
     hsaAddBack,
+    stateLocalTaxAddBack,
     ssExemption,
     usGovInterest,
     standardDeduction,
