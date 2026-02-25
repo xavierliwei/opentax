@@ -38,6 +38,7 @@ import type {
 } from '../../src/model/types.ts'
 import { computeAll } from '../../src/rules/engine.ts'
 import type { ComputeResult } from '../../src/rules/engine.ts'
+import { taxReturnSchema } from '../../src/model/schemas.ts'
 import { logger } from '../utils/logger.ts'
 
 const log = logger.child({ component: 'TaxService' })
@@ -93,19 +94,37 @@ export class TaxService extends EventEmitter {
     if (!row && existsSync(legacyPath)) {
       try {
         const raw = readFileSync(legacyPath, 'utf-8')
-        const parsed = JSON.parse(raw) as TaxReturn
-        this.upsertStmt.run(JSON.stringify(parsed), 0)
-        this.taxReturn = parsed
-        log.info('Migrated state from legacy JSON into SQLite', { file: LEGACY_STATE_FILE })
+        const jsonData = JSON.parse(raw)
+        const validated = taxReturnSchema.safeParse(jsonData)
+        if (validated.success) {
+          this.upsertStmt.run(JSON.stringify(validated.data), 0)
+          this.taxReturn = validated.data
+          log.info('Migrated state from legacy JSON into SQLite', { file: LEGACY_STATE_FILE })
+        } else {
+          log.warn('Legacy state failed validation, starting fresh', {
+            file: LEGACY_STATE_FILE,
+            issues: validated.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; '),
+          })
+          this.taxReturn = emptyTaxReturn(2025)
+        }
       } catch {
         log.warn('Failed to parse legacy state file, starting fresh', { file: LEGACY_STATE_FILE })
         this.taxReturn = emptyTaxReturn(2025)
       }
     } else if (row) {
       try {
-        this.taxReturn = JSON.parse(row.data) as TaxReturn
-        this.stateVersion = row.version
-        log.info('Loaded state from SQLite', { version: row.version })
+        const jsonData = JSON.parse(row.data)
+        const validated = taxReturnSchema.safeParse(jsonData)
+        if (validated.success) {
+          this.taxReturn = validated.data
+          this.stateVersion = row.version
+          log.info('Loaded state from SQLite', { version: row.version })
+        } else {
+          log.warn('Stored state failed validation, starting fresh', {
+            issues: validated.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; '),
+          })
+          this.taxReturn = emptyTaxReturn(2025)
+        }
       } catch {
         log.warn('Failed to parse stored state from SQLite, starting fresh')
         this.taxReturn = emptyTaxReturn(2025)
