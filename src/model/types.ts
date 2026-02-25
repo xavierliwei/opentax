@@ -128,6 +128,9 @@ export interface Form1099B {
   longTerm: boolean | null     // true=long-term, false=short-term, null=unknown
   noncoveredSecurity: boolean  // true if non-covered (basis not reported)
 
+  // State sourcing (for nonresident returns — e.g., PA real estate)
+  propertyState?: string       // 2-letter state code if gain is from real property in a specific state
+
   // Federal withholding (rare for 1099-B)
   federalTaxWithheld: number   // cents
 }
@@ -272,6 +275,7 @@ export interface ScheduleC {
   // Business info (Part I header)
   businessName: string
   businessEin?: string            // Employer ID (optional for sole proprietors)
+  businessState?: string          // 2-letter state code where business operates (for nonresident sourcing)
   principalBusinessCode: string   // 6-digit NAICS code (e.g., "541511")
   accountingMethod: ScheduleCAccountingMethod
 
@@ -327,6 +331,7 @@ export interface ScheduleK1 {
   entityType: K1EntityType
   entityName: string
   entityEin: string
+  entityState?: string          // 2-letter state where entity is organized/operates (for nonresident sourcing)
 
   // Key income items (cents) — for display/warning purposes
   ordinaryIncome: number          // Box 1 (1065) / Box 1 (1120-S)
@@ -389,6 +394,7 @@ export type ScheduleEPropertyType =
 export interface ScheduleEProperty {
   id: string
   address: string
+  propertyState?: string       // 2-letter state code where property is located (for nonresident sourcing)
   propertyType: ScheduleEPropertyType
   fairRentalDays: number       // Schedule E line A
   personalUseDays: number      // Schedule E line B
