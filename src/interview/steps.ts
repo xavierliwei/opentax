@@ -308,7 +308,11 @@ export const STEPS: InterviewStep[] = [
     path: '/review',
     section: 'review',
     isVisible: () => true,
-    isComplete: () => false,
+    isComplete: (tr) =>
+      tr.filingStatus !== undefined &&
+      tr.taxpayer.firstName.length > 0 &&
+      tr.taxpayer.lastName.length > 0 &&
+      tr.taxpayer.ssn.length === 9,
     component: ReviewPage,
   },
   // Dynamic state review steps (one per supported state)

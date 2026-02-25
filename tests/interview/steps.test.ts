@@ -275,10 +275,24 @@ describe('steps.ts — completion logic', () => {
     expect(step.isComplete(tr)).toBe(true)
   })
 
-  it('review is never auto-complete', () => {
+  it('review is incomplete when personal info is missing', () => {
     const tr = makeTr()
     const step = STEPS.find((s) => s.id === 'review')!
     expect(step.isComplete(tr)).toBe(false)
+  })
+
+  it('review is complete when filing status and taxpayer info are filled', () => {
+    const tr = makeTr({
+      filingStatus: 'single',
+      taxpayer: {
+        firstName: 'John',
+        lastName: 'Doe',
+        ssn: '123456789',
+        address: { street: '', city: '', state: '', zip: '' },
+      },
+    })
+    const step = STEPS.find((s) => s.id === 'review')!
+    expect(step.isComplete(tr)).toBe(true)
   })
 
   it('state-returns is always complete (no selection = federal-only)', () => {
