@@ -144,6 +144,12 @@ export function DownloadPage() {
             stateTemplateMap.set('NC', { templates: new Map([['d400', d400]]) })
           } catch { /* fall back to programmatic */ }
         }
+        if (config.stateCode === 'OH') {
+          try {
+            const it1040 = await loadTemplate('forms/state/OH/it1040.pdf')
+            stateTemplateMap.set('OH', { templates: new Map([['it1040', it1040]]) })
+          } catch { /* fall back to programmatic */ }
+        }
         if (config.stateCode === 'PA') {
           try {
             const pa40 = await loadTemplate('forms/state/PA/pa40.pdf')
