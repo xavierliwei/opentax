@@ -40,6 +40,8 @@ import { computeAll } from '../../src/rules/engine.ts'
 import type { ComputeResult } from '../../src/rules/engine.ts'
 import { taxReturnSchema } from '../../src/model/schemas.ts'
 import { logger } from '../utils/logger.ts'
+import { getOrCreateKey, encryptSensitiveFields, decryptSensitiveFields } from '../utils/crypto.ts'
+import { runMigrations } from './migrations.ts'
 
 const log = logger.child({ component: 'TaxService' })
 
@@ -56,6 +58,7 @@ export class TaxService extends EventEmitter {
   private db: BetterSqlite3.Database
   private upsertStmt: BetterSqlite3.Statement
   private persistTimer: ReturnType<typeof setTimeout> | null = null
+  private encryptionKey: Buffer
 
   constructor(workspace: string) {
     super()
@@ -65,19 +68,16 @@ export class TaxService extends EventEmitter {
     // Ensure workspace directory exists
     if (!existsSync(workspace)) mkdirSync(workspace, { recursive: true })
 
+    // Load or create the encryption key for sensitive field encryption
+    this.encryptionKey = getOrCreateKey(workspace)
+
     // Open/create SQLite database
     const dbPath = join(workspace, DB_FILE)
     this.db = new Database(dbPath)
     this.db.pragma('journal_mode = WAL')
 
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS tax_returns (
-        id         TEXT PRIMARY KEY DEFAULT 'current',
-        data       TEXT NOT NULL,
-        version    INTEGER NOT NULL DEFAULT 0,
-        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-      )
-    `)
+    // Apply schema migrations (creates tax_returns table if needed, adds indexes, etc.)
+    runMigrations(this.db)
 
     // Prepare upsert statement
     this.upsertStmt = this.db.prepare(`
@@ -97,9 +97,12 @@ export class TaxService extends EventEmitter {
         const jsonData = JSON.parse(raw)
         const validated = taxReturnSchema.safeParse(jsonData)
         if (validated.success) {
-          this.upsertStmt.run(JSON.stringify(validated.data), 0)
+          // Legacy data has plaintext SSNs/EINs — encrypt before storing to DB
+          const encrypted = encryptSensitiveFields(validated.data, this.encryptionKey)
+          this.upsertStmt.run(JSON.stringify(encrypted), 0)
+          // Keep plaintext in memory
           this.taxReturn = validated.data
-          log.info('Migrated state from legacy JSON into SQLite', { file: LEGACY_STATE_FILE })
+          log.info('Migrated state from legacy JSON into SQLite (with encryption)', { file: LEGACY_STATE_FILE })
         } else {
           log.warn('Legacy state failed validation, starting fresh', {
             file: LEGACY_STATE_FILE,
@@ -114,11 +117,13 @@ export class TaxService extends EventEmitter {
     } else if (row) {
       try {
         const jsonData = JSON.parse(row.data)
-        const validated = taxReturnSchema.safeParse(jsonData)
+        // Decrypt sensitive fields before validation — encrypted tokens may not pass SSN/EIN format checks
+        const decryptedData = decryptSensitiveFields(jsonData as TaxReturn, this.encryptionKey)
+        const validated = taxReturnSchema.safeParse(decryptedData)
         if (validated.success) {
           this.taxReturn = validated.data
           this.stateVersion = row.version
-          log.info('Loaded state from SQLite', { version: row.version })
+          log.info('Loaded state from SQLite (decrypted)', { version: row.version })
         } else {
           log.warn('Stored state failed validation, starting fresh', {
             issues: validated.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; '),
@@ -161,8 +166,10 @@ export class TaxService extends EventEmitter {
       clearTimeout(this.persistTimer)
       this.persistTimer = null
     }
-    this.upsertStmt.run(JSON.stringify(this.taxReturn), this.stateVersion)
-    log.debug('State persisted to SQLite', { version: this.stateVersion })
+    // Encrypt sensitive fields before writing to DB; in-memory state stays plaintext
+    const encrypted = encryptSensitiveFields(this.taxReturn, this.encryptionKey)
+    this.upsertStmt.run(JSON.stringify(encrypted), this.stateVersion)
+    log.debug('State persisted to SQLite (encrypted)', { version: this.stateVersion })
   }
 
   close(): void {
