@@ -613,6 +613,7 @@ export interface StateReturnConfig {
   njTaxpayerBlindDisabled?: boolean   // Blind/disabled exemption ($1,000)
   njSpouseBlindDisabled?: boolean     // Spouse blind/disabled exemption ($1,000)
   njDependentCollegeStudents?: string[] // IDs of dependents who are full-time college students (<22)
+  njCollegeStudentDependentCount?: number // Manual count of college-student dependents (fallback when DOBs unavailable)
 }
 
 // ── Tax Return (top-level) ─────────────────────────────────────

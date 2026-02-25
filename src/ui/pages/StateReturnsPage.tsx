@@ -524,54 +524,90 @@ export function StateReturnsPage() {
                     )}
 
                     {/* College-student dependents */}
-                    {taxReturn.dependents.length > 0 && (() => {
+                    {(() => {
                       const collegeEligible = taxReturn.dependents.filter((dep) => {
                         if (!dep.dateOfBirth) return false
                         const birthYear = parseInt(dep.dateOfBirth.split('-')[0], 10)
                         if (isNaN(birthYear)) return false
                         return taxReturn.taxYear - birthYear < 22
                       })
-                      if (collegeEligible.length === 0) return null
-                      const selected = getConfig(code)?.njDependentCollegeStudents ?? []
+                      if (collegeEligible.length > 0) {
+                        // Per-dependent checkboxes when DOBs are available
+                        const selected = getConfig(code)?.njDependentCollegeStudents ?? []
+                        return (
+                          <fieldset>
+                            <legend className="text-sm font-medium text-gray-700 mb-1 inline-flex items-center">
+                              Full-time college students (under 22)
+                              <InfoTooltip
+                                explanation="NJ provides an additional $1,000 exemption for each dependent who is a full-time college student under age 22. Check all that apply."
+                                pubName="NJ Dependent Exemptions"
+                                pubUrl={NJ_TAX_GUIDE_URL}
+                              />
+                            </legend>
+                            <div className="flex flex-col gap-1.5">
+                              {collegeEligible.map((dep) => {
+                                const depId = dep.ssn || `${dep.firstName}-${dep.lastName}`
+                                const isChecked = selected.includes(depId)
+                                return (
+                                  <label key={depId} className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onChange={(e) => {
+                                        const next = e.target.checked
+                                          ? [...selected, depId]
+                                          : selected.filter((id) => id !== depId)
+                                        updateStateReturn(code as SupportedStateCode, {
+                                          njDependentCollegeStudents: next.length > 0 ? next : undefined,
+                                        })
+                                      }}
+                                      className="w-4 h-4 shrink-0"
+                                      data-testid={`nj-college-student-${depId}`}
+                                    />
+                                    <span className="text-sm text-gray-900">
+                                      {dep.firstName} {dep.lastName}
+                                    </span>
+                                  </label>
+                                )
+                              })}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">$1,000 additional exemption each</p>
+                          </fieldset>
+                        )
+                      }
+                      // Numeric fallback when no college-eligible dependents detected
+                      // (no dependents entered, or DOBs missing/all over 22)
                       return (
-                        <fieldset>
-                          <legend className="text-sm font-medium text-gray-700 mb-1 inline-flex items-center">
+                        <div>
+                          <label htmlFor="nj-college-student-count" className="block text-sm font-medium text-gray-900 inline-flex items-center gap-1">
                             Full-time college students (under 22)
                             <InfoTooltip
-                              explanation="NJ provides an additional $1,000 exemption for each dependent who is a full-time college student under age 22. Check all that apply."
+                              explanation="NJ provides an additional $1,000 exemption for each dependent who is a full-time college student under age 22. Enter the number of qualifying dependents."
                               pubName="NJ Dependent Exemptions"
                               pubUrl={NJ_TAX_GUIDE_URL}
                             />
-                          </legend>
-                          <div className="flex flex-col gap-1.5">
-                            {collegeEligible.map((dep) => {
-                              const depId = dep.ssn || `${dep.firstName}-${dep.lastName}`
-                              const isChecked = selected.includes(depId)
-                              return (
-                                <label key={depId} className="flex items-center gap-2 cursor-pointer">
-                                  <input
-                                    type="checkbox"
-                                    checked={isChecked}
-                                    onChange={(e) => {
-                                      const next = e.target.checked
-                                        ? [...selected, depId]
-                                        : selected.filter((id) => id !== depId)
-                                      updateStateReturn(code as SupportedStateCode, {
-                                        njDependentCollegeStudents: next.length > 0 ? next : undefined,
-                                      })
-                                    }}
-                                    className="w-4 h-4 shrink-0"
-                                    data-testid={`nj-college-student-${depId}`}
-                                  />
-                                  <span className="text-sm text-gray-900">
-                                    {dep.firstName} {dep.lastName}
-                                  </span>
-                                </label>
-                              )
-                            })}
-                          </div>
-                          <p className="text-xs text-gray-500 mt-1">$1,000 additional exemption each</p>
-                        </fieldset>
+                          </label>
+                          <input
+                            id="nj-college-student-count"
+                            type="number"
+                            min="0"
+                            max={Math.max(taxReturn.dependents.length, 10)}
+                            step="1"
+                            placeholder="0"
+                            value={getConfig(code)?.njCollegeStudentDependentCount ?? ''}
+                            onChange={(e) => {
+                              const count = parseInt(e.target.value, 10)
+                              updateStateReturn(code as SupportedStateCode, {
+                                njCollegeStudentDependentCount: isNaN(count) || count <= 0 ? undefined : count,
+                              })
+                            }}
+                            className="mt-1 w-full sm:w-48 px-2 py-1.5 text-sm border border-gray-300 rounded-md"
+                            data-testid="nj-college-student-count"
+                          />
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            $1,000 additional exemption each. Enter dependent DOBs on the Dependents page for per-dependent selection.
+                          </p>
+                        </div>
                       )
                     })()}
                   </div>

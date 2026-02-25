@@ -294,6 +294,33 @@ describe('NJ-1040 — exemptions', () => {
     // $1K self + $1.5K × 2 deps + $1K × 1 college = $5,000
     expect(result.line37_exemptions).toBe(cents(5000))
   })
+
+  it('college student numeric count used when checkbox IDs are empty', () => {
+    const result = computeNJ({
+      w2s: [makeW2({ id: 'w', employerName: 'X', box1: cents(80000), box2: cents(8000), box15State: 'NJ' })],
+      dependents: [
+        { firstName: 'A', lastName: 'D', ssn: '111111111', relationship: 'son', monthsLived: 12, dateOfBirth: '' },
+        { firstName: 'B', lastName: 'D', ssn: '222222222', relationship: 'daughter', monthsLived: 12, dateOfBirth: '' },
+      ],
+    }, { njCollegeStudentDependentCount: 2 })
+
+    // $1K self + $1.5K × 2 deps + $1K × 2 college = $6,000
+    expect(result.line37_exemptions).toBe(cents(6000))
+  })
+
+  it('checkbox IDs take precedence over numeric count', () => {
+    const result = computeNJ({
+      w2s: [makeW2({ id: 'w', employerName: 'X', box1: cents(80000), box2: cents(8000), box15State: 'NJ' })],
+      dependents: [
+        { firstName: 'A', lastName: 'D', ssn: '111111111', relationship: 'son', monthsLived: 12, dateOfBirth: '2005-01-01' },
+        { firstName: 'B', lastName: 'D', ssn: '222222222', relationship: 'daughter', monthsLived: 12, dateOfBirth: '2018-01-01' },
+      ],
+    }, { njDependentCollegeStudents: ['111111111'], njCollegeStudentDependentCount: 5 })
+
+    // Checkbox IDs win: $1K self + $1.5K × 2 deps + $1K × 1 college = $5,000
+    // (numeric count of 5 is ignored because checkbox IDs are present)
+    expect(result.line37_exemptions).toBe(cents(5000))
+  })
 })
 
 // ── Property Tax Deduction / Credit ─────────────────────────────

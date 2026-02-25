@@ -221,8 +221,12 @@ function computeExemptions(
   total += model.dependents.length * NJ_EXEMPTION_DEPENDENT_CHILD
 
   // College student dependents (additional $1,000 each)
+  // Prefer per-dependent checkbox IDs; fall back to manual numeric count
   const collegeStudentIds = config.njDependentCollegeStudents ?? []
-  total += collegeStudentIds.length * NJ_EXEMPTION_COLLEGE_STUDENT
+  const collegeStudentCount = collegeStudentIds.length > 0
+    ? collegeStudentIds.length
+    : (config.njCollegeStudentDependentCount ?? 0)
+  total += collegeStudentCount * NJ_EXEMPTION_COLLEGE_STUDENT
 
   return total
 }
