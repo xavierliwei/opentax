@@ -31,3 +31,4 @@ opentax.db-shm
 opentax.db-wal
 *.sqlite
 *.sqlite3
+.claude/worktrees/

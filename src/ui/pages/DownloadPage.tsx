@@ -87,13 +87,43 @@ export function DownloadPage() {
         )
       }
 
-      // Load state templates (CA Form 540, etc.) — failures are non-fatal (falls back to programmatic)
+      // Load state templates (CA Form 540, MA Form 1, etc.) — failures are non-fatal (falls back to programmatic)
       const stateTemplateMap = new Map<SupportedStateCode, StateFormTemplates>()
       for (const config of taxReturn.stateReturns ?? []) {
         if (config.stateCode === 'CA') {
           try {
             const f540 = await loadTemplate('forms/state/CA/f540.pdf')
             stateTemplateMap.set('CA', { templates: new Map([['f540', f540]]) })
+          } catch { /* fall back to programmatic */ }
+        }
+        if (config.stateCode === 'MA') {
+          try {
+            const form1 = await loadTemplate('forms/state/MA/form1.pdf')
+            stateTemplateMap.set('MA', { templates: new Map([['form1', form1]]) })
+          } catch { /* fall back to programmatic */ }
+        }
+        if (config.stateCode === 'NJ') {
+          try {
+            const nj1040 = await loadTemplate('forms/state/NJ/nj1040.pdf')
+            stateTemplateMap.set('NJ', { templates: new Map([['nj1040', nj1040]]) })
+          } catch { /* fall back to programmatic */ }
+        }
+        if (config.stateCode === 'NY') {
+          try {
+            const it201 = await loadTemplate('forms/state/NY/it201.pdf')
+            stateTemplateMap.set('NY', { templates: new Map([['it201', it201]]) })
+          } catch { /* fall back to programmatic */ }
+        }
+        if (config.stateCode === 'CT') {
+          try {
+            const ct1040 = await loadTemplate('forms/state/CT/ct1040.pdf')
+            stateTemplateMap.set('CT', { templates: new Map([['ct1040', ct1040]]) })
+          } catch { /* fall back to programmatic */ }
+        }
+        if (config.stateCode === 'MD') {
+          try {
+            const md502 = await loadTemplate('forms/state/MD/502.pdf')
+            stateTemplateMap.set('MD', { templates: new Map([['502', md502]]) })
           } catch { /* fall back to programmatic */ }
         }
       }
