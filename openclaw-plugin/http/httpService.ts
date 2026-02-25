@@ -10,6 +10,9 @@ import { join, extname } from 'node:path'
 import type { TaxService } from '../service/TaxService.ts'
 import { analyzeGaps } from '../service/GapAnalysis.ts'
 import { serializeComputeResult } from './serialize.ts'
+import { logger } from '../utils/logger.ts'
+
+const log = logger.child({ component: 'http' })
 
 const DEFAULT_PORT = 7890
 
@@ -104,8 +107,22 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
   }
 
   function handleRequest(req: IncomingMessage, res: ServerResponse) {
+    const startTime = Date.now()
     const url = new URL(req.url ?? '/', `http://localhost:${port}`)
     const path = url.pathname
+
+    // Log response when finished
+    res.on('finish', () => {
+      // Skip SSE connections — they stay open for a long time
+      if (path === '/api/events') return
+      const duration = Date.now() - startTime
+      log.info('request', {
+        method: req.method,
+        path,
+        status: res.statusCode,
+        durationMs: duration,
+      })
+    })
 
     // CORS preflight
     if (req.method === 'OPTIONS') {
@@ -147,7 +164,11 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
       res.flushHeaders()
       res.write(`data: ${JSON.stringify({ type: 'connected', stateVersion: service.stateVersion })}\n\n`)
       sseClients.add(res)
-      req.on('close', () => sseClients.delete(res))
+      log.debug('SSE client connected', { clients: sseClients.size })
+      req.on('close', () => {
+        sseClients.delete(res)
+        log.debug('SSE client disconnected', { clients: sseClients.size })
+      })
       return
     }
 
@@ -159,6 +180,10 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
         try {
           const { taxReturn, stateVersion } = JSON.parse(body)
           if (stateVersion != null && stateVersion < service.stateVersion) {
+            log.warn('Sync version conflict', {
+              serverVersion: service.stateVersion,
+              clientVersion: stateVersion,
+            })
             sendJson(res, {
               error: 'version_conflict',
               serverVersion: service.stateVersion,
@@ -169,6 +194,9 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
           service.importReturn(taxReturn)
           sendJson(res, { ok: true, stateVersion: service.stateVersion })
         } catch (err) {
+          log.warn('Invalid JSON in sync request', {
+            error: err instanceof Error ? err.message : String(err),
+          })
           sendJson(res, { error: 'invalid_json' }, 400)
         }
       })

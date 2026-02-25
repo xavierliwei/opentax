@@ -38,6 +38,9 @@ import type {
 } from '../../src/model/types.ts'
 import { computeAll } from '../../src/rules/engine.ts'
 import type { ComputeResult } from '../../src/rules/engine.ts'
+import { logger } from '../utils/logger.ts'
+
+const log = logger.child({ component: 'TaxService' })
 
 const DB_FILE = 'opentax.db'
 const LEGACY_STATE_FILE = 'opentax-state.json'
@@ -93,18 +96,22 @@ export class TaxService extends EventEmitter {
         const parsed = JSON.parse(raw) as TaxReturn
         this.upsertStmt.run(JSON.stringify(parsed), 0)
         this.taxReturn = parsed
-        console.log(`[TaxService] Migrated state from ${LEGACY_STATE_FILE} into SQLite`)
+        log.info('Migrated state from legacy JSON into SQLite', { file: LEGACY_STATE_FILE })
       } catch {
+        log.warn('Failed to parse legacy state file, starting fresh', { file: LEGACY_STATE_FILE })
         this.taxReturn = emptyTaxReturn(2025)
       }
     } else if (row) {
       try {
         this.taxReturn = JSON.parse(row.data) as TaxReturn
         this.stateVersion = row.version
+        log.info('Loaded state from SQLite', { version: row.version })
       } catch {
+        log.warn('Failed to parse stored state from SQLite, starting fresh')
         this.taxReturn = emptyTaxReturn(2025)
       }
     } else {
+      log.info('No existing state found, initialized empty return')
       this.taxReturn = emptyTaxReturn(2025)
     }
 
@@ -136,6 +143,7 @@ export class TaxService extends EventEmitter {
       this.persistTimer = null
     }
     this.upsertStmt.run(JSON.stringify(this.taxReturn), this.stateVersion)
+    log.debug('State persisted to SQLite', { version: this.stateVersion })
   }
 
   close(): void {
@@ -633,10 +641,15 @@ export class TaxService extends EventEmitter {
   // ── Import / Reset ─────────────────────────────────────────────
 
   importReturn(taxReturn: TaxReturn): void {
+    log.info('Importing tax return', {
+      filingStatus: taxReturn.filingStatus,
+      taxYear: taxReturn.taxYear,
+    })
     this.apply(taxReturn)
   }
 
   resetReturn(): void {
+    log.info('Resetting tax return to empty state')
     this.apply(emptyTaxReturn(2025))
   }
 }
