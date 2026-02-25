@@ -9,7 +9,7 @@ import type { TaxReturn, StateReturnConfig } from '../../../src/model/types'
 import { computeForm1040 } from '../../../src/rules/2025/form1040'
 import { computePA40, computeApportionmentRatio } from '../../../src/rules/2025/pa/pa40'
 import { PA_TAX_RATE } from '../../../src/rules/2025/pa/constants'
-import { makeW2, make1099INT, make1099DIV, makeDependent } from '../../fixtures/returns'
+import { makeW2, make1099INT, make1099DIV, makeDependent, makeScheduleC, makeScheduleEProperty, makeScheduleK1 } from '../../fixtures/returns'
 
 // ── Helpers ─────────────────────────────────────────────────────
 
@@ -426,6 +426,127 @@ describe('PA-40 — combined scenarios', () => {
 
     // Capital loss floors at 0; only wages are taxed
     expect(result.incomeClasses.netGains).toBe(0)
+    expect(result.totalPATaxableIncome).toBe(cents(80000))
+    expect(result.paTax).toBe(Math.round(cents(80000) * PA_TAX_RATE))
+  })
+})
+
+// ── Nonresident integration tests ─────────────────────────────────
+
+describe('PA-40 — nonresident source apportionment', () => {
+  it('nonresident: PA wages only → tax on PA-source compensation', () => {
+    const model: TaxReturn = {
+      ...emptyTaxReturn(2025),
+      w2s: [
+        makeW2({ id: 'w2-pa', employerName: 'PA Corp', box1: cents(75000), box2: cents(10000),
+          box15State: 'PA', box16StateWages: cents(75000), box17StateIncomeTax: cents(2300) }),
+      ],
+    }
+    const result = computePA(model, paConfig({ residencyType: 'nonresident' }))
+
+    expect(result.incomeClasses.netCompensation).toBe(cents(75000))
+    expect(result.totalPATaxableIncome).toBe(cents(75000))
+    expect(result.paTax).toBe(Math.round(cents(75000) * PA_TAX_RATE))
+    expect(result.stateWithholding).toBe(cents(2300))
+  })
+
+  it('nonresident: PA wages + out-of-state investment income → only wages taxed', () => {
+    const model: TaxReturn = {
+      ...emptyTaxReturn(2025),
+      w2s: [
+        makeW2({ id: 'w2-pa', employerName: 'PA Corp', box1: cents(60000), box2: cents(6000),
+          box15State: 'PA', box16StateWages: cents(60000), box17StateIncomeTax: cents(1842) }),
+        makeW2({ id: 'w2-nj', employerName: 'NJ Corp', box1: cents(40000), box2: cents(4000), box15State: 'NJ' }),
+      ],
+      form1099INTs: [make1099INT({ id: 'int-1', payerName: 'Bank', box1: cents(5000) })],
+      form1099DIVs: [make1099DIV({ id: 'div-1', payerName: 'Broker', box1a: cents(3000) })],
+    }
+    const result = computePA(model, paConfig({ residencyType: 'nonresident' }))
+
+    // Only PA W-2 wages are taxable — interest and dividends are $0 for NR
+    expect(result.incomeClasses.netCompensation).toBe(cents(60000))
+    expect(result.incomeClasses.interest).toBe(0)
+    expect(result.incomeClasses.dividends).toBe(0)
+    expect(result.totalPATaxableIncome).toBe(cents(60000))
+    expect(result.paTax).toBe(Math.round(cents(60000) * PA_TAX_RATE))
+  })
+
+  it('nonresident: PA wages + PA rental + PA business → all PA-source taxed', () => {
+    const model: TaxReturn = {
+      ...emptyTaxReturn(2025),
+      w2s: [
+        makeW2({ id: 'w2-pa', employerName: 'PA Corp', box1: cents(50000), box2: cents(5000),
+          box15State: 'PA', box16StateWages: cents(50000), box17StateIncomeTax: cents(1535) }),
+      ],
+      scheduleCBusinesses: [
+        makeScheduleC({ id: 'biz-pa', businessName: 'PA Consulting', grossReceipts: cents(30000), supplies: cents(5000), businessState: 'PA' }),
+      ],
+      scheduleEProperties: [
+        makeScheduleEProperty({ id: 'p-pa', propertyState: 'PA', rentsReceived: cents(18000), insurance: cents(1000), taxes: cents(2000) }),
+      ],
+    }
+    const result = computePA(model, paConfig({ residencyType: 'nonresident' }))
+
+    // PA wages: $50K
+    expect(result.incomeClasses.netCompensation).toBe(cents(50000))
+    // PA business: $30K - $5K = $25K
+    expect(result.incomeClasses.netBusinessIncome).toBe(cents(25000))
+    // PA rental: $18K - $1K - $2K = $15K
+    expect(result.incomeClasses.rentsRoyalties).toBe(cents(15000))
+    // Total PA-source income
+    const expectedTotal = cents(50000) + cents(25000) + cents(15000)
+    expect(result.totalPATaxableIncome).toBe(expectedTotal)
+    expect(result.paTax).toBe(Math.round(expectedTotal * PA_TAX_RATE))
+  })
+
+  it('nonresident: all out-of-state income → $0 tax', () => {
+    const model: TaxReturn = {
+      ...emptyTaxReturn(2025),
+      w2s: [
+        makeW2({ id: 'w2-nj', employerName: 'NJ Corp', box1: cents(80000), box2: cents(8000), box15State: 'NJ' }),
+      ],
+      form1099INTs: [make1099INT({ id: 'int-1', payerName: 'Bank', box1: cents(5000) })],
+      form1099DIVs: [make1099DIV({ id: 'div-1', payerName: 'Broker', box1a: cents(3000) })],
+      scheduleCBusinesses: [
+        makeScheduleC({ id: 'biz-ny', businessName: 'NY Studio', grossReceipts: cents(30000), businessState: 'NY' }),
+      ],
+      scheduleEProperties: [
+        makeScheduleEProperty({ id: 'p-nj', propertyState: 'NJ', rentsReceived: cents(18000) }),
+      ],
+      scheduleK1s: [
+        makeScheduleK1({ id: 'k1-ny', entityName: 'NY Trust', entityType: 'trust-estate', ordinaryIncome: cents(10000), entityState: 'NY' }),
+      ],
+    }
+    const result = computePA(model, paConfig({ residencyType: 'nonresident' }))
+
+    expect(result.totalPATaxableIncome).toBe(0)
+    expect(result.paTax).toBe(0)
+    expect(result.taxAfterCredits).toBe(0)
+  })
+
+  it('nonresident: PA real property sale → PA-source capital gain', () => {
+    const model: TaxReturn = {
+      ...emptyTaxReturn(2025),
+      form1099Bs: [{
+        id: 'b-pa', brokerName: 'Title Co', description: 'PA Land Sale',
+        dateAcquired: '2020-01-01', dateSold: '2025-06-01',
+        proceeds: cents(200000), costBasis: cents(120000),
+        washSaleLossDisallowed: 0, gainLoss: cents(80000),
+        basisReportedToIrs: true, longTerm: true, noncoveredSecurity: false,
+        federalTaxWithheld: 0, propertyState: 'PA',
+      }, {
+        id: 'b-stock', brokerName: 'Schwab', description: '100 AAPL',
+        dateAcquired: '2024-01-01', dateSold: '2025-06-01',
+        proceeds: cents(15000), costBasis: cents(10000),
+        washSaleLossDisallowed: 0, gainLoss: cents(5000),
+        basisReportedToIrs: true, longTerm: true, noncoveredSecurity: false,
+        federalTaxWithheld: 0,
+      }],
+    }
+    const result = computePA(model, paConfig({ residencyType: 'nonresident' }))
+
+    // Only PA land sale gain is taxable ($80K), not stock gain ($5K)
+    expect(result.incomeClasses.netGains).toBe(cents(80000))
     expect(result.totalPATaxableIncome).toBe(cents(80000))
     expect(result.paTax).toBe(Math.round(cents(80000) * PA_TAX_RATE))
   })
