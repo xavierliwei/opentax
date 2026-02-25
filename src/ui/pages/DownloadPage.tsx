@@ -87,13 +87,19 @@ export function DownloadPage() {
         )
       }
 
-      // Load state templates (CA Form 540, etc.) — failures are non-fatal (falls back to programmatic)
+      // Load state templates (CA Form 540, MA Form 1, etc.) — failures are non-fatal (falls back to programmatic)
       const stateTemplateMap = new Map<SupportedStateCode, StateFormTemplates>()
       for (const config of taxReturn.stateReturns ?? []) {
         if (config.stateCode === 'CA') {
           try {
             const f540 = await loadTemplate('forms/state/CA/f540.pdf')
             stateTemplateMap.set('CA', { templates: new Map([['f540', f540]]) })
+          } catch { /* fall back to programmatic */ }
+        }
+        if (config.stateCode === 'MA') {
+          try {
+            const form1 = await loadTemplate('forms/state/MA/form1.pdf')
+            stateTemplateMap.set('MA', { templates: new Map([['form1', form1]]) })
           } catch { /* fall back to programmatic */ }
         }
       }
