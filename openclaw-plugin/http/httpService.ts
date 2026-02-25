@@ -17,6 +17,8 @@ import { serializeComputeResult } from './serialize.ts'
 import { taxReturnStrictSchema } from '../../src/model/schemas.ts'
 import { logger } from '../utils/logger.ts'
 import { setSecurityHeaders, setCorsHeaders, parseCorsOrigins, type CorsConfig } from './securityHeaders.ts'
+import { createRateLimiter, type RateLimitOptions } from './rateLimit.ts'
+import { getRequestId } from './requestId.ts'
 
 const log = logger.child({ component: 'http' })
 
@@ -57,6 +59,8 @@ export interface HttpServiceOptions {
   staticDir?: string
   /** Comma-separated allowed CORS origins, or a pre-parsed CorsConfig. */
   corsOrigin?: string | CorsConfig
+  /** Rate limit configuration for mutation endpoints. */
+  rateLimiter?: RateLimitOptions
 }
 
 /**
@@ -83,6 +87,11 @@ export function resolveApiRoute(path: string): { route: string; legacy: boolean 
 export function createHttpService(service: TaxService, options: HttpServiceOptions = {}) {
   const port = options.port ?? DEFAULT_PORT
   const staticDir = options.staticDir
+
+  // Create rate limiter for mutation endpoints
+  const rateLimiter = createRateLimiter(
+    options.rateLimiter ?? { windowMs: 60_000, maxRequests: 60 },
+  )
 
   // Parse CORS config — accept a string (from env var) or a pre-built config
   const corsConfig: CorsConfig =
@@ -162,6 +171,10 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
     const url = new URL(req.url ?? '/', `http://localhost:${port}`)
     const path = url.pathname
 
+    // Assign a correlation ID to every request
+    const requestId = getRequestId(req)
+    res.setHeader('x-request-id', requestId)
+
     // Apply security headers to every response
     setSecurityHeaders(req, res)
 
@@ -169,8 +182,12 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
     res.on('finish', () => {
       // Skip SSE connections — they stay open for a long time
       if (path.endsWith('/events')) return
+      // Skip health check endpoints — they are high-frequency and low-value for logging
+      const apiInfo = resolveApiRoute(path)
+      if (apiInfo && (apiInfo.route === 'health' || apiInfo.route === 'ready')) return
       const duration = Date.now() - startTime
       log.info('request', {
+        requestId,
         method: req.method,
         path,
         status: res.statusCode,
@@ -196,6 +213,27 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
 
     if (apiRoute) {
       const { route, legacy } = apiRoute
+
+      // GET health (lightweight liveness probe — checked first for minimal latency)
+      if (req.method === 'GET' && route === 'health') {
+        sendJson(res, {
+          status: 'ok',
+          uptime: process.uptime(),
+          stateVersion: service.stateVersion,
+          timestamp: new Date().toISOString(),
+        }, 200, legacy)
+        return
+      }
+
+      // GET ready (readiness probe — returns 503 if tax return not loaded)
+      if (req.method === 'GET' && route === 'ready') {
+        if (service.taxReturn != null) {
+          sendJson(res, { status: 'ready' }, 200, legacy)
+        } else {
+          sendJson(res, { status: 'not_ready' }, 503, legacy)
+        }
+        return
+      }
 
       // GET status
       if (req.method === 'GET' && route === 'status') {
@@ -239,6 +277,18 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
 
       // POST sync
       if (req.method === 'POST' && route === 'sync') {
+        // Rate limit by client IP
+        const clientIp = req.socket.remoteAddress ?? 'unknown'
+        const rateResult = rateLimiter.check(clientIp)
+        if (!rateResult.allowed) {
+          const retryAfterSeconds = Math.ceil(rateResult.retryAfterMs / 1000)
+          res.setHeader('Retry-After', String(retryAfterSeconds))
+          log.warn('Rate limit exceeded', { clientIp, retryAfterMs: rateResult.retryAfterMs })
+          sendJson(res, { error: 'rate_limited', retryAfterMs: rateResult.retryAfterMs }, 429, legacy)
+          req.resume() // drain the request so the socket can be freed
+          return
+        }
+
         // Reject early if Content-Length exceeds the limit
         const contentLength = req.headers['content-length']
         if (contentLength != null && parseInt(contentLength, 10) > MAX_BODY_SIZE) {
@@ -281,6 +331,7 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
             const { taxReturn, stateVersion } = parsed
             if (stateVersion != null && stateVersion < service.stateVersion) {
               log.warn('Sync version conflict', {
+                requestId,
                 serverVersion: service.stateVersion,
                 clientVersion: stateVersion,
               })
@@ -299,7 +350,7 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
                 path: issue.path.join('.'),
                 message: issue.message,
               }))
-              sendJson(res, { error: 'validation_error', issues }, 400, legacy)
+              sendJson(res, { error: 'validation_error', requestId, issues }, 400, legacy)
               return
             }
 
@@ -307,6 +358,7 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
             sendJson(res, { ok: true, stateVersion: service.stateVersion }, 200, legacy)
           } catch (err) {
             log.warn('Invalid JSON in sync request', {
+              requestId,
               error: err instanceof Error ? err.message : String(err),
             })
             sendJson(res, { error: 'invalid_json' }, 400, legacy)
@@ -363,6 +415,7 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
     },
     stop() {
       return new Promise<void>((resolve, reject) => {
+        rateLimiter.destroy()
         for (const client of sseClients) {
           client.end()
         }
