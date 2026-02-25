@@ -18,6 +18,7 @@ import { taxReturnStrictSchema } from '../../src/model/schemas.ts'
 import { logger } from '../utils/logger.ts'
 import { setSecurityHeaders, setCorsHeaders, parseCorsOrigins, type CorsConfig } from './securityHeaders.ts'
 import { createRateLimiter, type RateLimitOptions } from './rateLimit.ts'
+import { getRequestId } from './requestId.ts'
 
 const log = logger.child({ component: 'http' })
 
@@ -170,6 +171,10 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
     const url = new URL(req.url ?? '/', `http://localhost:${port}`)
     const path = url.pathname
 
+    // Assign a correlation ID to every request
+    const requestId = getRequestId(req)
+    res.setHeader('x-request-id', requestId)
+
     // Apply security headers to every response
     setSecurityHeaders(req, res)
 
@@ -182,6 +187,7 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
       if (apiInfo && (apiInfo.route === 'health' || apiInfo.route === 'ready')) return
       const duration = Date.now() - startTime
       log.info('request', {
+        requestId,
         method: req.method,
         path,
         status: res.statusCode,
@@ -325,6 +331,7 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
             const { taxReturn, stateVersion } = parsed
             if (stateVersion != null && stateVersion < service.stateVersion) {
               log.warn('Sync version conflict', {
+                requestId,
                 serverVersion: service.stateVersion,
                 clientVersion: stateVersion,
               })
@@ -343,7 +350,7 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
                 path: issue.path.join('.'),
                 message: issue.message,
               }))
-              sendJson(res, { error: 'validation_error', issues }, 400, legacy)
+              sendJson(res, { error: 'validation_error', requestId, issues }, 400, legacy)
               return
             }
 
@@ -351,6 +358,7 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
             sendJson(res, { ok: true, stateVersion: service.stateVersion }, 200, legacy)
           } catch (err) {
             log.warn('Invalid JSON in sync request', {
+              requestId,
               error: err instanceof Error ? err.message : String(err),
             })
             sendJson(res, { error: 'invalid_json' }, 400, legacy)
