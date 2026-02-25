@@ -102,6 +102,30 @@ export function DownloadPage() {
             stateTemplateMap.set('MA', { templates: new Map([['form1', form1]]) })
           } catch { /* fall back to programmatic */ }
         }
+        if (config.stateCode === 'NJ') {
+          try {
+            const nj1040 = await loadTemplate('forms/state/NJ/nj1040.pdf')
+            stateTemplateMap.set('NJ', { templates: new Map([['nj1040', nj1040]]) })
+          } catch { /* fall back to programmatic */ }
+        }
+        if (config.stateCode === 'NY') {
+          try {
+            const it201 = await loadTemplate('forms/state/NY/it201.pdf')
+            stateTemplateMap.set('NY', { templates: new Map([['it201', it201]]) })
+          } catch { /* fall back to programmatic */ }
+        }
+        if (config.stateCode === 'CT') {
+          try {
+            const ct1040 = await loadTemplate('forms/state/CT/ct1040.pdf')
+            stateTemplateMap.set('CT', { templates: new Map([['ct1040', ct1040]]) })
+          } catch { /* fall back to programmatic */ }
+        }
+        if (config.stateCode === 'MD') {
+          try {
+            const md502 = await loadTemplate('forms/state/MD/502.pdf')
+            stateTemplateMap.set('MD', { templates: new Map([['502', md502]]) })
+          } catch { /* fall back to programmatic */ }
+        }
       }
 
       let compiled
