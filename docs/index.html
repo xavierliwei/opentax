@@ -47,6 +47,50 @@
     html { scroll-behavior: smooth; }
   </style>
 
+  <!-- Structured data for Google -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "OpenTax",
+    "description": "Free, open-source tax preparation software. Every number traces to IRS rules and your source documents. All computation runs in your browser — your data never leaves your device.",
+    "url": "https://opentax.evokelab.ai/",
+    "applicationCategory": "FinanceApplication",
+    "operatingSystem": "Web browser",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "license": "https://opensource.org/licenses/MIT",
+    "codeRepository": "https://github.com/xavierliwei/opentax",
+    "programmingLanguage": "TypeScript",
+    "featureList": [
+      "Federal Form 1040 tax return preparation",
+      "11 state returns (CA, CT, DC, GA, MA, MD, NC, NJ, NY, PA, VA)",
+      "Full computation traceability to IRS rules",
+      "Client-side only — zero data transmission",
+      "W-2 and 1099 document import with OCR",
+      "PDF generation for mail filing",
+      "2,300+ automated tests"
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "OpenTax",
+    "url": "https://opentax.evokelab.ai/",
+    "description": "Free, open-source tax preparation that shows its work.",
+    "publisher": {
+      "@type": "Organization",
+      "name": "OpenTax",
+      "url": "https://opentax.evokelab.ai/"
+    }
+  }
+  </script>
+
   <!-- Analytics: Plausible (privacy-first, no cookies, GDPR-compliant)
        To enable: uncomment the script tag below and set data-domain to your GitHub Pages domain.
   <script defer data-domain="xavierliwei.github.io" src="https://plausible.io/js/script.tagged-events.js"></script>
