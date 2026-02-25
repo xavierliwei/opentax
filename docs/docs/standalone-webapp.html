@@ -10,10 +10,10 @@
   <meta property="og:title" content="Standalone Web App — Get Started with OpenTax" />
   <meta property="og:description" content="Clone, install, and run the open-source tax engine locally. No server, no account required." />
   <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://xavierliwei.github.io/opentax/docs/standalone-webapp.html" />
+  <meta property="og:url" content="https://opentax.evokelab.ai/docs/standalone-webapp.html" />
 
   <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
-  <link rel="canonical" href="https://xavierliwei.github.io/opentax/docs/standalone-webapp.html" />
+  <link rel="canonical" href="https://opentax.evokelab.ai/docs/standalone-webapp.html" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -170,7 +170,7 @@
             <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
           </div>
           <h3 class="font-semibold text-lg mb-2">State returns</h3>
-          <p class="text-gray-600 text-sm leading-relaxed">California Form 540 is supported, with additional states on the roadmap. Federal + state computed together.</p>
+          <p class="text-gray-600 text-sm leading-relaxed">11 states supported: CA, CT, DC, GA, MA, MD, NC, NJ, NY, PA, and VA. Federal + state computed together.</p>
         </div>
       </div>
     </div>
@@ -224,7 +224,7 @@
           <tr>
             <td class="py-3 pr-6 font-medium text-gray-900">Testing</td>
             <td class="py-3 pr-6">Vitest 3</td>
-            <td class="py-3">Unit and integration tests (1,700+ test cases)</td>
+            <td class="py-3">Unit and integration tests (2,300+ test cases)</td>
           </tr>
         </tbody>
       </table>
@@ -252,7 +252,8 @@
 │   │       ├── form1040.ts    <span class="text-gray-500"># Form 1040 computation</span>
 │   │       ├── scheduleA.ts   <span class="text-gray-500"># Itemized deductions</span>
 │   │       ├── scheduleD.ts   <span class="text-gray-500"># Capital gains</span>
-│   │       └── ...            <span class="text-gray-500"># All supported forms</span>
+│   │       ├── ...            <span class="text-gray-500"># All supported federal forms</span>
+│   │       └── <span class="text-green-400">ca/ ct/ dc/ ga/ ma/ md/ nc/ nj/ ny/ pa/ va/</span> <span class="text-gray-500"># State returns</span>
 │   ├── <span class="text-green-400">ui/</span>
 │   │   ├── <span class="text-green-400">components/</span>    <span class="text-gray-500"># React components</span>
 │   │   ├── <span class="text-green-400">pages/</span>         <span class="text-gray-500"># Route pages (interview steps)</span>
@@ -263,7 +264,7 @@
 ├── <span class="text-green-400">server/</span>                <span class="text-gray-500"># Express backend (plugin mode)</span>
 ├── <span class="text-green-400">openclaw-plugin/</span>       <span class="text-gray-500"># OpenClaw agent tool defs</span>
 ├── <span class="text-green-400">docs/</span>                  <span class="text-gray-500"># GitHub Pages site (you are here)</span>
-└── <span class="text-green-400">tests/</span>                 <span class="text-gray-500"># 1,700+ test cases</span>
+└── <span class="text-green-400">tests/</span>                 <span class="text-gray-500"># 2,300+ test cases</span>
 </pre>
       </div>
     </div>
