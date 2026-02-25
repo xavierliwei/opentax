@@ -46,7 +46,7 @@ function collectNCTracedValues(result: StateComputeResult): Map<string, TracedVa
     ncAGIInputs.push('formd400.ncAdditions')
     values.set('formd400.ncAdditions', tracedFromComputation(
       form.ncAdditions, 'formd400.ncAdditions', [],
-      'NC additions (HSA add-back)',
+      'NC additions (HSA add-back, state/local tax add-back)',
     ))
   }
   if (form.ncDeductions > 0) {
@@ -139,7 +139,7 @@ const NC_REVIEW_LAYOUT: StateReviewSection[] = [
         getValue: (r) => d(r).ncAdditions,
         showWhen: (r) => d(r).ncAdditions > 0,
         tooltip: {
-          explanation: 'NC additions include HSA deduction add-back (NC does not conform to IRC §223).',
+          explanation: 'NC additions include HSA deduction add-back (NC does not conform to IRC §223) and state/local income tax deduction add-back from federal Schedule A.',
           pubName: 'NC D-400 Schedule S',
           pubUrl: 'https://www.ncdor.gov/taxes-forms/individual-income-tax',
         },
