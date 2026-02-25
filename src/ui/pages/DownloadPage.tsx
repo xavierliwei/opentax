@@ -126,6 +126,36 @@ export function DownloadPage() {
             stateTemplateMap.set('MD', { templates: new Map([['502', md502]]) })
           } catch { /* fall back to programmatic */ }
         }
+        if (config.stateCode === 'DC') {
+          try {
+            const d40 = await loadTemplate('forms/state/DC/d40.pdf')
+            stateTemplateMap.set('DC', { templates: new Map([['d40', d40]]) })
+          } catch { /* fall back to programmatic */ }
+        }
+        if (config.stateCode === 'GA') {
+          try {
+            const form500 = await loadTemplate('forms/state/GA/form500.pdf')
+            stateTemplateMap.set('GA', { templates: new Map([['form500', form500]]) })
+          } catch { /* fall back to programmatic */ }
+        }
+        if (config.stateCode === 'NC') {
+          try {
+            const d400 = await loadTemplate('forms/state/NC/d400.pdf')
+            stateTemplateMap.set('NC', { templates: new Map([['d400', d400]]) })
+          } catch { /* fall back to programmatic */ }
+        }
+        if (config.stateCode === 'PA') {
+          try {
+            const pa40 = await loadTemplate('forms/state/PA/pa40.pdf')
+            stateTemplateMap.set('PA', { templates: new Map([['pa40', pa40]]) })
+          } catch { /* fall back to programmatic */ }
+        }
+        if (config.stateCode === 'VA') {
+          try {
+            const f760 = await loadTemplate('forms/state/VA/f760.pdf')
+            stateTemplateMap.set('VA', { templates: new Map([['f760', f760]]) })
+          } catch { /* fall back to programmatic */ }
+        }
       }
 
       let compiled
