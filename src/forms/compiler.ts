@@ -71,7 +71,10 @@ export async function compileFilingPackage(
   const needsSchedule1 = result.schedule1 !== null ||
     result.iraDeduction !== null ||
     result.hsaResult !== null ||
-    result.studentLoanDeduction !== null
+    result.studentLoanDeduction !== null ||
+    result.educatorExpensesResult !== null ||
+    result.seSepSimpleResult !== null ||
+    result.seHealthInsuranceResult !== null
 
   const needsSchedule2 =
     (result.amtResult !== null && result.amtResult.amt > 0) ||
@@ -131,10 +134,14 @@ export async function compileFilingPackage(
   if (needsSchedule1) {
     const sch1Doc = await fillSchedule1(
       templates.f1040s1, taxReturn,
-      result.schedule1 ?? { line1: tracedZero('sch1-1'), line3: tracedZero('sch1-3'), line5: tracedZero('sch1-5'), line7: tracedZero('sch1-7'), line8z: tracedZero('sch1-8z'), line10: tracedZero('sch1-10'), line15: tracedZero('sch1-15') },
+      result.schedule1 ?? { line1: tracedZero('sch1-1'), line2a: tracedZero('sch1-2a'), line3: tracedZero('sch1-3'), line5: tracedZero('sch1-5'), line7: tracedZero('sch1-7'), line8z: tracedZero('sch1-8z'), line10: tracedZero('sch1-10'), line15: tracedZero('sch1-15') },
       result.iraDeduction,
       result.hsaResult,
       result.studentLoanDeduction,
+      result.educatorExpensesResult,
+      result.seSepSimpleResult,
+      result.seHealthInsuranceResult,
+      result.scheduleSEResult?.deductibleHalfCents ?? 0,
     )
     filledDocs.push({
       doc: sch1Doc,

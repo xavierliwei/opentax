@@ -19,6 +19,7 @@ import {
   HSA_LIMIT_FAMILY,
   HSA_CATCHUP_AMOUNT,
 } from '../../rules/2025/constants.ts'
+import { EDUCATOR_EXPENSES_MAX } from '../../rules/2025/schedule1Adjustments.ts'
 import { computeSaltCap } from '../../rules/2025/scheduleA.ts'
 import { dollars } from '../../model/traced.ts'
 import { parseForm1098Pdf } from '../../intake/pdf/form1098PdfParser.ts'
@@ -637,8 +638,13 @@ export function DeductionsPage() {
         These reduce your AGI regardless of standard or itemized deduction.
       </p>
 
+      <EducatorExpensesSection />
       <StudentLoanSection />
       <HSASection />
+      <SESepSimpleSection />
+      <SEHealthInsuranceSection />
+      <AlimonyReceivedSection />
+      <HouseholdEmploymentTaxSection />
 
       {/* ── Estimated Tax Payments ────────────────────────────── */}
       <h2 className="mt-8 text-lg font-bold text-gray-900">Estimated Tax Payments</h2>
@@ -963,6 +969,250 @@ function EstimatedTaxSection() {
           Total estimated payments: <strong>{formatCurrency(payments.q1 + payments.q2 + payments.q3 + payments.q4)}</strong>
         </p>
       )}
+    </div>
+  )
+}
+
+// ── Educator Expenses ──────────────────────────────────────
+
+function EducatorExpensesSection() {
+  const filingStatus = useTaxStore((s) => s.taxReturn.filingStatus)
+  const taxpayerExpenses = useTaxStore((s) => s.taxReturn.educatorExpenses ?? 0)
+  const spouseExpenses = useTaxStore((s) => s.taxReturn.spouseEducatorExpenses ?? 0)
+  const result = useTaxStore((s) => s.computeResult.form1040.educatorExpensesResult)
+  const setEducatorExpenses = useTaxStore((s) => s.setEducatorExpenses)
+  const isMFJ = filingStatus === 'mfj'
+
+  return (
+    <div className="mt-4 bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
+      <div className="flex items-baseline justify-between">
+        <div className="flex items-center gap-1">
+          <span className="text-sm font-semibold text-gray-800">Educator Expenses</span>
+          <InfoTooltip
+            explanation="Eligible K-12 teachers, instructors, counselors, principals, or aides who worked at least 900 hours can deduct up to $300 of unreimbursed expenses for books, supplies, equipment, and professional development courses."
+            pubName="IRS Publication 17 — Educator Expenses"
+            pubUrl="https://www.irs.gov/taxtopics/tc458"
+          />
+          <span className="text-xs text-gray-400">Schedule 1, Line 11</span>
+        </div>
+        {result && result.totalDeduction > 0 && (
+          <span className="text-sm font-semibold text-gray-700">
+            {formatCurrency(result.totalDeduction)}
+          </span>
+        )}
+      </div>
+      <CurrencyInput
+        label="Your qualified expenses"
+        value={taxpayerExpenses}
+        onChange={(v) => setEducatorExpenses(v, spouseExpenses)}
+        helperText={`Maximum deduction: ${formatCurrency(EDUCATOR_EXPENSES_MAX)}`}
+      />
+      {isMFJ && (
+        <CurrencyInput
+          label="Spouse's qualified expenses"
+          value={spouseExpenses}
+          onChange={(v) => setEducatorExpenses(taxpayerExpenses, v)}
+          helperText={`Spouse maximum: ${formatCurrency(EDUCATOR_EXPENSES_MAX)}`}
+        />
+      )}
+    </div>
+  )
+}
+
+// ── SE SEP/SIMPLE/Qualified Plans ──────────────────────────
+
+function SESepSimpleSection() {
+  const contributions = useTaxStore((s) => s.taxReturn.seSepSimpleContributions ?? 0)
+  const result = useTaxStore((s) => s.computeResult.form1040.seSepSimpleResult)
+  const setContributions = useTaxStore((s) => s.setSESepSimpleContributions)
+  const hasScheduleC = useTaxStore((s) => (s.taxReturn.scheduleCBusinesses ?? []).length > 0)
+  const hasK1SE = useTaxStore((s) => (s.taxReturn.scheduleK1s ?? []).some(k => (k.selfEmploymentEarnings ?? 0) > 0))
+
+  if (!hasScheduleC && !hasK1SE && contributions === 0) return null
+
+  return (
+    <div className="mt-4 bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
+      <div className="flex items-baseline justify-between">
+        <div className="flex items-center gap-1">
+          <span className="text-sm font-semibold text-gray-800">SEP / SIMPLE / Qualified Plans</span>
+          <InfoTooltip
+            explanation="Self-employed individuals can deduct contributions to SEP-IRA, SIMPLE-IRA, solo 401(k), or Keogh plans. Enter the amount contributed — ensure it does not exceed your plan's contribution limits."
+            pubName="IRS Publication 560 — Retirement Plans for Small Business"
+            pubUrl="https://www.irs.gov/publications/p560"
+          />
+          <span className="text-xs text-gray-400">Schedule 1, Line 16</span>
+        </div>
+        {result && result.deductibleAmount > 0 && (
+          <span className="text-sm font-semibold text-gray-700">
+            {formatCurrency(result.deductibleAmount)}
+          </span>
+        )}
+      </div>
+      <CurrencyInput
+        label="Contributions to SEP, SIMPLE, or qualified plans"
+        value={contributions}
+        onChange={(v) => setContributions(v)}
+      />
+    </div>
+  )
+}
+
+// ── SE Health Insurance ────────────────────────────────────
+
+function SEHealthInsuranceSection() {
+  const premiums = useTaxStore((s) => s.taxReturn.seHealthInsurancePremiums ?? 0)
+  const result = useTaxStore((s) => s.computeResult.form1040.seHealthInsuranceResult)
+  const setPremiums = useTaxStore((s) => s.setSEHealthInsurancePremiums)
+  const hasScheduleC = useTaxStore((s) => (s.taxReturn.scheduleCBusinesses ?? []).length > 0)
+  const hasK1SE = useTaxStore((s) => (s.taxReturn.scheduleK1s ?? []).some(k => (k.selfEmploymentEarnings ?? 0) > 0))
+
+  if (!hasScheduleC && !hasK1SE && premiums === 0) return null
+
+  return (
+    <div className="mt-4 bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
+      <div className="flex items-baseline justify-between">
+        <div className="flex items-center gap-1">
+          <span className="text-sm font-semibold text-gray-800">Self-Employed Health Insurance</span>
+          <InfoTooltip
+            explanation="If you are self-employed and not eligible for an employer-sponsored health plan, you can deduct health, dental, and long-term care insurance premiums for yourself, your spouse, and your dependents. The deduction cannot exceed your net self-employment profit."
+            pubName="IRS Publication 535 — Business Expenses"
+            pubUrl="https://www.irs.gov/publications/p535"
+          />
+          <span className="text-xs text-gray-400">Schedule 1, Line 17</span>
+        </div>
+        {result && result.deductibleAmount > 0 && (
+          <span className="text-sm font-semibold text-gray-700">
+            {formatCurrency(result.deductibleAmount)}
+          </span>
+        )}
+      </div>
+      <CurrencyInput
+        label="Health insurance premiums paid"
+        value={premiums}
+        onChange={(v) => setPremiums(v)}
+        helperText="Include health, dental, and qualifying long-term care insurance"
+      />
+      {result && result.premiumsPaid > result.deductibleAmount && (
+        <div className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+          Deduction limited to net SE profit ({formatCurrency(result.netSEProfit)}).
+          {result.deductibleAmount > 0 ? ` Deductible: ${formatCurrency(result.deductibleAmount)}.` : ' No deduction — no net SE profit.'}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Alimony Received ──────────────────────────────────────
+
+function AlimonyReceivedSection() {
+  const alimonyReceived = useTaxStore((s) => s.taxReturn.alimonyReceived ?? 0)
+  const payerSSN = useTaxStore((s) => s.taxReturn.alimonyPayerSSN ?? '')
+  const agreementDate = useTaxStore((s) => s.taxReturn.alimonyAgreementDate ?? '')
+  const setAlimony = useTaxStore((s) => s.setAlimonyReceived)
+
+  // Only show if user has entered data or explicitly wants to add
+  const [expanded, setExpanded] = useState(alimonyReceived > 0)
+  if (!expanded) {
+    return (
+      <button
+        className="mt-4 text-sm text-blue-600 hover:text-blue-800 text-left"
+        onClick={() => setExpanded(true)}
+      >
+        + Add alimony received (pre-2019 agreements only)
+      </button>
+    )
+  }
+
+  return (
+    <div className="mt-4 bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
+      <div className="flex items-baseline justify-between">
+        <div className="flex items-center gap-1">
+          <span className="text-sm font-semibold text-gray-800">Alimony Received</span>
+          <InfoTooltip
+            explanation="Alimony received under a divorce or separation agreement executed before January 1, 2019 is taxable income. For agreements executed on or after January 1, 2019, alimony is not taxable to the recipient (TCJA §11051)."
+            pubName="IRS Topic 452 — Alimony and Separate Maintenance"
+            pubUrl="https://www.irs.gov/taxtopics/tc452"
+          />
+          <span className="text-xs text-gray-400">Schedule 1, Line 2a</span>
+        </div>
+      </div>
+      {(!agreementDate || agreementDate < '2019-01-01') ? (
+        <>
+          <CurrencyInput
+            label="Alimony received"
+            value={alimonyReceived}
+            onChange={(v) => setAlimony({ amount: v })}
+          />
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700">Date of divorce/separation agreement</label>
+            <input
+              type="date"
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-tax-blue focus:border-transparent"
+              value={agreementDate}
+              max="2018-12-31"
+              onChange={(e) => setAlimony({ agreementDate: e.target.value })}
+            />
+            <span className="text-xs text-gray-500">Must be before January 1, 2019 to be taxable</span>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700">Payer's SSN</label>
+            <input
+              type="text"
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-tax-blue focus:border-transparent"
+              value={payerSSN}
+              placeholder="XXX-XX-XXXX"
+              maxLength={11}
+              onChange={(e) => setAlimony({ payerSSN: e.target.value })}
+            />
+            <span className="text-xs text-gray-500">Required by IRS for Schedule 1</span>
+          </div>
+        </>
+      ) : (
+        <div className="text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded px-3 py-2">
+          Agreements executed on or after January 1, 2019 — alimony is not taxable income.
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Household Employment Taxes ────────────────────────────
+
+function HouseholdEmploymentTaxSection() {
+  const amount = useTaxStore((s) => s.taxReturn.householdEmploymentTaxes ?? 0)
+  const setAmount = useTaxStore((s) => s.setHouseholdEmploymentTaxes)
+
+  const [expanded, setExpanded] = useState(amount > 0)
+  if (!expanded) {
+    return (
+      <button
+        className="mt-4 text-sm text-blue-600 hover:text-blue-800 text-left"
+        onClick={() => setExpanded(true)}
+      >
+        + Add household employment taxes (Schedule H)
+      </button>
+    )
+  }
+
+  return (
+    <div className="mt-4 bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
+      <div className="flex items-baseline justify-between">
+        <div className="flex items-center gap-1">
+          <span className="text-sm font-semibold text-gray-800">Household Employment Taxes</span>
+          <InfoTooltip
+            explanation="If you paid a household employee (nanny, housekeeper, etc.) $2,700 or more in cash wages during 2025, you owe household employment taxes (Social Security, Medicare, and FUTA). Enter the total Schedule H tax amount — you can compute this using the IRS Schedule H worksheet or a payroll service."
+            pubName="IRS Publication 926 — Household Employer's Tax Guide"
+            pubUrl="https://www.irs.gov/publications/p926"
+          />
+          <span className="text-xs text-gray-400">Schedule H → Schedule 2, Line 9</span>
+        </div>
+      </div>
+      <CurrencyInput
+        label="Total Schedule H tax"
+        value={amount}
+        onChange={(v) => setAmount(v)}
+        helperText="Enter your computed Schedule H total (SS + Medicare + FUTA taxes on household employees)"
+      />
     </div>
   )
 }

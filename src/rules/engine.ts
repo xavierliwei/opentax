@@ -113,6 +113,7 @@ export const NODE_LABELS: Record<string, string> = {
 
   // Schedule 1
   'schedule1.line1': 'Taxable refunds of state/local taxes',
+  'schedule1.line2a': 'Alimony received',
   'schedule1.line5': 'Rents and royalties',
   'schedule1.line7': 'Unemployment compensation',
   'schedule1.line8z': 'Other income (prizes, awards, etc.)',
@@ -171,9 +172,15 @@ export const NODE_LABELS: Record<string, string> = {
   'eic.creditAmount': 'Earned income credit',
 
   // Adjustments (Line 10 components)
+  'adjustments.educatorExpenses': 'Educator expenses (Schedule 1, Line 11)',
+  'adjustments.seDeductibleHalf': 'Deductible half of SE tax (Schedule 1, Line 15)',
+  'adjustments.seSepSimple': 'SEP/SIMPLE/qualified plans (Schedule 1, Line 16)',
+  'adjustments.seHealthInsurance': 'SE health insurance (Schedule 1, Line 17)',
   'adjustments.ira': 'IRA deduction (Schedule 1, Line 20)',
   'adjustments.hsa': 'HSA deduction (Form 8889)',
   'adjustments.studentLoan': 'Student loan interest deduction (Schedule 1, Line 21)',
+  'alimony.received': 'Alimony received (Schedule 1, Line 2a)',
+  'scheduleH.totalTax': 'Household employment taxes (Schedule H)',
   'hsa.taxableDistributions': 'Taxable HSA distributions',
   'hsa.penalties': 'HSA penalties',
   'form5329.earlyWithdrawalPenalty': '10% early withdrawal penalty (Form 5329)',
@@ -455,6 +462,56 @@ export function collectAllValues(
       'adjustments.studentLoan',
       [],
       'Student loan interest deduction (Schedule 1, Line 21)',
+    ))
+  }
+
+  // Educator expenses detail node
+  if (form1040.educatorExpensesResult && form1040.educatorExpensesResult.totalDeduction > 0) {
+    values.set('adjustments.educatorExpenses', tracedFromComputation(
+      form1040.educatorExpensesResult.totalDeduction,
+      'adjustments.educatorExpenses',
+      [],
+      'Educator expenses (Schedule 1, Line 11)',
+    ))
+  }
+
+  // SE SEP/SIMPLE detail node
+  if (form1040.seSepSimpleResult && form1040.seSepSimpleResult.deductibleAmount > 0) {
+    values.set('adjustments.seSepSimple', tracedFromComputation(
+      form1040.seSepSimpleResult.deductibleAmount,
+      'adjustments.seSepSimple',
+      [],
+      'SEP/SIMPLE/qualified plans (Schedule 1, Line 16)',
+    ))
+  }
+
+  // SE health insurance detail node
+  if (form1040.seHealthInsuranceResult && form1040.seHealthInsuranceResult.deductibleAmount > 0) {
+    values.set('adjustments.seHealthInsurance', tracedFromComputation(
+      form1040.seHealthInsuranceResult.deductibleAmount,
+      'adjustments.seHealthInsurance',
+      [],
+      'SE health insurance (Schedule 1, Line 17)',
+    ))
+  }
+
+  // Alimony received detail node
+  if (form1040.alimonyReceivedResult && form1040.alimonyReceivedResult.amount > 0) {
+    values.set('alimony.received', tracedFromComputation(
+      form1040.alimonyReceivedResult.amount,
+      'alimony.received',
+      [],
+      'Alimony received (Schedule 1, Line 2a)',
+    ))
+  }
+
+  // Household employment taxes detail node
+  if (form1040.householdEmploymentTaxes > 0) {
+    values.set('scheduleH.totalTax', tracedFromComputation(
+      form1040.householdEmploymentTaxes,
+      'scheduleH.totalTax',
+      [],
+      'Household employment taxes (Schedule H)',
     ))
   }
 

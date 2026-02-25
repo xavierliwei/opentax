@@ -99,6 +99,11 @@ export interface TaxStoreState {
   setEnergyCredits: (updates: Partial<EnergyCredits>) => void
   setEducationExpenses: (expenses: EducationExpenses) => void
   setStudentLoanInterest: (cents: number) => void
+  setAlimonyReceived: (updates: { amount?: number; payerSSN?: string; agreementDate?: string }) => void
+  setEducatorExpenses: (taxpayer: number, spouse?: number) => void
+  setSEHealthInsurancePremiums: (cents: number) => void
+  setSESepSimpleContributions: (cents: number) => void
+  setHouseholdEmploymentTaxes: (cents: number) => void
   setEstimatedTaxPayment: (quarter: 'q1' | 'q2' | 'q3' | 'q4', cents: number) => void
   setHSA: (updates: Partial<HSAInfo>) => void
   addScheduleC: (biz: ScheduleC) => void
@@ -757,6 +762,47 @@ export const useTaxStore = create<TaxStoreState>()(
 
       setStudentLoanInterest: (cents) => {
         const tr = { ...get().taxReturn, studentLoanInterest: cents || undefined }
+        set(recompute(tr))
+      },
+
+      setAlimonyReceived: (updates) => {
+        const prev = get().taxReturn
+        const tr = {
+          ...prev,
+          alimonyReceived: updates.amount ?? prev.alimonyReceived,
+          alimonyPayerSSN: updates.payerSSN ?? prev.alimonyPayerSSN,
+          alimonyAgreementDate: updates.agreementDate ?? prev.alimonyAgreementDate,
+        }
+        // Clear if amount is 0
+        if (!tr.alimonyReceived) {
+          tr.alimonyReceived = undefined
+          tr.alimonyPayerSSN = undefined
+          tr.alimonyAgreementDate = undefined
+        }
+        set(recompute(tr))
+      },
+
+      setEducatorExpenses: (taxpayer, spouse) => {
+        const tr = {
+          ...get().taxReturn,
+          educatorExpenses: taxpayer || undefined,
+          spouseEducatorExpenses: spouse || undefined,
+        }
+        set(recompute(tr))
+      },
+
+      setSEHealthInsurancePremiums: (cents) => {
+        const tr = { ...get().taxReturn, seHealthInsurancePremiums: cents || undefined }
+        set(recompute(tr))
+      },
+
+      setSESepSimpleContributions: (cents) => {
+        const tr = { ...get().taxReturn, seSepSimpleContributions: cents || undefined }
+        set(recompute(tr))
+      },
+
+      setHouseholdEmploymentTaxes: (cents) => {
+        const tr = { ...get().taxReturn, householdEmploymentTaxes: cents || undefined }
         set(recompute(tr))
       },
 
