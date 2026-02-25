@@ -303,7 +303,7 @@ export async function compileFilingPackage(
 
   // Form 8995 (sequence 55) — simplified QBI deduction
   if (needsForm8995) {
-    const f8995Doc = await fillForm8995(taxReturn, result.qbiResult!)
+    const f8995Doc = await fillForm8995(taxReturn, result.qbiResult!, templates.f8995)
     filledDocs.push({
       doc: f8995Doc,
       summary: { formId: 'Form 8995', sequenceNumber: '55', pageCount: f8995Doc.getPageCount() },
@@ -312,7 +312,7 @@ export async function compileFilingPackage(
 
   // Form 8995-A (sequence 55A) — above-threshold QBI deduction
   if (needsForm8995A) {
-    const f8995ADoc = await fillForm8995A(taxReturn, result.qbiResult!)
+    const f8995ADoc = await fillForm8995A(taxReturn, result.qbiResult!, templates.f8995a)
     filledDocs.push({
       doc: f8995ADoc,
       summary: { formId: 'Form 8995-A', sequenceNumber: '55A', pageCount: f8995ADoc.getPageCount() },
