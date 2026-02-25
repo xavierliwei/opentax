@@ -1,5 +1,6 @@
 import type { FilingStatus, StateReturnConfig, TaxReturn } from '../../../model/types'
 import type { Form1040Result } from '../form1040'
+import { isEITCQualifyingChild } from '../earnedIncomeCredit'
 import { computeBracketTax } from '../taxComputation'
 import { CT_PERSONAL_EXEMPTION, CT_TABLE_C, CT_TABLE_D, CT_TAX_BRACKETS } from './constants'
 import { computeCTEITC, computePropertyTaxCredit } from './ctCredits'
@@ -114,12 +115,7 @@ export function computeFormCT1040(model: TaxReturn, federal: Form1040Result, con
     ctIncomeTax,
     computePropertyTaxCredit(ctAGI, model.filingStatus, config.ctPropertyTaxPaid ?? 0),
   )
-  const hasQualifyingChildren = model.dependents.some((d) => {
-    const rel = d.relationship.toLowerCase()
-    return rel === 'son' || rel === 'daughter' || rel === 'child'
-      || rel === 'stepson' || rel === 'stepdaughter' || rel === 'stepchild'
-      || rel === 'foster child' || rel === 'foster_child'
-  })
+  const hasQualifyingChildren = model.dependents.some(isEITCQualifyingChild)
   const ctEITC = computeCTEITC(federal.line27.amount, hasQualifyingChildren, config.residencyType === 'full-year')
 
   const totalNonrefundableCredits = propertyTaxCredit

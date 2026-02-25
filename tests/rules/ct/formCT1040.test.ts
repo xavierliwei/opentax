@@ -256,6 +256,108 @@ describe('CT EITC', () => {
   })
 })
 
+// ── CT EITC qualifying child detection (CLD-20260225-02) ────────
+
+describe('CT EITC — qualifying child detection uses isEITCQualifyingChild', () => {
+  // Helper: low-income CT return that qualifies for federal EITC so
+  // the CT EITC bonus is observable when hasQualifyingChildren is true.
+  // Note: federal EITC itself changes with qualifying children (different
+  // EIC schedule), so we compare ctEITC against the expected formula
+  // rather than a simple $250 difference from the no-child case.
+  function computeCTWithDeps(dependents: Parameters<typeof makeDependent>[0][]) {
+    return computeCT({
+      filingStatus: 'single',
+      w2s: [makeW2({ id: 'w1', employerName: 'Shop', box1: cents(25000), box2: cents(1500), box15State: 'CT', box17StateIncomeTax: cents(500) })],
+      dependents: dependents.map((d, i) => makeDependent({ ssn: `98765432${i}`, ...d })),
+    })
+  }
+
+  // Baseline: no dependents at all — no child bonus
+  const baselineNoKids = computeCTWithDeps([])
+
+  it('son (qualifying) triggers child bonus', () => {
+    const result = computeCTWithDeps([{ firstName: 'A', dateOfBirth: '2015-01-01', relationship: 'son' }])
+    // With a qualifying child the CT EITC includes the $250 bonus and
+    // the federal EITC is computed on a higher schedule, so ctEITC should
+    // be strictly larger than the no-kids case.
+    expect(result.ctEITC).toBeGreaterThan(baselineNoKids.ctEITC)
+  })
+
+  it('daughter (qualifying) triggers child bonus', () => {
+    const result = computeCTWithDeps([{ firstName: 'B', dateOfBirth: '2016-03-15', relationship: 'daughter' }])
+    expect(result.ctEITC).toBeGreaterThan(baselineNoKids.ctEITC)
+  })
+
+  it('stepchild (qualifying) triggers child bonus', () => {
+    const result = computeCTWithDeps([{ firstName: 'C', dateOfBirth: '2014-06-01', relationship: 'stepchild' }])
+    expect(result.ctEITC).toBeGreaterThan(baselineNoKids.ctEITC)
+  })
+
+  it('foster child (qualifying) triggers child bonus', () => {
+    const result = computeCTWithDeps([{ firstName: 'D', dateOfBirth: '2013-09-01', relationship: 'foster child' }])
+    expect(result.ctEITC).toBeGreaterThan(baselineNoKids.ctEITC)
+  })
+
+  it('sibling (qualifying) triggers child bonus', () => {
+    const result = computeCTWithDeps([{ firstName: 'E', dateOfBirth: '2015-11-01', relationship: 'sibling' }])
+    expect(result.ctEITC).toBeGreaterThan(baselineNoKids.ctEITC)
+  })
+
+  it('grandchild (qualifying) triggers child bonus', () => {
+    const result = computeCTWithDeps([{ firstName: 'F', dateOfBirth: '2016-02-01', relationship: 'grandchild' }])
+    expect(result.ctEITC).toBeGreaterThan(baselineNoKids.ctEITC)
+  })
+
+  // All qualifying relationships produce the same CT EITC (same federal schedule)
+  it('all qualifying relationships produce equal ctEITC', () => {
+    const rels = ['son', 'daughter', 'stepchild', 'foster child', 'sibling', 'grandchild']
+    const results = rels.map((r, i) =>
+      computeCTWithDeps([{ firstName: `R${i}`, dateOfBirth: '2015-01-01', relationship: r }]),
+    )
+    const first = results[0].ctEITC
+    for (const r of results) {
+      expect(r.ctEITC).toBe(first)
+    }
+  })
+
+  // Edge cases that previously could have caused false positives
+  it('grandson does NOT trigger child bonus (not in qualifying set)', () => {
+    const result = computeCTWithDeps([{ firstName: 'G', dateOfBirth: '2015-01-01', relationship: 'grandson' }])
+    expect(result.ctEITC).toBe(baselineNoKids.ctEITC)
+  })
+
+  it('person does NOT trigger child bonus', () => {
+    const result = computeCTWithDeps([{ firstName: 'H', dateOfBirth: '2015-01-01', relationship: 'person' }])
+    expect(result.ctEITC).toBe(baselineNoKids.ctEITC)
+  })
+
+  it('mason does NOT trigger child bonus', () => {
+    const result = computeCTWithDeps([{ firstName: 'I', dateOfBirth: '2015-01-01', relationship: 'mason' }])
+    expect(result.ctEITC).toBe(baselineNoKids.ctEITC)
+  })
+
+  it('parent does NOT trigger child bonus', () => {
+    const result = computeCTWithDeps([{ firstName: 'J', dateOfBirth: '1960-01-01', relationship: 'parent' }])
+    expect(result.ctEITC).toBe(baselineNoKids.ctEITC)
+  })
+
+  it('none (generic) does NOT trigger child bonus', () => {
+    const result = computeCTWithDeps([{ firstName: 'K', dateOfBirth: '2015-01-01', relationship: 'none' }])
+    expect(result.ctEITC).toBe(baselineNoKids.ctEITC)
+  })
+
+  it('child over 18 does NOT trigger child bonus (age test)', () => {
+    // Born 2006: age 19 at Dec 31 2025, fails under-19 age test
+    const result = computeCTWithDeps([{ firstName: 'L', dateOfBirth: '2006-01-01', relationship: 'son' }])
+    expect(result.ctEITC).toBe(baselineNoKids.ctEITC)
+  })
+
+  it('child with insufficient months lived does NOT trigger child bonus', () => {
+    const result = computeCTWithDeps([{ firstName: 'M', dateOfBirth: '2015-01-01', relationship: 'daughter', monthsLived: 3 }])
+    expect(result.ctEITC).toBe(baselineNoKids.ctEITC)
+  })
+})
+
 // ── Full return computation by filing status ────────────────────
 
 describe('CT full return — filing status coverage', () => {
