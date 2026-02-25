@@ -131,7 +131,7 @@ Lines that still need real computation:
 - [x] Capital loss carryforward tracking
 - [x] Investment interest carryforward (Form 4952)
 
-### State Tax Returns (11 states + DC)
+### State Tax Returns (12 states + DC)
 - [x] CA — Form 540 with Schedule CA
 - [x] CT — Form CT-1040 with CT credits
 - [x] DC — Form D-40
@@ -141,6 +141,7 @@ Lines that still need real computation:
 - [x] NC — Form D-400
 - [x] NJ — Form NJ-1040
 - [x] NY — Form IT-201
+- [x] OH — Form IT 1040 with progressive brackets, personal exemption credit, joint filing credit
 - [x] PA — Form PA-40 with Schedule SP and income classes
 - [x] VA — Form 760 with Schedule ADJ and VA credits
 
