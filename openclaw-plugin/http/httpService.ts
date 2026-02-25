@@ -16,6 +16,12 @@ const log = logger.child({ component: 'http' })
 
 const DEFAULT_PORT = 7890
 
+/** Maximum allowed request body size in bytes (5 MB). */
+export const MAX_BODY_SIZE = 5 * 1024 * 1024
+
+/** Maximum time (ms) to wait for the full request body before aborting. */
+export const BODY_TIMEOUT_MS = 30_000
+
 const MIME_TYPES: Record<string, string> = {
   '.html': 'text/html',
   '.js': 'application/javascript',
@@ -174,9 +180,43 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
 
     // POST /api/sync
     if (req.method === 'POST' && path === '/api/sync') {
+      // Reject early if Content-Length exceeds the limit
+      const contentLength = req.headers['content-length']
+      if (contentLength != null && parseInt(contentLength, 10) > MAX_BODY_SIZE) {
+        sendJson(res, { error: 'payload_too_large' }, 413)
+        req.resume() // drain the request so the socket can be freed
+        return
+      }
+
       let body = ''
-      req.on('data', (chunk) => { body += chunk })
+      let bodySize = 0
+      let aborted = false
+
+      // Timeout: abort if body isn't received within the limit
+      const timer = setTimeout(() => {
+        if (!aborted) {
+          aborted = true
+          sendJson(res, { error: 'request_timeout' }, 408)
+          req.destroy()
+        }
+      }, BODY_TIMEOUT_MS)
+
+      req.on('data', (chunk: Buffer) => {
+        if (aborted) return
+        bodySize += chunk.length
+        if (bodySize > MAX_BODY_SIZE) {
+          aborted = true
+          clearTimeout(timer)
+          sendJson(res, { error: 'payload_too_large' }, 413)
+          req.destroy()
+          return
+        }
+        body += chunk
+      })
+
       req.on('end', () => {
+        clearTimeout(timer)
+        if (aborted) return
         try {
           const { taxReturn, stateVersion } = JSON.parse(body)
           if (stateVersion != null && stateVersion < service.stateVersion) {
@@ -200,6 +240,11 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
           sendJson(res, { error: 'invalid_json' }, 400)
         }
       })
+
+      req.on('error', () => {
+        clearTimeout(timer)
+      })
+
       return
     }
 
@@ -233,10 +278,17 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
 
   const server = createServer(handleRequest)
 
-  return {
+  const svc = {
     start() {
       return new Promise<void>((resolve) => {
-        server.listen(port, () => resolve())
+        server.listen(port, () => {
+          // After listening, capture the actual port (important when port 0 is used)
+          const addr = server.address()
+          if (addr && typeof addr === 'object') {
+            svc.port = addr.port
+          }
+          resolve()
+        })
       })
     },
     stop() {
@@ -251,4 +303,6 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
     server,
     port,
   }
+
+  return svc
 }
