@@ -169,6 +169,9 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
     res.on('finish', () => {
       // Skip SSE connections — they stay open for a long time
       if (path.endsWith('/events')) return
+      // Skip health check endpoints — they are high-frequency and low-value for logging
+      const apiInfo = resolveApiRoute(path)
+      if (apiInfo && (apiInfo.route === 'health' || apiInfo.route === 'ready')) return
       const duration = Date.now() - startTime
       log.info('request', {
         method: req.method,
@@ -196,6 +199,27 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
 
     if (apiRoute) {
       const { route, legacy } = apiRoute
+
+      // GET health (lightweight liveness probe — checked first for minimal latency)
+      if (req.method === 'GET' && route === 'health') {
+        sendJson(res, {
+          status: 'ok',
+          uptime: process.uptime(),
+          stateVersion: service.stateVersion,
+          timestamp: new Date().toISOString(),
+        }, 200, legacy)
+        return
+      }
+
+      // GET ready (readiness probe — returns 503 if tax return not loaded)
+      if (req.method === 'GET' && route === 'ready') {
+        if (service.taxReturn != null) {
+          sendJson(res, { status: 'ready' }, 200, legacy)
+        } else {
+          sendJson(res, { status: 'not_ready' }, 503, legacy)
+        }
+        return
+      }
 
       // GET status
       if (req.method === 'GET' && route === 'status') {
