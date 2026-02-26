@@ -261,14 +261,14 @@ describe('DownloadPage', () => {
   it('shows return summary', () => {
     renderWithRouter(<DownloadPage />, { route: '/download' })
     expect(screen.getByText('Return Summary')).toBeDefined()
-    expect(screen.getByText('2025')).toBeDefined()
-    expect(screen.getByText('Single')).toBeDefined()
+    expect(screen.getByText(/2025/)).toBeDefined()
+    expect(screen.getByText(/Single/)).toBeDefined()
   })
 
   it('has download PDF button', () => {
     renderWithRouter(<DownloadPage />, { route: '/download' })
     expect(screen.getByTestId('download-pdf-btn')).toBeDefined()
-    expect(screen.getByText('Download PDF')).toBeDefined()
+    expect(screen.getByText('Generate PDFs')).toBeDefined()
   })
 
   it('has export JSON button', () => {
@@ -284,7 +284,7 @@ describe('DownloadPage', () => {
     ).toBeDefined()
   })
 
-  it('shows disabled state download button before generation when state return exists', () => {
+  it('shows state return card before generation when state return exists', () => {
     useTaxStore.getState().addW2({
       id: 'w2-1',
       employerEin: '', employerName: '',
@@ -298,14 +298,11 @@ describe('DownloadPage', () => {
     useTaxStore.getState().addStateReturn({ stateCode: 'CA', residencyType: 'full-year' })
 
     renderWithRouter(<DownloadPage />, { route: '/download' })
-    // State download section should be visible
-    expect(screen.getByTestId('state-download-section')).toBeDefined()
-    // State download button should exist but be disabled
-    const btn = screen.getByTestId('download-state-CA')
-    expect(btn).toBeDefined()
-    expect(btn.hasAttribute('disabled')).toBe(true)
-    // Helper text should be visible
-    expect(screen.getByText(/Click.*Download All.*to generate/)).toBeDefined()
+    // State card should render with CA details
+    expect(screen.getByText(/CA AGI/)).toBeDefined()
+    expect(screen.getByText(/CA Tax/)).toBeDefined()
+    // Individual state download button should NOT appear before generation
+    expect(screen.queryByTestId('download-state-CA')).toBeNull()
   })
 
   it('does not show state download section when no state returns', () => {
@@ -313,7 +310,7 @@ describe('DownloadPage', () => {
     expect(screen.queryByTestId('state-download-section')).toBeNull()
   })
 
-  it('shows Download All button label when state return exists', () => {
+  it('shows Generate PDFs button when state return exists (pre-generation)', () => {
     useTaxStore.getState().addW2({
       id: 'w2-1',
       employerEin: '', employerName: '',
@@ -327,7 +324,9 @@ describe('DownloadPage', () => {
     useTaxStore.getState().addStateReturn({ stateCode: 'CA', residencyType: 'full-year' })
 
     renderWithRouter(<DownloadPage />, { route: '/download' })
-    expect(screen.getByText('Download All (Federal + State)')).toBeDefined()
+    // Before generation, button says "Generate PDFs" (not "Download All")
+    expect(screen.getByText('Generate PDFs')).toBeDefined()
+    expect(screen.getByTestId('download-pdf-btn')).toBeDefined()
   })
 })
 

@@ -61,7 +61,7 @@ export function DownloadPage() {
     try {
       let templates: FormTemplates
       try {
-        const [f1040, f1040sa, f1040sb, f1040sd, f8949, f1040s1, f1040s2, f1040s3, f8812, f8863, f6251, f8889, f1040se, f1040sc, f1040sse, f1116] =
+        const [f1040, f1040sa, f1040sb, f1040sd, f8949, f1040s1, f1040s2, f1040s3, f8812, f8863, f6251, f8889, f1040se, f1040sc, f1040sse, f1116, f8995, f8995a] =
           await Promise.all([
             loadTemplate('forms/f1040.pdf'),
             loadTemplate('forms/f1040sa.pdf'),
@@ -79,21 +79,89 @@ export function DownloadPage() {
             loadTemplate('forms/f1040sc.pdf'),
             loadTemplate('forms/f1040sse.pdf'),
             loadTemplate('forms/f1116.pdf'),
+            loadTemplate('forms/f8995.pdf'),
+            loadTemplate('forms/f8995a.pdf'),
           ])
-        templates = { f1040, f1040sa, f1040sb, f1040sd, f8949, f1040s1, f1040s2, f1040s3, f8812, f8863, f6251, f8889, f1040se, f1040sc, f1040sse, f1116 }
+        templates = { f1040, f1040sa, f1040sb, f1040sd, f8949, f1040s1, f1040s2, f1040s3, f8812, f8863, f6251, f8889, f1040se, f1040sc, f1040sse, f1116, f8995, f8995a }
       } catch {
         throw new Error(
           'Could not load IRS form templates. Make sure the PDF templates are installed in the /public/forms/ directory.',
         )
       }
 
-      // Load state templates (CA Form 540, etc.) — failures are non-fatal (falls back to programmatic)
+      // Load state templates (CA Form 540, MA Form 1, etc.) — failures are non-fatal (falls back to programmatic)
       const stateTemplateMap = new Map<SupportedStateCode, StateFormTemplates>()
       for (const config of taxReturn.stateReturns ?? []) {
         if (config.stateCode === 'CA') {
           try {
             const f540 = await loadTemplate('forms/state/CA/f540.pdf')
             stateTemplateMap.set('CA', { templates: new Map([['f540', f540]]) })
+          } catch { /* fall back to programmatic */ }
+        }
+        if (config.stateCode === 'MA') {
+          try {
+            const form1 = await loadTemplate('forms/state/MA/form1.pdf')
+            stateTemplateMap.set('MA', { templates: new Map([['form1', form1]]) })
+          } catch { /* fall back to programmatic */ }
+        }
+        if (config.stateCode === 'NJ') {
+          try {
+            const nj1040 = await loadTemplate('forms/state/NJ/nj1040.pdf')
+            stateTemplateMap.set('NJ', { templates: new Map([['nj1040', nj1040]]) })
+          } catch { /* fall back to programmatic */ }
+        }
+        if (config.stateCode === 'NY') {
+          try {
+            const it201 = await loadTemplate('forms/state/NY/it201.pdf')
+            stateTemplateMap.set('NY', { templates: new Map([['it201', it201]]) })
+          } catch { /* fall back to programmatic */ }
+        }
+        if (config.stateCode === 'CT') {
+          try {
+            const ct1040 = await loadTemplate('forms/state/CT/ct1040.pdf')
+            stateTemplateMap.set('CT', { templates: new Map([['ct1040', ct1040]]) })
+          } catch { /* fall back to programmatic */ }
+        }
+        if (config.stateCode === 'MD') {
+          try {
+            const md502 = await loadTemplate('forms/state/MD/502.pdf')
+            stateTemplateMap.set('MD', { templates: new Map([['502', md502]]) })
+          } catch { /* fall back to programmatic */ }
+        }
+        if (config.stateCode === 'DC') {
+          try {
+            const d40 = await loadTemplate('forms/state/DC/d40.pdf')
+            stateTemplateMap.set('DC', { templates: new Map([['d40', d40]]) })
+          } catch { /* fall back to programmatic */ }
+        }
+        if (config.stateCode === 'GA') {
+          try {
+            const form500 = await loadTemplate('forms/state/GA/form500.pdf')
+            stateTemplateMap.set('GA', { templates: new Map([['form500', form500]]) })
+          } catch { /* fall back to programmatic */ }
+        }
+        if (config.stateCode === 'NC') {
+          try {
+            const d400 = await loadTemplate('forms/state/NC/d400.pdf')
+            stateTemplateMap.set('NC', { templates: new Map([['d400', d400]]) })
+          } catch { /* fall back to programmatic */ }
+        }
+        if (config.stateCode === 'OH') {
+          try {
+            const it1040 = await loadTemplate('forms/state/OH/it1040.pdf')
+            stateTemplateMap.set('OH', { templates: new Map([['it1040', it1040]]) })
+          } catch { /* fall back to programmatic */ }
+        }
+        if (config.stateCode === 'PA') {
+          try {
+            const pa40 = await loadTemplate('forms/state/PA/pa40.pdf')
+            stateTemplateMap.set('PA', { templates: new Map([['pa40', pa40]]) })
+          } catch { /* fall back to programmatic */ }
+        }
+        if (config.stateCode === 'VA') {
+          try {
+            const f760 = await loadTemplate('forms/state/VA/f760.pdf')
+            stateTemplateMap.set('VA', { templates: new Map([['f760', f760]]) })
           } catch { /* fall back to programmatic */ }
         }
       }

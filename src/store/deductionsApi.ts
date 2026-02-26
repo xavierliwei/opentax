@@ -1,7 +1,7 @@
 /**
- * Thin API client for PUT /api/deductions.
+ * Thin API client for PUT /api/v1/deductions.
  *
- * Fire-and-forget — same pattern as the POST /api/sync calls in syncAdapter.
+ * Fire-and-forget — same pattern as the POST /api/v1/sync calls in syncAdapter.
  * `onVersionUpdate` keeps syncAdapter's localVersion in sync so SSE events
  * for the same version are correctly ignored.
  */
@@ -24,7 +24,7 @@ export function putDeductions(payload: {
   itemized?: Record<string, unknown>
 }): void {
   if (!serverUrl) return // standalone mode — no-op
-  fetch(`${serverUrl}/api/deductions`, {
+  fetch(`${serverUrl}/api/v1/deductions`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),

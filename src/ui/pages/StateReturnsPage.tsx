@@ -637,11 +637,6 @@ export function StateReturnsPage() {
                   </div>
                 )}
 
-                {code === 'FL' && (
-                  <div className="mt-1 rounded-md border border-sky-200 bg-sky-50 p-3 text-xs text-sky-900">
-                    Florida does not have a personal income tax. This selection tracks residency/interstate context and adds an informational PDF page to your filing packet.
-                  </div>
-                )}
               </div>
             )}
           </div>

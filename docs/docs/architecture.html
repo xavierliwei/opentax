@@ -10,10 +10,17 @@
   <meta property="og:title" content="Architecture — OpenTax Engine, Boundaries & Data Flow" />
   <meta property="og:description" content="How the deterministic rules engine, trace system, and dual-mode topology fit together." />
   <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://xavierliwei.github.io/opentax/docs/architecture.html" />
+  <meta property="og:url" content="https://opentax.evokelab.ai/docs/architecture.html" />
+  <meta property="og:image" content="https://opentax.evokelab.ai/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Architecture — OpenTax Engine, Boundaries &amp; Data Flow" />
+  <meta name="twitter:description" content="How the deterministic rules engine, trace system, and dual-mode topology fit together." />
+  <meta name="twitter:image" content="https://opentax.evokelab.ai/og-image.png" />
 
   <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
-  <link rel="canonical" href="https://xavierliwei.github.io/opentax/docs/architecture.html" />
+  <link rel="canonical" href="https://opentax.evokelab.ai/docs/architecture.html" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -118,7 +125,7 @@
 <span class="text-orange-400">│</span>                                                 <span class="text-orange-400">│</span>
 <span class="text-orange-400">│</span>  IRS rules (Rev. Proc. 2024-40, Pub 501, ...)  <span class="text-orange-400">│</span>
 <span class="text-orange-400">│</span>  Tax brackets · Standard deduction              <span class="text-orange-400">│</span>
-<span class="text-orange-400">│</span>  Credits · Deductions · AMT · State (CA)        <span class="text-orange-400">│</span>
+<span class="text-orange-400">│</span>  Credits · Deductions · AMT · 11 States         <span class="text-orange-400">│</span>
 <span class="text-orange-400">│</span>  Trace tree generation · IRS citations           <span class="text-orange-400">│</span>
 <span class="text-orange-400">│</span>  Deterministic: same input → same output         <span class="text-orange-400">│</span>
 <span class="text-orange-400">└─────────────────────────────────────────────────┘</span>
@@ -190,8 +197,8 @@
               <span>Alternative Minimum Tax</span>
             </li>
             <li class="flex items-start gap-2">
-              <span class="text-brand font-mono text-xs font-bold mt-0.5">CA 540</span>
-              <span>California state return</span>
+              <span class="text-brand font-mono text-xs font-bold mt-0.5">States</span>
+              <span>CA, CT, DC, GA, MA, MD, NC, NJ, NY, PA, VA (11 states)</span>
             </li>
           </ul>
         </div>
@@ -220,9 +227,8 @@
 ├── educationCredit.ts    <span class="text-gray-500"># AOTC + LLC</span>
 ├── saversCredit.ts       <span class="text-gray-500"># Retirement savings credit</span>
 ├── hsaDeduction.ts       <span class="text-gray-500"># HSA above-the-line deduction</span>
-└── <span class="text-green-400">ca/</span>
-    ├── constants.ts      <span class="text-gray-500"># California thresholds</span>
-    └── form540.ts        <span class="text-gray-500"># CA 540 computation</span>
+└── <span class="text-green-400">ca/ ct/ dc/ ga/ ma/ md/ nc/ nj/ ny/ pa/ va/</span>
+    <span class="text-gray-500"># 11 state return modules (e.g., ca/form540.ts, ny/formIT201.ts)</span>
 </pre>
       </div>
     </div>
@@ -433,7 +439,7 @@
         <tbody class="text-gray-600">
           <tr class="border-b border-gray-100">
             <td class="py-3 pr-6 font-medium text-gray-900">Rules engine</td>
-            <td class="py-3 pr-6">Unit tests (1,700+)</td>
+            <td class="py-3 pr-6">Unit tests (2,300+)</td>
             <td class="py-3">Every form computation against IRS-published expected values</td>
           </tr>
           <tr class="border-b border-gray-100">

@@ -41,7 +41,7 @@ export function DashboardPage() {
   useEffect(() => {
     if (!API_URL) return
 
-    const es = new EventSource(`${API_URL}/api/events`)
+    const es = new EventSource(`${API_URL}/api/v1/events`)
     eventSourceRef.current = es
 
     es.onopen = () => setConnected(true)

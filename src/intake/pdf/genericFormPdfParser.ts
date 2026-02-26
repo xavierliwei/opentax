@@ -37,6 +37,12 @@ export interface GenericPdfResult {
 
 // ── Form type detection ─────────────────────────────────────
 
+interface FormDetection {
+  formType: DetectedFormType
+  /** The 1-based page number where the form was detected */
+  formPage: number
+}
+
 function detectFormTypeFromText(text: string): DetectedFormType {
   const upper = text.toUpperCase()
 
@@ -57,6 +63,30 @@ function detectFormTypeFromText(text: string): DetectedFormType {
   }
 
   return 'unknown'
+}
+
+/**
+ * Detect form type by scanning ALL pages of the PDF (not just page 1).
+ * Multi-page PDFs (like the IRS W-2 template) often have instruction pages
+ * before the actual form. Returns both the detected type and the page number.
+ */
+function detectFormTypeAllPages(items: RawItem[]): FormDetection {
+  // Collect unique page numbers
+  const pages = [...new Set(items.map((it) => it.page))].sort((a, b) => a - b)
+
+  for (const page of pages) {
+    const pageText = items
+      .filter((it) => it.page === page)
+      .map((it) => it.str)
+      .join(' ')
+
+    const formType = detectFormTypeFromText(pageText)
+    if (formType !== 'unknown') {
+      return { formType, formPage: page }
+    }
+  }
+
+  return { formType: 'unknown', formPage: 1 }
 }
 
 // ── Value extraction helpers ────────────────────────────────
@@ -144,9 +174,9 @@ function findTextBelow(items: RawItem[], label: RawItem, xTolerance = 60, yRange
 
 // ── 1099-INT positional parsing ─────────────────────────────
 
-function parse1099IntPositional(items: RawItem[]): Map<string, ExtractedField> {
+function parse1099IntPositional(items: RawItem[], formPage = 1): Map<string, ExtractedField> {
   const fields = new Map<string, ExtractedField>()
-  const page1 = items.filter((it) => it.page === 1)
+  const page1 = items.filter((it) => it.page === formPage)
 
   // Find box label items — look for items whose text is a box number
   // followed by a description, positioned in the right-side form grid (x > 250)
@@ -262,9 +292,9 @@ function parse1099IntPositional(items: RawItem[]): Map<string, ExtractedField> {
 
 // ── 1099-DIV positional parsing ─────────────────────────────
 
-function parse1099DivPositional(items: RawItem[]): Map<string, ExtractedField> {
+function parse1099DivPositional(items: RawItem[], formPage = 1): Map<string, ExtractedField> {
   const fields = new Map<string, ExtractedField>()
-  const page1 = items.filter((it) => it.page === 1)
+  const page1 = items.filter((it) => it.page === formPage)
 
   const boxLabels: BoxLabelMatch[] = []
 
@@ -362,9 +392,9 @@ function parse1099DivPositional(items: RawItem[]): Map<string, ExtractedField> {
 
 // ── W-2 positional parsing ──────────────────────────────────
 
-function parseW2Positional(items: RawItem[]): Map<string, ExtractedField> {
+function parseW2Positional(items: RawItem[], formPage = 1): Map<string, ExtractedField> {
   const fields = new Map<string, ExtractedField>()
-  const page1 = items.filter((it) => it.page === 1)
+  const page1 = items.filter((it) => it.page === formPage)
 
   // W-2 box layout — the box labels are numbers like "1", "2" etc.
   // with descriptive text nearby
@@ -553,9 +583,9 @@ function parse1099DivLineScan(lineTexts: string[]): Map<string, ExtractedField> 
 
 // ── 1099-R positional parsing ──────────────────────────────
 
-function parse1099RPositional(items: RawItem[]): Map<string, ExtractedField> {
+function parse1099RPositional(items: RawItem[], formPage = 1): Map<string, ExtractedField> {
   const fields = new Map<string, ExtractedField>()
-  const page1 = items.filter((it) => it.page === 1)
+  const page1 = items.filter((it) => it.page === formPage)
 
   const boxLabels: BoxLabelMatch[] = []
 
@@ -817,13 +847,10 @@ export async function parseGenericFormPdf(data: ArrayBuffer): Promise<GenericPdf
   const lines = groupLines(items)
   const lineTexts = lines.map((l) => l.text)
 
-  // Detect form type from first-page text
-  const firstPageText = items
-    .filter((it) => it.page === 1)
-    .map((it) => it.str)
-    .join(' ')
-
-  const formType = detectFormTypeFromText(firstPageText)
+  // Detect form type by scanning all pages (not just page 1).
+  // Multi-page PDFs (like IRS templates) often have instruction/cover pages
+  // before the actual form grid.
+  const { formType, formPage } = detectFormTypeAllPages(items)
 
   if (formType === 'unknown') {
     return { formType, fields: new Map(), warnings: [] }
@@ -836,16 +863,16 @@ export async function parseGenericFormPdf(data: ArrayBuffer): Promise<GenericPdf
 
   switch (formType) {
     case '1099-INT':
-      fields = parse1099IntPositional(items)
+      fields = parse1099IntPositional(items, formPage)
       break
     case '1099-DIV':
-      fields = parse1099DivPositional(items)
+      fields = parse1099DivPositional(items, formPage)
       break
     case '1099-R':
-      fields = parse1099RPositional(items)
+      fields = parse1099RPositional(items, formPage)
       break
     case 'W-2':
-      fields = parseW2Positional(items)
+      fields = parseW2Positional(items, formPage)
       break
   }
 

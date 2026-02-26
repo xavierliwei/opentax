@@ -1,6 +1,6 @@
 # State-Return Gap Audit — 2026-02-24
 
-Scope: 11 supported states (CA, CT, DC, FL, GA, MA, MD, NC, NJ, PA, VA) for TY 2025.
+Scope: 10 supported states + DC (CA, CT, DC, GA, MA, MD, NC, NJ, NY, PA, VA) for TY 2025.
 Covers: rules/calculations, interview UX, review pages, PDF download, tests.
 
 ---
@@ -95,7 +95,7 @@ Covers: rules/calculations, interview UX, review pages, PDF download, tests.
 **Fix:** Expand to cover flat-rate verification, standard deduction by filing status, withholding.
 
 ### P2-5: Duplicate `computeApportionmentRatio` across 10 files
-**Evidence:** Grep finds the function in `ca/form540.ts`, `ma/form1.ts`, `md/form502.ts`, `nc/formd400.ts`, `pa/pa40.ts`, `va/form760.ts`, `dc/formd40.ts`, `ga/form500.ts`, `fl/module.ts` — near-identical logic each time.
+**Evidence:** Grep finds the function in `ca/form540.ts`, `ma/form1.ts`, `md/form502.ts`, `nc/formd400.ts`, `pa/pa40.ts`, `va/form760.ts`, `dc/formd40.ts`, `ga/form500.ts` — near-identical logic each time.
 **Impact:** Maintenance burden; divergent bug fixes.
 **Fix:** Extract to `src/rules/apportionment.ts`; import from each module.
 

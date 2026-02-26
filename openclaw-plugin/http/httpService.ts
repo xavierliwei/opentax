@@ -1,7 +1,11 @@
 /**
  * HTTP background service — serves the dashboard API and SSE event stream.
  *
- * Runs on port 7890 using node:http. CORS is open (trusted Tailscale network).
+ * Runs on port 7890 using node:http. CORS is restricted to configured origins
+ * (defaults to localhost). Security headers are applied to all responses.
+ *
+ * All API routes are served under /api/v1/. Legacy unversioned /api/ routes
+ * are still supported but emit deprecation headers (Deprecation + Sunset).
  */
 
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
@@ -10,8 +14,27 @@ import { join, extname } from 'node:path'
 import type { TaxService } from '../service/TaxService.ts'
 import { analyzeGaps } from '../service/GapAnalysis.ts'
 import { serializeComputeResult } from './serialize.ts'
+import { taxReturnStrictSchema } from '../../src/model/schemas.ts'
+import { logger } from '../utils/logger.ts'
+import { setSecurityHeaders, setCorsHeaders, parseCorsOrigins, type CorsConfig } from './securityHeaders.ts'
+import { createRateLimiter, type RateLimitOptions } from './rateLimit.ts'
+import { getRequestId } from './requestId.ts'
+
+const log = logger.child({ component: 'http' })
 
 const DEFAULT_PORT = 7890
+
+/** Maximum allowed request body size in bytes (5 MB). */
+export const MAX_BODY_SIZE = 5 * 1024 * 1024
+
+/** Maximum time (ms) to wait for the full request body before aborting. */
+export const BODY_TIMEOUT_MS = 30_000
+
+/** Current API version identifier. */
+export const API_VERSION = 'v1'
+
+/** Sunset date for legacy unversioned routes (6 months from 2026-02-25). */
+export const LEGACY_SUNSET_DATE = '2026-08-25'
 
 const MIME_TYPES: Record<string, string> = {
   '.html': 'text/html',
@@ -34,11 +57,48 @@ const MIME_TYPES: Record<string, string> = {
 export interface HttpServiceOptions {
   port?: number
   staticDir?: string
+  /** Comma-separated allowed CORS origins, or a pre-parsed CorsConfig. */
+  corsOrigin?: string | CorsConfig
+  /** Rate limit configuration for mutation endpoints. */
+  rateLimiter?: RateLimitOptions
+}
+
+/**
+ * Resolve an incoming request path to an API route name and whether it is
+ * a legacy (unversioned) request.
+ *
+ * Returns `null` if the path is not an API route.
+ *
+ * Examples:
+ *   /api/v1/status   -> { route: 'status', legacy: false }
+ *   /api/status      -> { route: 'status', legacy: true }
+ *   /other           -> null
+ */
+export function resolveApiRoute(path: string): { route: string; legacy: boolean } | null {
+  if (path.startsWith('/api/v1/')) {
+    return { route: path.slice('/api/v1/'.length), legacy: false }
+  }
+  if (path.startsWith('/api/')) {
+    return { route: path.slice('/api/'.length), legacy: true }
+  }
+  return null
 }
 
 export function createHttpService(service: TaxService, options: HttpServiceOptions = {}) {
   const port = options.port ?? DEFAULT_PORT
   const staticDir = options.staticDir
+
+  // Create rate limiter for mutation endpoints
+  const rateLimiter = createRateLimiter(
+    options.rateLimiter ?? { windowMs: 60_000, maxRequests: 60 },
+  )
+
+  // Parse CORS config — accept a string (from env var) or a pre-built config
+  const corsConfig: CorsConfig =
+    typeof options.corsOrigin === 'string'
+      ? parseCorsOrigins(options.corsOrigin)
+      : options.corsOrigin ?? parseCorsOrigins(process.env.OPENTAX_CORS_ORIGIN)
+
   const sseClients = new Set<ServerResponse>()
 
   // Push SSE events on state changes
@@ -55,14 +115,17 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
     }
   })
 
-  function setCors(res: ServerResponse) {
-    res.setHeader('Access-Control-Allow-Origin', '*')
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  /** Set the X-API-Version header and, for legacy routes, deprecation headers. */
+  function setApiHeaders(res: ServerResponse, legacy: boolean) {
+    res.setHeader('X-API-Version', API_VERSION)
+    if (legacy) {
+      res.setHeader('Deprecation', 'true')
+      res.setHeader('Sunset', LEGACY_SUNSET_DATE)
+    }
   }
 
-  function sendJson(res: ServerResponse, data: unknown, status = 200) {
-    setCors(res)
+  function sendJson(res: ServerResponse, data: unknown, status = 200, legacy = false) {
+    setApiHeaders(res, legacy)
     res.writeHead(status, { 'Content-Type': 'application/json' })
     res.end(JSON.stringify(data))
   }
@@ -104,84 +167,223 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
   }
 
   function handleRequest(req: IncomingMessage, res: ServerResponse) {
+    const startTime = Date.now()
     const url = new URL(req.url ?? '/', `http://localhost:${port}`)
     const path = url.pathname
 
+    // Assign a correlation ID to every request
+    const requestId = getRequestId(req)
+    res.setHeader('x-request-id', requestId)
+
+    // Apply security headers to every response
+    setSecurityHeaders(req, res)
+
+    // Log response when finished
+    res.on('finish', () => {
+      // Skip SSE connections — they stay open for a long time
+      if (path.endsWith('/events')) return
+      // Skip health check endpoints — they are high-frequency and low-value for logging
+      const apiInfo = resolveApiRoute(path)
+      if (apiInfo && (apiInfo.route === 'health' || apiInfo.route === 'ready')) return
+      const duration = Date.now() - startTime
+      log.info('request', {
+        requestId,
+        method: req.method,
+        path,
+        status: res.statusCode,
+        durationMs: duration,
+      })
+    })
+
     // CORS preflight
     if (req.method === 'OPTIONS') {
-      setCors(res)
+      setCorsHeaders(req, res, corsConfig)
       res.writeHead(204)
       res.end()
       return
     }
 
-    // GET /api/status
-    if (req.method === 'GET' && path === '/api/status') {
-      const gap = analyzeGaps(service.taxReturn, service.computeResult)
-      sendJson(res, {
-        taxReturn: service.taxReturn,
-        computeResult: serializeComputeResult(service.computeResult),
-        stateVersion: service.stateVersion,
-        gapAnalysis: gap,
-      })
-      return
-    }
+    // Set CORS headers for all non-preflight requests
+    setCorsHeaders(req, res, corsConfig)
 
-    // GET /api/gap-analysis
-    if (req.method === 'GET' && path === '/api/gap-analysis') {
-      const gap = analyzeGaps(service.taxReturn, service.computeResult)
-      sendJson(res, gap)
-      return
-    }
+    // ── API routing ──────────────────────────────────────────────
+    // Both /api/v1/<route> and /api/<route> (legacy) resolve to the
+    // same handler. Legacy routes receive deprecation headers.
+    const apiRoute = resolveApiRoute(path)
 
-    // GET /api/events (SSE)
-    if (req.method === 'GET' && path === '/api/events') {
-      setCors(res)
-      // Flush headers immediately; disable chunked encoding for SSE
-      res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'Transfer-Encoding': 'identity',
-      })
-      res.flushHeaders()
-      res.write(`data: ${JSON.stringify({ type: 'connected', stateVersion: service.stateVersion })}\n\n`)
-      sseClients.add(res)
-      req.on('close', () => sseClients.delete(res))
-      return
-    }
+    if (apiRoute) {
+      const { route, legacy } = apiRoute
 
-    // POST /api/sync
-    if (req.method === 'POST' && path === '/api/sync') {
-      let body = ''
-      req.on('data', (chunk) => { body += chunk })
-      req.on('end', () => {
-        try {
-          const { taxReturn, stateVersion } = JSON.parse(body)
-          if (stateVersion != null && stateVersion < service.stateVersion) {
-            sendJson(res, {
-              error: 'version_conflict',
-              serverVersion: service.stateVersion,
-              clientVersion: stateVersion,
-            }, 409)
+      // GET health (lightweight liveness probe — checked first for minimal latency)
+      if (req.method === 'GET' && route === 'health') {
+        sendJson(res, {
+          status: 'ok',
+          uptime: process.uptime(),
+          stateVersion: service.stateVersion,
+          timestamp: new Date().toISOString(),
+        }, 200, legacy)
+        return
+      }
+
+      // GET ready (readiness probe — returns 503 if tax return not loaded)
+      if (req.method === 'GET' && route === 'ready') {
+        if (service.taxReturn != null) {
+          sendJson(res, { status: 'ready' }, 200, legacy)
+        } else {
+          sendJson(res, { status: 'not_ready' }, 503, legacy)
+        }
+        return
+      }
+
+      // GET status
+      if (req.method === 'GET' && route === 'status') {
+        const gap = analyzeGaps(service.taxReturn, service.computeResult)
+        sendJson(res, {
+          taxReturn: service.taxReturn,
+          computeResult: serializeComputeResult(service.computeResult),
+          stateVersion: service.stateVersion,
+          gapAnalysis: gap,
+        }, 200, legacy)
+        return
+      }
+
+      // GET gap-analysis
+      if (req.method === 'GET' && route === 'gap-analysis') {
+        const gap = analyzeGaps(service.taxReturn, service.computeResult)
+        sendJson(res, gap, 200, legacy)
+        return
+      }
+
+      // GET events (SSE)
+      if (req.method === 'GET' && route === 'events') {
+        setApiHeaders(res, legacy)
+        // Flush headers immediately; disable chunked encoding for SSE
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+          'Transfer-Encoding': 'identity',
+        })
+        res.flushHeaders()
+        res.write(`data: ${JSON.stringify({ type: 'connected', stateVersion: service.stateVersion })}\n\n`)
+        sseClients.add(res)
+        log.debug('SSE client connected', { clients: sseClients.size })
+        req.on('close', () => {
+          sseClients.delete(res)
+          log.debug('SSE client disconnected', { clients: sseClients.size })
+        })
+        return
+      }
+
+      // POST sync
+      if (req.method === 'POST' && route === 'sync') {
+        // Rate limit by client IP
+        const clientIp = req.socket.remoteAddress ?? 'unknown'
+        const rateResult = rateLimiter.check(clientIp)
+        if (!rateResult.allowed) {
+          const retryAfterSeconds = Math.ceil(rateResult.retryAfterMs / 1000)
+          res.setHeader('Retry-After', String(retryAfterSeconds))
+          log.warn('Rate limit exceeded', { clientIp, retryAfterMs: rateResult.retryAfterMs })
+          sendJson(res, { error: 'rate_limited', retryAfterMs: rateResult.retryAfterMs }, 429, legacy)
+          req.resume() // drain the request so the socket can be freed
+          return
+        }
+
+        // Reject early if Content-Length exceeds the limit
+        const contentLength = req.headers['content-length']
+        if (contentLength != null && parseInt(contentLength, 10) > MAX_BODY_SIZE) {
+          sendJson(res, { error: 'payload_too_large' }, 413, legacy)
+          req.resume() // drain the request so the socket can be freed
+          return
+        }
+
+        let body = ''
+        let bodySize = 0
+        let aborted = false
+
+        // Timeout: abort if body isn't received within the limit
+        const timer = setTimeout(() => {
+          if (!aborted) {
+            aborted = true
+            sendJson(res, { error: 'request_timeout' }, 408, legacy)
+            req.destroy()
+          }
+        }, BODY_TIMEOUT_MS)
+
+        req.on('data', (chunk: Buffer) => {
+          if (aborted) return
+          bodySize += chunk.length
+          if (bodySize > MAX_BODY_SIZE) {
+            aborted = true
+            clearTimeout(timer)
+            sendJson(res, { error: 'payload_too_large' }, 413, legacy)
+            req.destroy()
             return
           }
-          service.importReturn(taxReturn)
-          sendJson(res, { ok: true, stateVersion: service.stateVersion })
-        } catch (err) {
-          sendJson(res, { error: 'invalid_json' }, 400)
-        }
-      })
+          body += chunk
+        })
+
+        req.on('end', () => {
+          clearTimeout(timer)
+          if (aborted) return
+          try {
+            const parsed = JSON.parse(body)
+            const { taxReturn, stateVersion } = parsed
+            if (stateVersion != null && stateVersion < service.stateVersion) {
+              log.warn('Sync version conflict', {
+                requestId,
+                serverVersion: service.stateVersion,
+                clientVersion: stateVersion,
+              })
+              sendJson(res, {
+                error: 'version_conflict',
+                serverVersion: service.stateVersion,
+                clientVersion: stateVersion,
+              }, 409, legacy)
+              return
+            }
+
+            // Validate taxReturn against Zod schema
+            const result = taxReturnStrictSchema.safeParse(taxReturn)
+            if (!result.success) {
+              const issues = result.error.issues.map((issue) => ({
+                path: issue.path.join('.'),
+                message: issue.message,
+              }))
+              sendJson(res, { error: 'validation_error', requestId, issues }, 400, legacy)
+              return
+            }
+
+            service.importReturn(result.data)
+            sendJson(res, { ok: true, stateVersion: service.stateVersion }, 200, legacy)
+          } catch (err) {
+            log.warn('Invalid JSON in sync request', {
+              requestId,
+              error: err instanceof Error ? err.message : String(err),
+            })
+            sendJson(res, { error: 'invalid_json' }, 400, legacy)
+          }
+        })
+
+        req.on('error', () => {
+          clearTimeout(timer)
+        })
+
+        return
+      }
+
+      // GET return.json
+      if (req.method === 'GET' && route === 'return.json') {
+        sendJson(res, service.taxReturn, 200, legacy)
+        return
+      }
+
+      // Unknown API route — 404 with version headers
+      sendJson(res, { error: 'not_found' }, 404, legacy)
       return
     }
 
-    // GET /api/return.json
-    if (req.method === 'GET' && path === '/api/return.json') {
-      sendJson(res, service.taxReturn)
-      return
-    }
-
-    // Static file serving (non-API GET requests)
+    // ── Static file serving (non-API GET requests) ───────────────
     if (req.method === 'GET' && staticDir) {
       serveStatic(path, res).then((served) => {
         if (!served) {
@@ -205,7 +407,7 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
 
   const server = createServer(handleRequest)
 
-  return {
+  const svc = {
     start() {
       return new Promise<void>((resolve) => {
         server.listen(port, () => resolve())
@@ -213,6 +415,7 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
     },
     stop() {
       return new Promise<void>((resolve, reject) => {
+        rateLimiter.destroy()
         for (const client of sseClients) {
           client.end()
         }
@@ -221,6 +424,13 @@ export function createHttpService(service: TaxService, options: HttpServiceOptio
       })
     },
     server,
-    port,
+    /** The port the server is listening on (resolves OS-assigned port when 0). */
+    get port(): number {
+      const addr = server.address()
+      if (addr && typeof addr === 'object') return addr.port
+      return port
+    },
   }
+
+  return svc
 }

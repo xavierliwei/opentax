@@ -579,7 +579,7 @@ export interface Credit {
 // ── State Return Config ────────────────────────────────────────
 
 /** Supported state codes (expand as states are added) */
-export type SupportedStateCode = 'CA' | 'CT' | 'DC' | 'FL' | 'GA' | 'MA' | 'MD' | 'NC' | 'NJ' | 'NY' | 'PA' | 'VA'
+export type SupportedStateCode = 'CA' | 'CT' | 'DC' | 'GA' | 'MA' | 'MD' | 'NC' | 'NJ' | 'NY' | 'OH' | 'PA' | 'VA'
 
 /** Residency classification for a state return */
 export type ResidencyType = 'full-year' | 'part-year' | 'nonresident'
@@ -693,6 +693,24 @@ export interface TaxReturn {
 
   // Student loan interest (Form 1098-E Box 1)
   studentLoanInterest?: number  // cents
+
+  // Alimony received (Schedule 1, Line 2a) — pre-2019 agreements only
+  alimonyReceived?: number        // cents
+  alimonyPayerSSN?: string        // payer's SSN (required by IRS)
+  alimonyAgreementDate?: string   // ISO date — must be before 2019 to be taxable/deductible
+
+  // Educator expenses (Schedule 1, Line 11) — $300 max per educator
+  educatorExpenses?: number       // cents — qualified unreimbursed expenses
+  spouseEducatorExpenses?: number // cents — spouse's expenses (MFJ only)
+
+  // Self-employed health insurance deduction (Schedule 1, Line 17)
+  seHealthInsurancePremiums?: number  // cents — premiums paid for self, spouse, dependents
+
+  // Self-employed SEP/SIMPLE/qualified plans (Schedule 1, Line 16)
+  seSepSimpleContributions?: number  // cents — contributions to SEP-IRA, SIMPLE-IRA, or qualified plans
+
+  // Household employment taxes (Schedule H)
+  householdEmploymentTaxes?: number  // cents — total Schedule H tax (simplified: user enters computed amount)
 
   // HSA data
   hsa?: HSAInfo

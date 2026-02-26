@@ -20,11 +20,13 @@ import type { ScheduleEResult } from './scheduleE'
 import type { ScheduleCAggregateResult } from './scheduleC'
 import type { ScheduleSEResult } from './scheduleSE'
 import type { K1AggregateResult } from './scheduleK1'
+import type { AlimonyReceivedResult } from './schedule1Adjustments'
 
 // ── Result type ──────────────────────────────────────────────────
 
 export interface Schedule1Result {
   line1: TracedValue   // Taxable refunds (state/local)
+  line2a: TracedValue  // Alimony received (pre-2019 agreements)
   line3: TracedValue   // Business income or (loss) — Schedule C
   line5: TracedValue   // Rents + royalties
   line7: TracedValue   // Unemployment compensation
@@ -41,6 +43,7 @@ export function computeSchedule1(
   scheduleCAggregate?: ScheduleCAggregateResult,
   scheduleSEResult?: ScheduleSEResult,
   k1Aggregate?: K1AggregateResult,
+  alimonyResult?: AlimonyReceivedResult | null,
 ): Schedule1Result {
   const forms = model.form1099MISCs ?? []
   const form1099Gs = model.form1099Gs ?? []
@@ -63,6 +66,11 @@ export function computeSchedule1(
   const line1: TracedValue = line1Total > 0
     ? tracedFromComputation(line1Total, 'schedule1.line1', line1Inputs, 'Schedule 1, Line 1')
     : tracedZero('schedule1.line1', 'Schedule 1, Line 1')
+
+  // Line 2a — Alimony received (pre-2019 agreements only, per TCJA §11051)
+  const line2a: TracedValue = alimonyResult && alimonyResult.amount > 0
+    ? tracedFromComputation(alimonyResult.amount, 'schedule1.line2a', ['alimony.received'], 'Schedule 1, Line 2a')
+    : tracedZero('schedule1.line2a', 'Schedule 1, Line 2a')
 
   // Line 3 — Business income or (loss) from Schedule C
   let line3: TracedValue
@@ -140,10 +148,11 @@ export function computeSchedule1(
     ? tracedFromComputation(line8zTotal, 'schedule1.line8z', line8zInputs, 'Schedule 1, Line 8z')
     : tracedZero('schedule1.line8z', 'Schedule 1, Line 8z')
 
-  // Line 10 — total additional income (Lines 1 + 3 + 5 + 7 + Line 9 (= 8z for now))
-  const line10Total = line1.amount + line3.amount + line5.amount + line7.amount + line8zTotal
+  // Line 10 — total additional income (Lines 1 + 2a + 3 + 5 + 7 + Line 9 (= 8z for now))
+  const line10Total = line1.amount + line2a.amount + line3.amount + line5.amount + line7.amount + line8zTotal
   const line10Inputs: string[] = []
   if (line1.amount > 0) line10Inputs.push('schedule1.line1')
+  if (line2a.amount > 0) line10Inputs.push('schedule1.line2a')
   if (line3.amount !== 0) line10Inputs.push('schedule1.line3')
   if (line5.amount !== 0) line10Inputs.push('schedule1.line5')
   if (line7.amount > 0) line10Inputs.push('schedule1.line7')
@@ -167,5 +176,5 @@ export function computeSchedule1(
     line15 = tracedZero('schedule1.line15', 'Schedule 1, Line 15')
   }
 
-  return { line1, line3, line5, line7, line8z, line10, line15 }
+  return { line1, line2a, line3, line5, line7, line8z, line10, line15 }
 }
