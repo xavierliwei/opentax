@@ -22,6 +22,7 @@ import { mdModule } from './2025/md/module'
 import { miModule } from './2025/mi/module'
 import { mnModule } from './2025/mn/module'
 import { moModule } from './2025/mo/module'
+import { msModule } from './2025/ms/module'
 import { ncModule } from './2025/nc/module'
 import { njModule } from './2025/nj/module'
 import { ohModule } from './2025/oh/module'
@@ -53,6 +54,7 @@ const STATE_MODULES: Map<SupportedStateCode, StateRulesModule> = new Map([
   ['MI', miModule],
   ['MN', mnModule],
   ['MO', moModule],
+  ['MS', msModule],
   ['NC', ncModule],
   ['NJ', njModule],
   ['NY', nyModule],
