@@ -5,11 +5,12 @@
  *
  * IRS attachment sequence order:
  *   Form 1040 (00) → Schedule 1 (02) → Schedule 2 (05) → Schedule 3 (06)
- *   → Schedule A (07) → Schedule B (08) → Schedule C (09) → Schedule D (12)
- *   → Form 8949 (12A) → Schedule E (13) → Schedule SE (17)
- *   → Form 8863 (18) → Form 1116 (19)
+ *   → Schedule A (07) → Form 4952 (10) → Schedule B (08) → Schedule C (09)
+ *   → Schedule D (12) → Form 8949 (12A) → Schedule E (13) → Schedule SE (17)
+ *   → Form 8863 (18) → Form 1116 (19) → Form 2441 (21) → Form 5695 (27)
  *   → Form 6251 (32) → Form 8812 (47) → Form 8606 (48)
- *   → Form 8889 (52) → Form 8995 (55) / Form 8995-A (55A) → Form 8582 (88)
+ *   → Form 8889 (52) → Form 8880 (54) → Form 8995 (55) / Form 8995-A (55A)
+ *   → Form 8959 (63) → Form 8960 (64) → Form 8582 (88)
  */
 
 import { PDFDocument } from 'pdf-lib'
@@ -339,6 +340,24 @@ export async function compileFilingPackage(
     })
   }
 
+  // Form 2441 (sequence 21) — Child and Dependent Care Expenses
+  if (needsForm2441) {
+    const f2441Doc = await fillForm2441(templates.f2441, taxReturn, result.dependentCareCredit!)
+    filledDocs.push({
+      doc: f2441Doc,
+      summary: { formId: 'Form 2441', sequenceNumber: '21', pageCount: f2441Doc.getPageCount() },
+    })
+  }
+
+  // Form 5695 (sequence 27) — Residential Energy Credits
+  if (needsForm5695) {
+    const f5695Doc = await fillForm5695(templates.f5695, taxReturn, result.energyCredit!)
+    filledDocs.push({
+      doc: f5695Doc,
+      summary: { formId: 'Form 5695', sequenceNumber: '27', pageCount: f5695Doc.getPageCount() },
+    })
+  }
+
   // Form 6251 (sequence 32)
   if (needsForm6251) {
     const f6251Doc = await fillForm6251(templates.f6251, taxReturn, result.amtResult!)
@@ -375,6 +394,15 @@ export async function compileFilingPackage(
     })
   }
 
+  // Form 8880 (sequence 54) — Saver's Credit
+  if (needsForm8880) {
+    const f8880Doc = await fillForm8880(templates.f8880, taxReturn, result.saversCredit!, result.line11.amount)
+    filledDocs.push({
+      doc: f8880Doc,
+      summary: { formId: 'Form 8880', sequenceNumber: '54', pageCount: f8880Doc.getPageCount() },
+    })
+  }
+
   // Form 8582 (sequence 88) — Passive Activity Loss Limitations
   if (needsForm8582) {
     const f8582Doc = await fillForm8582(templates.f8582, taxReturn, result.form8582Result!)
@@ -399,6 +427,24 @@ export async function compileFilingPackage(
     filledDocs.push({
       doc: f8995ADoc,
       summary: { formId: 'Form 8995-A', sequenceNumber: '55A', pageCount: f8995ADoc.getPageCount() },
+    })
+  }
+
+  // Form 8959 (sequence 63) — Additional Medicare Tax
+  if (needsForm8959) {
+    const f8959Doc = await fillForm8959(templates.f8959, taxReturn, result.additionalMedicareTaxResult!)
+    filledDocs.push({
+      doc: f8959Doc,
+      summary: { formId: 'Form 8959', sequenceNumber: '63', pageCount: f8959Doc.getPageCount() },
+    })
+  }
+
+  // Form 8960 (sequence 64) — Net Investment Income Tax
+  if (needsForm8960) {
+    const f8960Doc = await fillForm8960(templates.f8960, taxReturn, result.niitResult!, result.line11.amount)
+    filledDocs.push({
+      doc: f8960Doc,
+      summary: { formId: 'Form 8960', sequenceNumber: '64', pageCount: f8960Doc.getPageCount() },
     })
   }
 

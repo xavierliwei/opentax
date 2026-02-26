@@ -61,7 +61,7 @@ export function DownloadPage() {
     try {
       let templates: FormTemplates
       try {
-        const [f1040, f1040sa, f1040sb, f1040sd, f8949, f1040s1, f1040s2, f1040s3, f8812, f8863, f6251, f8889, f1040se, f1040sc, f1040sse, f1116, f8995, f8995a, f8582] =
+        const [f1040, f1040sa, f1040sb, f1040sd, f8949, f1040s1, f1040s2, f1040s3, f8812, f8863, f6251, f8889, f1040se, f1040sc, f1040sse, f1116, f8995, f8995a, f8582, f2441, f4952, f5695, f8880, f8959, f8960] =
           await Promise.all([
             loadTemplate('forms/f1040.pdf'),
             loadTemplate('forms/f1040sa.pdf'),
@@ -82,8 +82,14 @@ export function DownloadPage() {
             loadTemplate('forms/f8995.pdf'),
             loadTemplate('forms/f8995a.pdf'),
             loadTemplate('forms/f8582.pdf'),
+            loadTemplate('forms/f2441.pdf'),
+            loadTemplate('forms/f4952.pdf'),
+            loadTemplate('forms/f5695.pdf'),
+            loadTemplate('forms/f8880.pdf'),
+            loadTemplate('forms/f8959.pdf'),
+            loadTemplate('forms/f8960.pdf'),
           ])
-        templates = { f1040, f1040sa, f1040sb, f1040sd, f8949, f1040s1, f1040s2, f1040s3, f8812, f8863, f6251, f8889, f1040se, f1040sc, f1040sse, f1116, f8995, f8995a, f8582 }
+        templates = { f1040, f1040sa, f1040sb, f1040sd, f8949, f1040s1, f1040s2, f1040s3, f8812, f8863, f6251, f8889, f1040se, f1040sc, f1040sse, f1116, f8995, f8995a, f8582, f2441, f4952, f5695, f8880, f8959, f8960 }
       } catch {
         throw new Error(
           'Could not load IRS form templates. Make sure the PDF templates are installed in the /public/forms/ directory.',
