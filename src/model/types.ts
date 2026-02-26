@@ -18,6 +18,7 @@ export type IncomeSourceId =
   | 'iso'           // ISO / stock option exercises
   | 'rental'        // Schedule E rental properties
   | 'business'      // Schedule C self-employment
+  | '1099-nec'      // 1099-NEC nonemployee compensation (freelance, gig, contract)
   | 'k1'            // Schedule K-1 (partnership, S-Corp, trust)
   | 'other'         // Other/misc income (prizes, jury duty, etc.)
   | 'health-marketplace' // 1095-A Health Insurance Marketplace
@@ -179,6 +180,19 @@ export interface Form1099MISC {
   box2: number   // Royalties (cents)
   box3: number   // Other income — prizes, awards, etc. (cents)
   box4: number   // Federal income tax withheld (cents)
+}
+
+// ── 1099-NEC (Nonemployee Compensation) ──────────────────────
+
+export interface Form1099NEC {
+  id: string
+  payerName: string
+  payerTIN?: string              // EIN or SSN of payer (XX-XXXXXXX)
+  nonemployeeCompensation: number  // Box 1 (cents)
+  federalTaxWithheld?: number      // Box 4 (cents)
+  stateTaxWithheld?: number        // Box 5 (cents)
+  statePayerNo?: string           // Box 6
+  stateIncome?: number            // Box 7 (cents)
 }
 
 // ── 1099-G (Government payments) ──────────────────────────────
@@ -642,6 +656,7 @@ export interface TaxReturn {
   form1099INTs: Form1099INT[]
   form1099DIVs: Form1099DIV[]
   form1099MISCs: Form1099MISC[]
+  form1099NECs: Form1099NEC[]
   form1099Gs: Form1099G[]
   form1099Rs: Form1099R[]
   formSSA1099s: FormSSA1099[]
@@ -758,6 +773,7 @@ export function emptyTaxReturn(taxYear: number): TaxReturn {
     form1099INTs: [],
     form1099DIVs: [],
     form1099MISCs: [],
+    form1099NECs: [],
     form1099Gs: [],
     form1099Rs: [],
     formSSA1099s: [],

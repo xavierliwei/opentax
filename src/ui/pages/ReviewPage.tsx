@@ -90,6 +90,7 @@ export function ReviewPage() {
   const warnings = validation?.items.filter(i => i.severity === 'warning') ?? []
   const infos = validation?.items.filter(i => i.severity === 'info') ?? []
 
+  const has1099NEC = (taxReturn.form1099NECs ?? []).length > 0
   const hasScheduleC = taxReturn.scheduleCBusinesses.length > 0
   const hasScheduleE = taxReturn.scheduleEProperties.length > 0
   const hasPALLimitation = form1040.form8582Result?.required === true
@@ -226,8 +227,24 @@ export function ReviewPage() {
       </section>
 
       {/* Schedule Summaries — after income, before deductions */}
-      {(hasScheduleC || hasScheduleE || hasK1 || has1095A) && (
+      {(has1099NEC || hasScheduleC || hasScheduleE || hasK1 || has1095A) && (
         <section className="mt-4 flex flex-col gap-2">
+          {has1099NEC && (
+            <div data-testid="review-1099-nec" className="border border-gray-200 rounded-md px-3 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="min-w-0">
+                <span className="text-sm font-medium text-gray-800">1099-NEC — Nonemployee Compensation</span>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {(taxReturn.form1099NECs ?? []).length} form{(taxReturn.form1099NECs ?? []).length > 1 ? 's' : ''} reported. Income flows to Schedule 1 Line 3 as self-employment income. SE tax computed on Schedule SE.
+                </p>
+              </div>
+              <Link
+                to="/interview/form-1099-nec"
+                className="text-xs text-tax-blue hover:text-blue-700 shrink-0 py-2 sm:py-0"
+              >
+                Edit
+              </Link>
+            </div>
+          )}
           {hasScheduleE && (
             <div data-testid="review-schedule-e" className={`border rounded-md px-3 py-2 flex flex-col gap-1 ${hasPALLimitation ? 'border-amber-200 bg-amber-50/50' : 'border-gray-200'}`}>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">

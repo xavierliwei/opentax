@@ -18,6 +18,7 @@ import { ISOExercisesPage } from '../ui/pages/ISOExercisesPage.tsx'
 import { Form1099GPage } from '../ui/pages/Form1099GPage.tsx'
 import { RetirementIncomePage } from '../ui/pages/RetirementIncomePage.tsx'
 import { ScheduleEPage } from '../ui/pages/ScheduleEPage.tsx'
+import { Form1099NECPage } from '../ui/pages/Form1099NECPage.tsx'
 import { ScheduleCPage } from '../ui/pages/ScheduleCPage.tsx'
 import { ScheduleK1Page } from '../ui/pages/ScheduleK1Page.tsx'
 import { Form1095APage } from '../ui/pages/Form1095APage.tsx'
@@ -252,6 +253,15 @@ export const STEPS: InterviewStep[] = [
     isVisible: (tr) => hasSource(tr, 'iso'),
     isComplete: () => true,
     component: ISOExercisesPage,
+  },
+  {
+    id: 'form-1099-nec',
+    label: '1099-NEC',
+    path: '/interview/form-1099-nec',
+    section: 'income',
+    isVisible: (tr) => hasSource(tr, '1099-nec'),
+    isComplete: () => true,
+    component: Form1099NECPage,
   },
   {
     id: 'schedule-c',
