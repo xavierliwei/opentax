@@ -279,6 +279,7 @@ async function generateFormIT1040OH(
   drawLine('Ohio Tax Before Credits', form.ohTaxBeforeCredits)
   if (form.personalExemptionCredit > 0) drawLine('Personal Exemption Credit', form.personalExemptionCredit)
   if (form.jointFilingCredit > 0) drawLine('Joint Filing Credit', form.jointFilingCredit)
+  if (form.ohEITC > 0) drawLine('Ohio EITC (30% of Federal)', form.ohEITC)
   drawLine('Ohio Tax After Credits', form.taxAfterCredits)
 
   // ── Payments ─────────────────────────────────────────────────

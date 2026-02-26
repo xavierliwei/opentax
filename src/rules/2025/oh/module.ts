@@ -32,6 +32,7 @@ const OH_NODE_LABELS: Record<string, string> = {
   'formit1040.ohTaxBeforeCredits': 'Ohio tax before credits',
   'formit1040.personalExemptionCredit': 'Ohio personal exemption credit',
   'formit1040.jointFilingCredit': 'Ohio joint filing credit',
+  'formit1040.ohEITC': 'Ohio Earned Income Tax Credit',
   'formit1040.taxAfterCredits': 'OH tax after credits',
   'formit1040.stateWithholding': 'OH state income tax withheld',
   'formit1040.overpaid': 'OH overpaid (refund)',
@@ -89,6 +90,15 @@ function collectOHTracedValues(result: StateComputeResult): Map<string, TracedVa
       'formit1040.jointFilingCredit',
       ['formit1040.ohTaxBeforeCredits'],
       'Ohio joint filing credit',
+    ))
+  }
+  if (form.ohEITC > 0) {
+    taxAfterCreditsInputs.push('formit1040.ohEITC')
+    values.set('formit1040.ohEITC', tracedFromComputation(
+      form.ohEITC,
+      'formit1040.ohEITC',
+      [],
+      'Ohio Earned Income Tax Credit (30% of federal EITC)',
     ))
   }
 
@@ -211,6 +221,17 @@ const OH_REVIEW_LAYOUT: StateReviewSection[] = [
         showWhen: (r) => d(r).jointFilingCredit > 0,
         tooltip: {
           explanation: 'Ohio joint filing credit (MFJ only): lesser of $650 or remaining tax liability after personal exemption credit.',
+          pubName: 'OH IT 1040 Instructions',
+          pubUrl: 'https://tax.ohio.gov/individual/resources/annual-tax-rates',
+        },
+      },
+      {
+        label: 'OH EITC',
+        nodeId: 'formit1040.ohEITC',
+        getValue: (r) => d(r).ohEITC,
+        showWhen: (r) => d(r).ohEITC > 0,
+        tooltip: {
+          explanation: 'Ohio Earned Income Tax Credit equals 30% of the federal earned income credit. Nonrefundable — cannot exceed remaining tax liability.',
           pubName: 'OH IT 1040 Instructions',
           pubUrl: 'https://tax.ohio.gov/individual/resources/annual-tax-rates',
         },
