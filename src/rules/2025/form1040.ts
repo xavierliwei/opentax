@@ -58,8 +58,10 @@ import { computeSchedule1 } from './schedule1'
 import type { Schedule1Result } from './schedule1'
 import { computeScheduleE } from './scheduleE'
 import type { ScheduleEResult } from './scheduleE'
-import { computeAllScheduleC } from './scheduleC'
+import { computeAllScheduleC, computeScheduleC } from './scheduleC'
 import type { ScheduleCAggregateResult } from './scheduleC'
+import { computeAllForm8829 } from './form8829'
+import type { Form8829Result } from './form8829'
 import { computeScheduleSE } from './scheduleSE'
 import type { ScheduleSEResult } from './scheduleSE'
 import { computeQBIDeduction } from './qbiDeduction'
@@ -457,6 +459,7 @@ export function computeLine12(
   netInvestmentIncome: number,
   earnedIncome: number,
   seniorDeduction?: SeniorDeductionResult | null,
+  form8829Results?: Form8829Result[],
 ): { deduction: TracedValue; scheduleA: ScheduleAResult | null; seniorDeduction: SeniorDeductionResult | null } {
   // Use OBBBA-enhanced senior deduction if computed, otherwise fallback to pre-OBBBA
   const additionalAmount = seniorDeduction
@@ -489,7 +492,28 @@ export function computeLine12(
   }
 
   if (model.deductions.method === 'itemized' && model.deductions.itemized) {
-    const scheduleA = computeScheduleA(model, agi, netInvestmentIncome)
+    // If Form 8829 (regular method) claims a business-use portion of mortgage interest
+    // or real estate taxes, reduce the Schedule A amounts to avoid double-counting.
+    let adjustedModel = model
+    if (form8829Results && form8829Results.length > 0) {
+      const totalMortgageBiz = form8829Results.reduce((s, r) => s + r.mortgageInterestBusiness, 0)
+      const totalRETaxBiz = form8829Results.reduce((s, r) => s + r.realEstateTaxesBusiness, 0)
+      if (totalMortgageBiz > 0 || totalRETaxBiz > 0) {
+        const existingItemized = model.deductions.itemized
+        adjustedModel = {
+          ...model,
+          deductions: {
+            ...model.deductions,
+            itemized: {
+              ...existingItemized,
+              mortgageInterest: Math.max(0, existingItemized.mortgageInterest - totalMortgageBiz),
+              realEstateTaxes: Math.max(0, existingItemized.realEstateTaxes - totalRETaxBiz),
+            },
+          },
+        }
+      }
+    }
+    const scheduleA = computeScheduleA(adjustedModel, agi, netInvestmentIncome)
     const itemizedTotal = scheduleA.line17.amount
 
     if (itemizedTotal > standardAmount) {
@@ -1141,6 +1165,9 @@ export interface Form1040Result {
   // Line 31 refundable credits detail
   refundableCreditsResult: RefundableCreditsResult | null
 
+  // Form 8829 detail (home office deduction)
+  form8829Results: Form8829Result[]
+
   // Schedule C detail (sole proprietorship)
   scheduleCResult: ScheduleCAggregateResult | null
 
@@ -1202,11 +1229,36 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
       )
     : null
 
-  // Schedule C (compute if there are sole proprietorship businesses)
+  // Schedule C + Form 8829 (two-pass: compute tentative profits → Form 8829 → final Schedule C)
   const hasScheduleC = (model.scheduleCBusinesses ?? []).length > 0
-  const scheduleCResult = hasScheduleC
-    ? computeAllScheduleC(model.scheduleCBusinesses)
-    : null
+  const form8829s = model.form8829s ?? []
+  let form8829Results: Form8829Result[] = []
+  let scheduleCResult: ScheduleCAggregateResult | null = null
+
+  if (hasScheduleC) {
+    if (form8829s.length > 0) {
+      // Pass 1: compute tentative profits (line 7 - line 28) for each business
+      const tentativeProfits = new Map<string, number>()
+      for (const biz of model.scheduleCBusinesses) {
+        const preliminary = computeScheduleC(biz, 0)
+        tentativeProfits.set(biz.id, preliminary.line29.amount)
+      }
+
+      // Compute Form 8829 deductions using tentative profits
+      form8829Results = computeAllForm8829(form8829s, tentativeProfits)
+
+      // Build deduction map for Pass 2
+      const homeOfficeDeductions = new Map<string, number>()
+      for (const r of form8829Results) {
+        homeOfficeDeductions.set(r.scheduleCId, r.deduction)
+      }
+
+      // Pass 2: recompute Schedule C with home office deductions
+      scheduleCResult = computeAllScheduleC(model.scheduleCBusinesses, homeOfficeDeductions)
+    } else {
+      scheduleCResult = computeAllScheduleC(model.scheduleCBusinesses)
+    }
+  }
 
   // 1099-NEC: aggregate Box 1 amounts as self-employment income
   // This flows to Schedule C gross receipts / Schedule 1 Line 3 and triggers SE tax
@@ -1416,7 +1468,7 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     model.deductions.spouseBlind,
   )
 
-  const { deduction: line12, scheduleA } = computeLine12(model, line11.amount, netInvestmentIncome, earnedIncome, seniorDeductionResult)
+  const { deduction: line12, scheduleA } = computeLine12(model, line11.amount, netInvestmentIncome, earnedIncome, seniorDeductionResult, form8829Results)
 
   // QBI deduction (IRC §199A) — compute if there is QBI from Schedule C, 1099-NEC, or K-1
   const scheduleCQBI = (scheduleCResult?.totalNetProfitCents ?? 0) + nec1099Total
@@ -1630,6 +1682,7 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     socialSecurityResult,
     seniorDeduction: seniorDeductionResult,
     refundableCreditsResult,
+    form8829Results,
     scheduleCResult,
     scheduleSEResult,
     qbiResult,

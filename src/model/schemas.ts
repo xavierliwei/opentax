@@ -290,6 +290,38 @@ const hsaInfoSchema = z.object({
   age65OrDisabled: z.boolean(),
 })
 
+// ── Form 8829 (Expenses for Business Use of Your Home) ──────────
+
+const form8829DataSchema = z.object({
+  scheduleCId: z.string(),
+  method: z.enum(['simplified', 'regular']),
+
+  // Simplified method
+  businessSquareFootage: z.number().int().min(0).max(300).optional(),
+
+  // Regular method — square footage
+  totalHomeSquareFootage: z.number().int().min(0).optional(),
+  businessUseSquareFootage: z.number().int().min(0).optional(),
+  businessUsePercentage: z.number().min(0).max(100).optional(),
+
+  // Direct expenses (100% business)
+  directRepairs: centsNonNeg.optional(),
+  directOther: centsNonNeg.optional(),
+
+  // Indirect expenses (prorated)
+  mortgageInterest: centsNonNeg.optional(),
+  realEstateTaxes: centsNonNeg.optional(),
+  insurance: centsNonNeg.optional(),
+  rent: centsNonNeg.optional(),
+  utilities: centsNonNeg.optional(),
+  repairs: centsNonNeg.optional(),
+  other: centsNonNeg.optional(),
+
+  // Depreciation
+  homeValue: centsNonNeg.optional(),
+  datePlacedInService: z.string().optional(),
+})
+
 // ── Schedule C ───────────────────────────────────────────────────
 
 const scheduleCAccountingMethodSchema = z.enum(['cash', 'accrual'])
@@ -661,6 +693,9 @@ export const taxReturnSchema = z.object({
   // ISO exercise events
   isoExercises: z.array(isoExerciseSchema),
 
+  // Form 8829
+  form8829s: z.array(form8829DataSchema),
+
   // Schedule C
   scheduleCBusinesses: z.array(scheduleCSchema),
 
@@ -761,6 +796,7 @@ export {
   form1095ASchema,
   formSSA1099Schema,
   hsaInfoSchema,
+  form8829DataSchema,
   scheduleCSchema,
   scheduleK1Schema,
   rsuVestEventSchema,

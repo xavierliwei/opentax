@@ -278,6 +278,46 @@ export interface HSAInfo {
   age65OrDisabled: boolean    // exempt from 20% distribution penalty
 }
 
+// ── Form 8829 (Expenses for Business Use of Your Home) ────────
+
+export interface Form8829Data {
+  /** Which Schedule C business this home office is for */
+  scheduleCId: string
+
+  /** Computation method */
+  method: 'simplified' | 'regular'
+
+  // ── Simplified method fields ──────────────────────────────
+  /** Square footage used exclusively for business (max 300) */
+  businessSquareFootage?: number
+
+  // ── Regular method fields ─────────────────────────────────
+
+  /** Total area of home (sq ft) */
+  totalHomeSquareFootage?: number
+  /** Area used exclusively for business (sq ft) */
+  businessUseSquareFootage?: number
+  /** Direct percentage override (0–100); if set, overrides sq ft ratio */
+  businessUsePercentage?: number
+
+  // Direct expenses (100% business — not prorated)
+  directRepairs?: number              // cents
+  directOther?: number                // cents
+
+  // Indirect expenses (prorated by business %)
+  mortgageInterest?: number           // cents
+  realEstateTaxes?: number            // cents
+  insurance?: number                  // cents
+  rent?: number                       // cents (if renting, not owning)
+  utilities?: number                  // cents
+  repairs?: number                    // cents (indirect / whole-house)
+  other?: number                      // cents
+
+  // Depreciation (regular method, homeowners only)
+  homeValue?: number                  // cents — adjusted basis of home (excluding land)
+  datePlacedInService?: string        // ISO date when home office started
+}
+
 // ── Schedule C (Profit or Loss From Business) ─────────────────
 
 export type ScheduleCAccountingMethod = 'cash' | 'accrual'
@@ -685,6 +725,9 @@ export interface TaxReturn {
   // ISO exercise events (AMT preference item)
   isoExercises: ISOExercise[]
 
+  // Form 8829 — Home office deductions (one per Schedule C business)
+  form8829s: Form8829Data[]
+
   // Schedule C — Sole proprietorship businesses
   scheduleCBusinesses: ScheduleC[]
 
@@ -800,6 +843,7 @@ export function emptyTaxReturn(taxYear: number): TaxReturn {
     form1095As: [],
     rsuVestEvents: [],
     isoExercises: [],
+    form8829s: [],
     scheduleCBusinesses: [],
     scheduleK1s: [],
     scheduleEProperties: [],

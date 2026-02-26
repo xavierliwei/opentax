@@ -269,8 +269,8 @@ function BusinessCard({ biz }: { biz: ScheduleC }) {
               Home office deduction (Form 8829)
             </label>
             {biz.hasHomeOffice && (
-              <p className="text-xs text-amber-700 bg-amber-50 rounded px-3 py-2">
-                Home office deduction (Form 8829) is not yet supported. You may be eligible for the simplified method ($5/sq ft, up to 300 sq ft = $1,500 max) or actual expenses. The deduction is currently $0 on this return.
+              <p className="text-xs text-green-700 bg-green-50 rounded px-3 py-2">
+                Home office deduction enabled. Configure it in the "Home Office" step (Form 8829) in the Deductions & Credits section.
               </p>
             )}
             <label className="flex items-center gap-2 text-sm text-gray-700">

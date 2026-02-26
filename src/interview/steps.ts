@@ -21,6 +21,7 @@ import { Form8606Page } from '../ui/pages/Form8606Page.tsx'
 import { ScheduleEPage } from '../ui/pages/ScheduleEPage.tsx'
 import { Form1099NECPage } from '../ui/pages/Form1099NECPage.tsx'
 import { ScheduleCPage } from '../ui/pages/ScheduleCPage.tsx'
+import { Form8829Page } from '../ui/pages/Form8829Page.tsx'
 import { ScheduleK1Page } from '../ui/pages/ScheduleK1Page.tsx'
 import { Form1095APage } from '../ui/pages/Form1095APage.tsx'
 import { PriorYearPage } from '../ui/pages/PriorYearPage.tsx'
@@ -281,6 +282,18 @@ export const STEPS: InterviewStep[] = [
     isVisible: (tr) => hasSource(tr, 'business'),
     isComplete: () => true,
     component: ScheduleCPage,
+  },
+  {
+    id: 'form-8829',
+    label: 'Home Office',
+    path: '/interview/form-8829',
+    section: 'deductions-credits',
+    isVisible: (tr) =>
+      hasSource(tr, 'business') &&
+      ((tr.scheduleCBusinesses ?? []).some(b => b.hasHomeOffice) ||
+       (tr.form8829s ?? []).length > 0),
+    isComplete: () => true,
+    component: Form8829Page,
   },
   {
     id: 'schedule-k1',

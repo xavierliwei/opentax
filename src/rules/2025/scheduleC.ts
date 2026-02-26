@@ -6,7 +6,6 @@
  *
  * Unsupported advanced features (emit validation warnings):
  *   - COGS Part III detail (hasInventory)
- *   - Home office deduction (Form 8829)
  *   - Vehicle depreciation (Form 4562 Part V)
  *   - Net Operating Loss (NOL) carryforward
  *   - At-risk limitations (Form 6198)
@@ -32,7 +31,9 @@ export interface ScheduleCResult {
 
   // Part II — Expenses
   line28: TracedValue  // Total expenses
-  line31: TracedValue  // Net profit or (loss): line7 - line28
+  line29: TracedValue  // Tentative profit (loss): line7 - line28
+  line30: TracedValue  // Business use of home (Form 8829)
+  line31: TracedValue  // Net profit or (loss): line29 - line30
 
   // Detailed expense breakdown (for form population)
   totalExpenses: number  // cents
@@ -45,16 +46,16 @@ export interface ScheduleCResult {
 
 /**
  * Compute Schedule C for a single business.
+ *
+ * @param business              The Schedule C input data
+ * @param homeOfficeDeduction   Form 8829 deduction (cents) for this business (Line 30)
  */
-export function computeScheduleC(business: ScheduleC): ScheduleCResult {
+export function computeScheduleC(business: ScheduleC, homeOfficeDeduction = 0): ScheduleCResult {
   const warnings: string[] = []
 
   // Check for unsupported features
   if (business.hasInventory) {
     warnings.push('Schedule C Part III (Cost of Goods Sold detail) is not yet supported. COGS is used as entered.')
-  }
-  if (business.hasHomeOffice) {
-    warnings.push('Home office deduction (Form 8829) is not yet supported. Deduction is $0.')
   }
   if (business.hasVehicleExpenses) {
     warnings.push('Vehicle expense detail (Form 4562 Part V) is not yet supported. Car/truck expenses are used as entered.')
@@ -116,12 +117,29 @@ export function computeScheduleC(business: ScheduleC): ScheduleCResult {
     'Schedule C, Line 28',
   )
 
-  // Line 31 — Net profit or (loss)
-  const netProfitLoss = grossProfit - totalExpenses
+  // Line 29 — Tentative profit (loss): line 7 − line 28
+  const tentativeProfit = grossProfit - totalExpenses
+  const line29 = tracedFromComputation(
+    tentativeProfit,
+    `scheduleC.${business.id}.line29`,
+    [`scheduleC.${business.id}.line7`, `scheduleC.${business.id}.line28`],
+    'Schedule C, Line 29',
+  )
+
+  // Line 30 — Business use of home (Form 8829)
+  const line30 = tracedFromComputation(
+    homeOfficeDeduction,
+    `scheduleC.${business.id}.line30`,
+    [`form8829.${business.id}.deduction`],
+    'Schedule C, Line 30 (Form 8829)',
+  )
+
+  // Line 31 — Net profit or (loss): line 29 − line 30
+  const netProfitLoss = tentativeProfit - homeOfficeDeduction
   const line31 = tracedFromComputation(
     netProfitLoss,
     `scheduleC.${business.id}.line31`,
-    [`scheduleC.${business.id}.line7`, `scheduleC.${business.id}.line28`],
+    [`scheduleC.${business.id}.line29`, `scheduleC.${business.id}.line30`],
     'Schedule C, Line 31',
   )
 
@@ -132,6 +150,8 @@ export function computeScheduleC(business: ScheduleC): ScheduleCResult {
     line3,
     line7,
     line28,
+    line29,
+    line30,
     line31,
     totalExpenses,
     warnings,
@@ -148,8 +168,14 @@ export interface ScheduleCAggregateResult {
 
 /**
  * Compute Schedule C for all businesses and aggregate results.
+ *
+ * @param businesses              All Schedule C businesses
+ * @param homeOfficeDeductions    Map of scheduleCId → deduction (cents) from Form 8829
  */
-export function computeAllScheduleC(businesses: ScheduleC[]): ScheduleCAggregateResult {
+export function computeAllScheduleC(
+  businesses: ScheduleC[],
+  homeOfficeDeductions?: Map<string, number>,
+): ScheduleCAggregateResult {
   if (businesses.length === 0) {
     return {
       businesses: [],
@@ -158,7 +184,10 @@ export function computeAllScheduleC(businesses: ScheduleC[]): ScheduleCAggregate
     }
   }
 
-  const results = businesses.map(b => computeScheduleC(b))
+  const results = businesses.map(b => {
+    const homeOffice = homeOfficeDeductions?.get(b.id) ?? 0
+    return computeScheduleC(b, homeOffice)
+  })
   const total = results.reduce((sum, r) => sum + r.line31.amount, 0)
   const inputs = results.map(r => `scheduleC.${r.businessId}.line31`)
 

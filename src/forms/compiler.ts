@@ -36,6 +36,7 @@ import { fillForm8889 } from './fillers/form8889Filler'
 import { fillForm1116 } from './fillers/form1116Filler'
 import { fillScheduleE } from './fillers/scheduleEFiller'
 import { fillScheduleC } from './fillers/scheduleCFiller'
+import { fillForm8829 } from './fillers/form8829Filler'
 import { fillScheduleSE } from './fillers/scheduleSEFiller'
 import { fillForm8582 } from './fillers/form8582Filler'
 import { fillForm8606 } from './fillers/form8606Filler'
@@ -84,10 +85,30 @@ export async function compileFilingPackage(
     result.seSepSimpleResult !== null ||
     result.seHealthInsuranceResult !== null
 
+  const needsForm2441 =
+    result.dependentCareCredit !== null && result.dependentCareCredit.creditAmount > 0
+
+  const needsForm4952 =
+    result.scheduleA !== null &&
+    (result.scheduleA.line9.amount > 0 || result.scheduleA.investmentInterestCarryforward.amount > 0)
+
+  const needsForm5695 =
+    result.energyCredit !== null && result.energyCredit.totalCredit > 0
+
+  const needsForm8880 =
+    result.saversCredit !== null && result.saversCredit.creditAmount > 0
+
+  const needsForm8959 =
+    result.additionalMedicareTaxResult !== null && result.additionalMedicareTaxResult.additionalTax > 0
+
+  const needsForm8960 =
+    result.niitResult !== null && result.niitResult.niitAmount > 0
+
   const needsSchedule2 =
     (result.amtResult !== null && result.amtResult.amt > 0) ||
     (result.hsaResult !== null && (result.hsaResult.distributionPenalty + result.hsaResult.excessPenalty) > 0) ||
-    (result.scheduleSEResult !== null && result.scheduleSEResult.totalSETax > 0)
+    (result.scheduleSEResult !== null && result.scheduleSEResult.totalSETax > 0) ||
+    needsForm8959 || needsForm8960
 
   const needsSchedule3 =
     result.line20.amount > 0 ||
@@ -108,6 +129,10 @@ export async function compileFilingPackage(
 
   const needsScheduleC = result.scheduleCResult !== null &&
     result.scheduleCResult.businesses.length > 0
+
+  // Form 8829 is needed for regular method home office deductions
+  const needsForm8829 = result.form8829Results.length > 0 &&
+    result.form8829Results.some(r => r.method === 'regular' && r.deduction > 0)
 
   const needsScheduleSE = result.scheduleSEResult !== null &&
     result.scheduleSEResult.totalSETax > 0
@@ -199,6 +224,15 @@ export async function compileFilingPackage(
     })
   }
 
+  // Form 4952 (sequence 10) — Investment Interest Expense Deduction
+  if (needsForm4952) {
+    const f4952Doc = await fillForm4952(templates.f4952, taxReturn, result.scheduleA!)
+    filledDocs.push({
+      doc: f4952Doc,
+      summary: { formId: 'Form 4952', sequenceNumber: '10', pageCount: f4952Doc.getPageCount() },
+    })
+  }
+
   // Schedule B (sequence 08)
   if (needsScheduleB) {
     const schBDoc = await fillScheduleB(templates.f1040sb, taxReturn, scheduleB)
@@ -223,6 +257,23 @@ export async function compileFilingPackage(
             : 'Schedule C',
           sequenceNumber: '09',
           pageCount: schCDoc.getPageCount(),
+        },
+      })
+    }
+  }
+
+  // Form 8829 (sequence 66) — one per home office, only for regular method
+  if (needsForm8829) {
+    for (const f8829Result of result.form8829Results) {
+      if (f8829Result.method !== 'regular' || f8829Result.deduction <= 0) continue
+      const f8829Doc = await fillForm8829(taxReturn, f8829Result)
+      const biz = (taxReturn.scheduleCBusinesses ?? []).find(b => b.id === f8829Result.scheduleCId)
+      filledDocs.push({
+        doc: f8829Doc,
+        summary: {
+          formId: biz ? `Form 8829 (${biz.businessName})` : 'Form 8829',
+          sequenceNumber: '66',
+          pageCount: f8829Doc.getPageCount(),
         },
       })
     }
