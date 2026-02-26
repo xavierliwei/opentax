@@ -20,6 +20,8 @@ export interface FormTemplates {
   f1040sc: Uint8Array
   f1040sse: Uint8Array
   f1116: Uint8Array
+  f8995: Uint8Array
+  f8995a: Uint8Array
 }
 
 /** Result of compiling all forms for a tax return. */

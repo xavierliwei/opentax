@@ -1,19 +1,12 @@
 /**
  * Form 8995-A (Qualified Business Income Deduction — Above Threshold)
  *
- * Programmatically generated PDF (no IRS template available).
- * Used when taxable income exceeds the QBI threshold:
- *   $191,950 (single/MFS/HOH) / $383,900 (MFJ/QW).
+ * Fills the official IRS Form 8995-A template from computed QBI results.
+ * Falls back to programmatic generation when no template is available.
  *
- * Layout mirrors IRS Form 8995-A structure:
- *   Page 1:
- *     Header: Name, SSN
- *     Part I: Trade or Business Name and Taxpayer ID
- *     Part II: W-2 Wages and Qualified Property (UBIA)
- *     Part III: QBI Deduction Summary
- *
- * Warnings are emitted for unsupported sub-paths (e.g., SSTB phase-in,
- * aggregation elections, patron reduction) as IRS-visible notes.
+ * Form structure:
+ *   Page 1: Header, Part I (business info), Part II (QBI computation, lines 2-16)
+ *   Page 2: Part III (phased-in reduction, lines 17-26), Part IV (deduction, lines 27-40)
  *
  * Source: IRS Form 8995-A, IRC §199A
  * All amounts in integer cents.
@@ -21,8 +14,136 @@
 
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 import type { TaxReturn } from '../../model/types'
-import type { QBIDeductionResult } from '../../rules/2025/qbiDeduction'
-import { formatDollars, formatSSN } from '../helpers'
+import type { QBIDeductionResult, QBIBusinessResult } from '../../rules/2025/qbiDeduction'
+import { formatDollars, formatSSN, setTextField, setDollarField, checkBox } from '../helpers'
+import {
+  F8995A_HEADER, F8995A_PART1, F8995A_PART2, F8995A_PART4,
+} from '../mappings/form8995aFields'
+
+// ── Template-based filler ────────────────────────────────────────
+
+async function fillForm8995ATemplate(
+  templateBytes: Uint8Array,
+  taxReturn: TaxReturn,
+  result: QBIDeductionResult,
+): Promise<PDFDocument> {
+  const pdfDoc = await PDFDocument.load(templateBytes, { ignoreEncryption: true })
+  const form = pdfDoc.getForm()
+  try { form.deleteXFA() } catch { /* ok */ }
+
+  const tp = taxReturn.taxpayer
+
+  // ── Header ──────────────────────────────────────────────
+  setTextField(form, F8995A_HEADER.name,
+    `${tp.firstName} ${tp.lastName}`)
+  setTextField(form, F8995A_HEADER.ssn,
+    formatSSN(tp.ssn || '000000000'))
+
+  // ── Part I: Business Info (up to 3 rows: A, B, C) ──────
+  const bizResults = result.businessResults ?? []
+  const part1Rows = [
+    { name: F8995A_PART1.rowA_name, tin: F8995A_PART1.rowA_tin, sstb: F8995A_PART1.rowA_specService },
+    { name: F8995A_PART1.rowB_name, tin: F8995A_PART1.rowB_tin, sstb: F8995A_PART1.rowB_specService },
+    { name: F8995A_PART1.rowC_name, tin: F8995A_PART1.rowC_tin, sstb: F8995A_PART1.rowC_specService },
+  ]
+  // Map business results back to input data for TIN
+  const allBusinessInputs = [
+    ...(taxReturn.scheduleCBusinesses ?? []).map(b => ({ name: b.businessName, tin: b.businessEin || '' })),
+    ...(taxReturn.scheduleK1s ?? []).filter(k => k.section199AQBI !== 0).map(k => ({ name: k.entityName, tin: k.entityEin })),
+  ]
+
+  for (let i = 0; i < Math.min(bizResults.length, part1Rows.length); i++) {
+    const biz = bizResults[i]
+    const fields = part1Rows[i]
+    setTextField(form, fields.name, biz.name)
+    // Try to find the TIN from input data
+    const input = allBusinessInputs.find(b => b.name === biz.name)
+    if (input?.tin) setTextField(form, fields.tin, input.tin)
+    if (biz.sstbExcluded || biz.sstbPhaseInApplied) {
+      checkBox(form, fields.sstb)
+    }
+  }
+
+  // ── Part II: QBI Computation (columns A, B, C) ──────────
+  const colFields = [
+    { // Column A
+      line2: F8995A_PART2.line2_a, line3: F8995A_PART2.line3_a,
+      line10: F8995A_PART2.line10_a, line11: F8995A_PART2.line11_a,
+      line13: F8995A_PART2.line13_a, line15: F8995A_PART2.line15_a,
+    },
+    { // Column B
+      line2: F8995A_PART2.line2_b, line3: F8995A_PART2.line3_b,
+      line10: F8995A_PART2.line10_b, line11: F8995A_PART2.line11_b,
+      line13: F8995A_PART2.line13_b, line15: F8995A_PART2.line15_b,
+    },
+    { // Column C
+      line2: F8995A_PART2.line2_c, line3: F8995A_PART2.line3_c,
+      line10: F8995A_PART2.line10_c, line11: F8995A_PART2.line11_c,
+      line13: F8995A_PART2.line13_c, line15: F8995A_PART2.line15_c,
+    },
+  ]
+
+  for (let i = 0; i < Math.min(bizResults.length, colFields.length); i++) {
+    const biz = bizResults[i]
+    const f = colFields[i]
+    // Line 2: QBI
+    setDollarField(form, f.line2, biz.qbi)
+    // Line 3: 20% of QBI
+    setDollarField(form, f.line3, biz.twentyPercentQBI)
+    // Line 10: Greater of 50%×W2 or 25%×W2+2.5%×UBIA (wage limitation)
+    setDollarField(form, f.line10, biz.wageLimitation)
+    // Line 11: Smaller of line 3 or line 10
+    const line11 = Math.min(biz.twentyPercentQBI, biz.wageLimitation)
+    setDollarField(form, f.line11, line11)
+    // Line 13: Greater of line 11 or line 12 (phase-in)
+    setDollarField(form, f.line13, biz.deductibleQBI)
+    // Line 15: QBI component (= line 13 for non-patron businesses)
+    setDollarField(form, f.line15, biz.deductibleQBI)
+  }
+
+  // Line 16: Total QBI component (sum of all line 15 values)
+  const totalQBIComponent = bizResults
+    .filter(r => r.deductibleQBI > 0)
+    .reduce((sum, r) => sum + r.deductibleQBI, 0)
+  // Put total in the first column position (line 16 is a total row)
+  setDollarField(form, F8995A_PART2.line16_a, totalQBIComponent)
+
+  // ── Part IV: QBI Deduction (Page 2) ─────────────────────
+  // Line 27: Total QBI component (from line 16)
+  setDollarField(form, F8995A_PART4.line27, totalQBIComponent)
+
+  // Lines 28-31: REIT/PTP (not modeled — leave blank)
+
+  // Line 32: QBI deduction before income limitation
+  setDollarField(form, F8995A_PART4.line32, totalQBIComponent)
+
+  // Line 33: Taxable income before QBI deduction
+  const taxableIncomeBeforeQBI = result.taxableIncomeComponent > 0
+    ? Math.round(result.taxableIncomeComponent / 0.20)
+    : 0
+  setDollarField(form, F8995A_PART4.line33, taxableIncomeBeforeQBI)
+
+  // Line 34: Net capital gain (not modeled — leave blank)
+
+  // Line 35: Line 33 minus line 34
+  setDollarField(form, F8995A_PART4.line35, taxableIncomeBeforeQBI)
+
+  // Line 36: Income limitation (20% of line 35)
+  setDollarField(form, F8995A_PART4.line36, result.taxableIncomeComponent)
+
+  // Line 37: QBI deduction before DPAD (lesser of line 32 or 36)
+  setDollarField(form, F8995A_PART4.line37, result.deductionAmount)
+
+  // Line 38: DPAD (not modeled — leave blank)
+
+  // Line 39: Total QBI deduction
+  setDollarField(form, F8995A_PART4.line39, result.deductionAmount)
+
+  form.flatten()
+  return pdfDoc
+}
+
+// ── Programmatic fallback generator ──────────────────────────────
 
 /** Unsupported sub-path warnings to render on the form. */
 function collectWarnings(result: QBIDeductionResult): string[] {
@@ -43,19 +164,15 @@ function collectWarnings(result: QBIDeductionResult): string[] {
     )
   }
 
-  // Aggregation election not supported
   warnings.push(
     'Note: Aggregation elections (multiple businesses treated as one) are not yet supported. ' +
     'Each business is computed individually.',
   )
 
-  // Patron reduction not supported
-  // (This is a rare case for cooperatives — just note it)
-
   return warnings
 }
 
-export async function fillForm8995A(
+async function generateForm8995A(
   taxReturn: TaxReturn,
   result: QBIDeductionResult,
 ): Promise<PDFDocument> {
@@ -67,9 +184,8 @@ export async function fillForm8995A(
   const black = rgb(0, 0, 0)
   const gray = rgb(0.3, 0.3, 0.3)
   const lightGray = rgb(0.85, 0.85, 0.85)
-  const warningBg = rgb(1.0, 0.96, 0.88) // light yellow
+  const warningBg = rgb(1.0, 0.96, 0.88)
 
-  // ── Page 1 ──────────────────────────────────────────────────
   let page = pdfDoc.addPage([612, 792])
   let y = 740
 
@@ -96,13 +212,12 @@ export async function fillForm8995A(
   y -= 12
   drawText('Department of the Treasury — Internal Revenue Service', 56, 7, { color: gray })
   y -= 8
-  drawText('OMB No. 1545-0123  |  Attachment Sequence No. 55A', 56, 7, { color: gray })
+  drawText('OMB No. 1545-0074  |  Attachment Sequence No. 55A', 56, 7, { color: gray })
   y -= 14
 
   drawLine(56, 556)
   y -= 6
 
-  // Taxpayer name and SSN
   drawText('Name(s) shown on return:', 56, 8, { color: gray })
   const tpName = `${taxReturn.taxpayer.firstName} ${taxReturn.taxpayer.lastName}`
   drawText(tpName, 180, 10, { font: fontBold })
@@ -118,9 +233,8 @@ export async function fillForm8995A(
   if (warnings.length > 0) {
     page.drawRectangle({ x: 56, y: y - (warnings.length * 24) - 4, width: 500, height: warnings.length * 24 + 8, color: warningBg })
     for (const warning of warnings) {
-      // Wrap long warning text
       const maxChars = 85
-      const lines = []
+      const lines: string[] = []
       let remaining = warning
       while (remaining.length > maxChars) {
         let breakAt = remaining.lastIndexOf(' ', maxChars)
@@ -146,7 +260,6 @@ export async function fillForm8995A(
   y -= 22
 
   if (bizResults.length > 0) {
-    // Column headers
     page.drawRectangle({ x: 56, y: y - 2, width: 500, height: 16, color: lightGray })
     drawText('Business Name', 60, 7, { font: fontBold })
     drawText('QBI', 240, 7, { font: fontBold })
@@ -164,7 +277,6 @@ export async function fillForm8995A(
       drawText(formatDollars(biz.wageLimitation), 385, 8)
       drawText(formatDollars(biz.deductibleQBI), 480, 8)
 
-      // Annotations
       if (biz.sstbExcluded) {
         y -= 12
         drawText('  * SSTB excluded (above phase-in range)', 60, 7, { font: fontItalic, color: gray })
@@ -195,7 +307,6 @@ export async function fillForm8995A(
   y -= 22
 
   if (bizResults.length > 0) {
-    // Detail rows for each business
     page.drawRectangle({ x: 56, y: y - 2, width: 500, height: 16, color: lightGray })
     drawText('Business', 60, 7, { font: fontBold })
     drawText('50% W-2', 210, 7, { font: fontBold })
@@ -207,11 +318,10 @@ export async function fillForm8995A(
       if (biz.qbi <= 0 || biz.sstbExcluded) continue
       ensureSpace(20)
 
-      // We don't have the original W-2/UBIA inputs here, but we show the computed limitation
       const nameDisplay = biz.name.length > 22 ? biz.name.slice(0, 19) + '...' : biz.name
       drawText(nameDisplay, 60, 8)
-      drawText('—', 230, 8, { color: gray }) // Detail not in result
-      drawText('—', 340, 8, { color: gray }) // Detail not in result
+      drawText('—', 230, 8, { color: gray })
+      drawText('—', 340, 8, { color: gray })
       drawText(formatDollars(biz.wageLimitation), 435, 8)
       y -= 16
     }
@@ -226,7 +336,7 @@ export async function fillForm8995A(
 
   // ── Part III: QBI Deduction Summary ─────────────────────────
   ensureSpace(140)
-  drawText('Part III — QBI Deduction Summary', 56, 11, { font: fontBold })
+  drawText('Part IV — QBI Deduction Summary', 56, 11, { font: fontBold })
   y -= 22
 
   const drawSummaryRow = (lineNum: string, label: string, value: number) => {
@@ -236,45 +346,42 @@ export async function fillForm8995A(
     y -= 18
   }
 
-  // Positive deductible
   const positiveDeductible = bizResults
-    .filter(r => r.deductibleQBI > 0)
-    .reduce((sum, r) => sum + r.deductibleQBI, 0)
-  drawSummaryRow('15', 'Total deductible QBI from all businesses', positiveDeductible)
+    .filter((r: QBIBusinessResult) => r.deductibleQBI > 0)
+    .reduce((sum: number, r: QBIBusinessResult) => sum + r.deductibleQBI, 0)
+  drawSummaryRow('27', 'Total QBI component from all businesses', positiveDeductible)
 
-  // Losses
-  const totalLosses = bizResults
-    .filter(r => r.qbi < 0)
-    .reduce((sum, r) => sum + r.qbi, 0)
-  if (totalLosses < 0) {
-    drawSummaryRow('16', 'Total QBI losses (20% carryover)', Math.round(totalLosses * 0.20))
-  }
-
-  // Combined
-  const combinedDeductible = Math.max(0, positiveDeductible + Math.round(totalLosses * 0.20))
-  drawSummaryRow('17', 'Combined QBI deductible amount', combinedDeductible)
-
-  // Taxable income component
   drawSummaryRow('33', 'Taxable income limitation (20% of taxable income)', result.taxableIncomeComponent)
 
   y -= 6
   drawLine(56, 556)
   y -= 8
 
-  // Final deduction
   page.drawRectangle({ x: 440, y: y - 4, width: 116, height: 20, color: lightGray })
-  drawText('34', 60, 10, { font: fontBold })
-  drawText('Qualified business income deduction (lesser of Line 17 or Line 33)', 84, 9, { font: fontBold })
+  drawText('39', 60, 10, { font: fontBold })
+  drawText('Total qualified business income deduction', 84, 9, { font: fontBold })
   drawText(formatDollars(result.deductionAmount), 470, 10, { font: fontBold })
   y -= 24
 
   drawText('Enter on Form 1040, Line 13', 84, 8, { font: fontItalic, color: gray })
   y -= 30
 
-  // ── Footer ──────────────────────────────────────────────────
   drawLine(56, 556)
   y -= 8
   drawText('Generated by OpenTax — Form 8995-A (Above-Threshold QBI Deduction)', 56, 7, { color: gray })
 
   return pdfDoc
+}
+
+// ── Public API ──────────────────────────────────────────────────
+
+export async function fillForm8995A(
+  taxReturn: TaxReturn,
+  result: QBIDeductionResult,
+  templateBytes?: Uint8Array,
+): Promise<PDFDocument> {
+  if (templateBytes) {
+    return fillForm8995ATemplate(templateBytes, taxReturn, result)
+  }
+  return generateForm8995A(taxReturn, result)
 }
