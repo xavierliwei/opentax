@@ -10,6 +10,7 @@ import { coModule } from './2025/co/module'
 import { ctModule } from './2025/ct/module'
 import { dcModule } from './2025/dc/module'
 import { gaModule } from './2025/ga/module'
+import { iaModule } from './2025/ia/module'
 import { ilModule } from './2025/il/module'
 import { inModule } from './2025/in/module'
 import { kyModule } from './2025/ky/module'
@@ -32,6 +33,7 @@ const STATE_MODULES: Map<SupportedStateCode, StateRulesModule> = new Map([
   ['CT', ctModule],
   ['DC', dcModule],
   ['GA', gaModule],
+  ['IA', iaModule],
   ['IL', ilModule],
   ['IN', inModule],
   ['KY', kyModule],
