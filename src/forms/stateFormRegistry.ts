@@ -11,6 +11,7 @@ import { ctFormCompiler } from './fillers/formCT1040Filler'
 import { dcFormCompiler } from './fillers/formD40Filler'
 import { gaFormCompiler } from './fillers/form500Filler'
 import { iaFormCompiler } from './fillers/ia1040Filler'
+import { idFormCompiler } from './fillers/idForm40Filler'
 import { ilFormCompiler } from './fillers/il1040Filler'
 import { inFormCompiler } from './fillers/inIT40Filler'
 import { kyFormCompiler } from './fillers/form740Filler'
@@ -39,6 +40,7 @@ const STATE_COMPILERS: Map<SupportedStateCode, StateFormCompiler> = new Map([
   ['DC', dcFormCompiler],
   ['GA', gaFormCompiler],
   ['IA', iaFormCompiler],
+  ['ID', idFormCompiler],
   ['IL', ilFormCompiler],
   ['IN', inFormCompiler],
   ['KY', kyFormCompiler],
