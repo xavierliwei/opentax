@@ -8,7 +8,7 @@
  *   → Schedule A (07) → Schedule B (08) → Schedule C (09) → Schedule D (12)
  *   → Form 8949 (12A) → Schedule E (13) → Schedule SE (17)
  *   → Form 8863 (18) → Form 1116 (19)
- *   → Form 6251 (32) → Form 8812 (47) → Form 8889 (52)
+ *   → Form 6251 (32) → Form 8812 (47) → Form 8582 (88) → Form 8889 (52)
  *   → Form 8995 (55) / Form 8995-A (55A)
  */
 
@@ -37,6 +37,7 @@ import { fillForm1116 } from './fillers/form1116Filler'
 import { fillScheduleE } from './fillers/scheduleEFiller'
 import { fillScheduleC } from './fillers/scheduleCFiller'
 import { fillScheduleSE } from './fillers/scheduleSEFiller'
+import { fillForm8582 } from './fillers/form8582Filler'
 import { fillForm8995 } from './fillers/form8995Filler'
 import { fillForm8995A } from './fillers/form8995aFiller'
 import { generateCoverSheet } from './fillers/coverSheet'
@@ -108,6 +109,9 @@ export async function compileFilingPackage(
     result.foreignTaxCreditResult !== null &&
     result.foreignTaxCreditResult.applicable &&
     !result.foreignTaxCreditResult.directCreditElection
+
+  const needsForm8582 =
+    result.form8582Result !== null && result.form8582Result.required
 
   const needsForm8889 = result.hsaResult !== null
 
@@ -298,6 +302,15 @@ export async function compileFilingPackage(
     filledDocs.push({
       doc: f8889Doc,
       summary: { formId: 'Form 8889', sequenceNumber: '52', pageCount: f8889Doc.getPageCount() },
+    })
+  }
+
+  // Form 8582 (sequence 88) — Passive Activity Loss Limitations
+  if (needsForm8582) {
+    const f8582Doc = await fillForm8582(templates.f8582, taxReturn, result.form8582Result!)
+    filledDocs.push({
+      doc: f8582Doc,
+      summary: { formId: 'Form 8582', sequenceNumber: '88', pageCount: f8582Doc.getPageCount() },
     })
   }
 

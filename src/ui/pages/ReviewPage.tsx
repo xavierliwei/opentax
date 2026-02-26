@@ -91,6 +91,8 @@ export function ReviewPage() {
   const infos = validation?.items.filter(i => i.severity === 'info') ?? []
 
   const hasScheduleC = taxReturn.scheduleCBusinesses.length > 0
+  const hasScheduleE = taxReturn.scheduleEProperties.length > 0
+  const hasPALLimitation = form1040.form8582Result?.required === true
   const hasK1 = taxReturn.scheduleK1s.length > 0
   const has1095A = taxReturn.form1095As.length > 0
 
@@ -224,8 +226,38 @@ export function ReviewPage() {
       </section>
 
       {/* Schedule Summaries — after income, before deductions */}
-      {(hasScheduleC || hasK1 || has1095A) && (
+      {(hasScheduleC || hasScheduleE || hasK1 || has1095A) && (
         <section className="mt-4 flex flex-col gap-2">
+          {hasScheduleE && (
+            <div data-testid="review-schedule-e" className={`border rounded-md px-3 py-2 flex flex-col gap-1 ${hasPALLimitation ? 'border-amber-200 bg-amber-50/50' : 'border-gray-200'}`}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <span className="text-sm font-medium text-gray-800">Schedule E — Rental Real Estate</span>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {taxReturn.scheduleEProperties.length} rental propert{taxReturn.scheduleEProperties.length > 1 ? 'ies' : 'y'} reported.
+                    {form1040.scheduleE && ` Net: ${formatCurrency(form1040.scheduleE.line23a.amount)}.`}
+                    {form1040.scheduleE && form1040.scheduleE.line26.amount !== form1040.scheduleE.line23a.amount && ` Allowed: ${formatCurrency(form1040.scheduleE.line26.amount)}.`}
+                  </p>
+                </div>
+                <Link
+                  to="/interview/schedule-e"
+                  className="text-xs text-tax-blue hover:text-blue-700 shrink-0 py-2 sm:py-0"
+                >
+                  Edit
+                </Link>
+              </div>
+              {hasPALLimitation && form1040.form8582Result && (
+                <div className="text-xs text-amber-800 border-t border-amber-200 pt-1 mt-1">
+                  <span className="font-medium">Passive Activity Loss Limitation (Form 8582):</span>{' '}
+                  Your {formatCurrency(Math.abs(form1040.form8582Result.totalNetPassiveActivity))} rental loss is limited to{' '}
+                  {formatCurrency(form1040.form8582Result.allowableLoss)} by the IRC &sect;469 special allowance.
+                  {form1040.form8582Result.suspendedLoss > 0 && (
+                    <> {formatCurrency(form1040.form8582Result.suspendedLoss)} is suspended and carries forward to future years.</>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
           {hasScheduleC && (
             <div data-testid="review-schedule-c" className="border border-gray-200 rounded-md px-3 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="min-w-0">

@@ -488,6 +488,7 @@ const priorYearInfoSchema = z.object({
   capitalLossCarryforwardST: centsNonNeg,
   capitalLossCarryforwardLT: centsNonNeg,
   itemizedLastYear: z.boolean(),
+  suspendedPassiveActivityLoss: centsNonNeg.optional(),
 })
 
 // ── Dependent Care ───────────────────────────────────────────────

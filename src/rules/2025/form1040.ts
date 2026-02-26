@@ -88,6 +88,8 @@ import type {
   SEHealthInsuranceResult,
   SESepSimpleResult,
 } from './schedule1Adjustments'
+import { computeForm8582 } from './form8582'
+import type { Form8582Result } from './form8582'
 
 // ── Line 1a — Wages, salaries, tips ────────────────────────────
 // Sum of all W-2 Box 1 values.
@@ -1127,6 +1129,9 @@ export interface Form1040Result {
   // Federal validation warnings
   validation: FederalValidationResult | null
 
+  // Form 8582 — Passive Activity Loss Limitations
+  form8582Result: Form8582Result | null
+
   // Attached schedules
   schedule1: Schedule1Result | null
   scheduleA: ScheduleAResult | null
@@ -1195,6 +1200,21 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     const k1PassthroughIncome = k1Result?.totalPassthroughIncome ?? 0
     const prelimAGI = prelimLine1a.amount + prelimLine2b.amount + prelimLine3b.amount + prelimLine7.amount + schedCIncome + k1PassthroughIncome
     scheduleE = computeScheduleE(model.scheduleEProperties, model.filingStatus, prelimAGI)
+  }
+
+  // Form 8582 — Passive Activity Loss Limitations
+  const mfsLivedApart = model.deductions.mfsLivedApartAllYear ?? false
+  let form8582Result: Form8582Result | null = null
+  if (scheduleE) {
+    // Use the same preliminary AGI that was used for the Schedule E PAL computation
+    const prelimLine1a = computeLine1a(model)
+    const prelimLine2b = computeLine2b(model, k1Result?.totalInterest ?? 0)
+    const prelimLine3b = computeLine3b(model, k1Result?.totalDividends ?? 0)
+    const prelimLine7 = computeLine7(scheduleD?.line21)
+    const schedCIncome = scheduleCResult?.totalNetProfitCents ?? 0
+    const k1PassthroughIncome = k1Result?.totalPassthroughIncome ?? 0
+    const form8582AGI = prelimLine1a.amount + prelimLine2b.amount + prelimLine3b.amount + prelimLine7.amount + schedCIncome + k1PassthroughIncome
+    form8582Result = computeForm8582(scheduleE, form8582AGI, model.filingStatus, mfsLivedApart)
   }
 
   // K-1 Rental PAL guardrail — apply after Schedule E so we can coordinate the shared $25K allowance
@@ -1571,6 +1591,7 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     k1RentalPAL,
     foreignTaxCreditResult: foreignTaxCreditResult.applicable ? foreignTaxCreditResult : null,
     validation,
+    form8582Result,
     schedule1, scheduleA, scheduleD, scheduleE,
   }
 }

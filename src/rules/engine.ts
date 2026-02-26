@@ -124,6 +124,11 @@ export const NODE_LABELS: Record<string, string> = {
   'scheduleE.line25': 'Total rental/royalty losses allowed',
   'scheduleE.line26': 'Total Schedule E income',
 
+  // Form 8582 — Passive Activity Loss Limitations
+  'form8582.allowableLoss': 'Allowable passive activity loss (Form 8582)',
+  'form8582.suspendedLoss': 'Suspended passive activity loss (carried forward)',
+  'form8582.specialAllowance': 'Special allowance for rental real estate (Form 8582, Line 10)',
+
   // Schedule B
   'scheduleB.line4': 'Total interest',
   'scheduleB.line6': 'Total ordinary dividends',
@@ -657,6 +662,31 @@ export function collectAllValues(
       add(prop.expenses)
       add(prop.netIncome)
     }
+  }
+
+  // Form 8582 — Passive Activity Loss Limitations
+  if (form1040.form8582Result && form1040.form8582Result.required) {
+    const pal = form1040.form8582Result
+    values.set('form8582.allowableLoss', tracedFromComputation(
+      pal.allowableLoss,
+      'form8582.allowableLoss',
+      ['scheduleE.line23a'],
+      'Allowable passive activity loss (Form 8582)',
+    ))
+    if (pal.suspendedLoss > 0) {
+      values.set('form8582.suspendedLoss', tracedFromComputation(
+        pal.suspendedLoss,
+        'form8582.suspendedLoss',
+        ['form8582.allowableLoss'],
+        'Suspended passive activity loss (carried forward)',
+      ))
+    }
+    values.set('form8582.specialAllowance', tracedFromComputation(
+      pal.line10,
+      'form8582.specialAllowance',
+      [],
+      'Special allowance for rental real estate (Form 8582, Line 10)',
+    ))
   }
 
   // Schedule E property source leaf nodes

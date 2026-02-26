@@ -514,6 +514,7 @@ export interface PriorYearInfo {
   capitalLossCarryforwardST: number  // cents — short-term capital loss carryover (positive)
   capitalLossCarryforwardLT: number  // cents — long-term capital loss carryover (positive)
   itemizedLastYear: boolean          // true if taxpayer itemized on prior-year return (needed for taxable refund calc)
+  suspendedPassiveActivityLoss?: number  // cents — Form 8582 suspended PAL carryforward from prior year (positive)
 }
 
 // ── Dependent Care (Form 2441) ──────────────────────────────────
