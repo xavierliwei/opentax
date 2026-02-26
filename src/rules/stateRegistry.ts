@@ -4,6 +4,7 @@
 
 import type { SupportedStateCode } from '../model/types'
 import type { StateRulesModule } from './stateEngine'
+import { alModule } from './2025/al/module'
 import { azModule } from './2025/az/module'
 import { caModule } from './2025/ca/module'
 import { coModule } from './2025/co/module'
@@ -32,6 +33,7 @@ import { vaModule } from './2025/va/module'
 import { wiModule } from './2025/wi/module'
 
 const STATE_MODULES: Map<SupportedStateCode, StateRulesModule> = new Map([
+  ['AL', alModule],
   ['AZ', azModule],
   ['CA', caModule],
   ['CO', coModule],

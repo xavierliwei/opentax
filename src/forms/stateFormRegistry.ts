@@ -4,6 +4,7 @@
 
 import type { SupportedStateCode } from '../model/types'
 import type { StateFormCompiler } from './stateCompiler'
+import { alFormCompiler } from './fillers/alForm40Filler'
 import { azFormCompiler } from './fillers/az140Filler'
 import { caFormCompiler } from './fillers/form540Filler'
 import { coFormCompiler } from './fillers/dr0104Filler'
@@ -32,6 +33,7 @@ import { vaFormCompiler } from './fillers/form760Filler'
 import { wiFormCompiler } from './fillers/wiForm1Filler'
 
 const STATE_COMPILERS: Map<SupportedStateCode, StateFormCompiler> = new Map([
+  ['AL', alFormCompiler],
   ['AZ', azFormCompiler],
   ['CA', caFormCompiler],
   ['CO', coFormCompiler],
