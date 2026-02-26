@@ -8,8 +8,8 @@
  *   → Schedule A (07) → Schedule B (08) → Schedule C (09) → Schedule D (12)
  *   → Form 8949 (12A) → Schedule E (13) → Schedule SE (17)
  *   → Form 8863 (18) → Form 1116 (19)
- *   → Form 6251 (32) → Form 8812 (47) → Form 8582 (88) → Form 8889 (52)
- *   → Form 8995 (55) / Form 8995-A (55A)
+ *   → Form 6251 (32) → Form 8812 (47) → Form 8606 (48)
+ *   → Form 8889 (52) → Form 8995 (55) / Form 8995-A (55A) → Form 8582 (88)
  */
 
 import { PDFDocument } from 'pdf-lib'
@@ -38,8 +38,15 @@ import { fillScheduleE } from './fillers/scheduleEFiller'
 import { fillScheduleC } from './fillers/scheduleCFiller'
 import { fillScheduleSE } from './fillers/scheduleSEFiller'
 import { fillForm8582 } from './fillers/form8582Filler'
+import { fillForm8606 } from './fillers/form8606Filler'
 import { fillForm8995 } from './fillers/form8995Filler'
 import { fillForm8995A } from './fillers/form8995aFiller'
+import { fillForm2441 } from './fillers/form2441Filler'
+import { fillForm4952 } from './fillers/form4952Filler'
+import { fillForm5695 } from './fillers/form5695Filler'
+import { fillForm8880 } from './fillers/form8880Filler'
+import { fillForm8959 } from './fillers/form8959Filler'
+import { fillForm8960 } from './fillers/form8960Filler'
 import { generateCoverSheet } from './fillers/coverSheet'
 import { tracedZero } from '../model/traced'
 import { validateComputeResult, validateCompilerOutput, runAllGates } from '../rules/qualityGates'
@@ -112,6 +119,9 @@ export async function compileFilingPackage(
 
   const needsForm8582 =
     result.form8582Result !== null && result.form8582Result.required
+
+  const needsForm8606 =
+    result.form8606Result !== null
 
   const needsForm8889 = result.hsaResult !== null
 
@@ -293,6 +303,15 @@ export async function compileFilingPackage(
     filledDocs.push({
       doc: f8812Doc,
       summary: { formId: 'Form 8812', sequenceNumber: '47', pageCount: f8812Doc.getPageCount() },
+    })
+  }
+
+  // Form 8606 (sequence 48)
+  if (needsForm8606 && templates.f8606) {
+    const f8606Doc = await fillForm8606(templates.f8606, taxReturn, result.form8606Result!)
+    filledDocs.push({
+      doc: f8606Doc,
+      summary: { formId: 'Form 8606', sequenceNumber: '48', pageCount: f8606Doc.getPageCount() },
     })
   }
 

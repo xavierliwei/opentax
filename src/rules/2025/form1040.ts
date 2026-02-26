@@ -90,6 +90,8 @@ import type {
 } from './schedule1Adjustments'
 import { computeForm8582 } from './form8582'
 import type { Form8582Result } from './form8582'
+import { computeForm8606 } from './form8606'
+import type { Form8606Result } from './form8606'
 
 // ── Line 1a — Wages, salaries, tips ────────────────────────────
 // Sum of all W-2 Box 1 values.
@@ -198,11 +200,22 @@ export function computeLine3b(model: TaxReturn, k1Dividends: number = 0): Traced
 
 // ── Line 4a — IRA distributions (gross) ─────────────────────────
 // Sum of Box 1 from all 1099-R forms where IRA/SEP/SIMPLE is checked.
+// When Form 8606 is present, also includes the Roth conversion amount
+// (which may not appear on a 1099-R if it's a same-custodian transfer).
 
-export function computeLine4a(model: TaxReturn): TracedValue {
+export function computeLine4a(model: TaxReturn, form8606Result?: Form8606Result | null): TracedValue {
   const iraForms = (model.form1099Rs ?? []).filter(f => f.iraOrSep)
   const inputIds = iraForms.map(f => `1099r:${f.id}:box1`)
-  const total = iraForms.reduce((sum, f) => sum + f.box1, 0)
+  let total = iraForms.reduce((sum, f) => sum + f.box1, 0)
+
+  // When Form 8606 computes a totalGrossIRA, use the larger of
+  // the 1099-R gross or the Form 8606 computed gross.
+  // This handles cases where the Roth conversion shows as a separate
+  // transaction not captured in a standard IRA 1099-R.
+  if (form8606Result && form8606Result.totalGrossIRA > total) {
+    total = form8606Result.totalGrossIRA
+    inputIds.push('form8606.totalGrossIRA')
+  }
 
   return total > 0
     ? tracedFromComputation(total, 'form1040.line4a', inputIds, 'Form 1040, Line 4a')
@@ -212,6 +225,8 @@ export function computeLine4a(model: TaxReturn): TracedValue {
 // ── Line 4b — IRA distributions (taxable) ───────────────────────
 // Sum of Box 2a from IRA/SEP/SIMPLE 1099-Rs.
 // Code G (direct rollover) and Code H (Roth rollover) → taxable = 0.
+// When Form 8606 is present, use the Form 8606 pro-rata computation
+// instead of raw 1099-R Box 2a values.
 
 const NON_TAXABLE_CODES = new Set(['G', 'H'])
 
@@ -219,7 +234,17 @@ function is1099RNonTaxable(f: { box7: string }): boolean {
   return f.box7.split('').some(c => NON_TAXABLE_CODES.has(c))
 }
 
-export function computeLine4b(model: TaxReturn): TracedValue {
+export function computeLine4b(model: TaxReturn, form8606Result?: Form8606Result | null): TracedValue {
+  // When Form 8606 is present, it computes the taxable amount using the pro-rata rule
+  // This overrides the simple 1099-R Box 2a approach
+  if (form8606Result) {
+    const total = form8606Result.totalTaxableIRA
+    return total > 0
+      ? tracedFromComputation(total, 'form1040.line4b', ['form8606.totalTaxableIRA'], 'Form 1040, Line 4b')
+      : tracedZero('form1040.line4b', 'Form 1040, Line 4b')
+  }
+
+  // Fallback: no Form 8606 → use 1099-R Box 2a
   const iraForms = (model.form1099Rs ?? []).filter(f => f.iraOrSep)
   const inputIds: string[] = []
   let total = 0
@@ -1134,6 +1159,9 @@ export interface Form1040Result {
   // Foreign Tax Credit detail (Form 1116)
   foreignTaxCreditResult: ForeignTaxCreditResult | null
 
+  // Form 8606 detail (Nondeductible IRAs / Roth Conversions)
+  form8606Result: Form8606Result | null
+
   // Federal validation warnings
   validation: FederalValidationResult | null
 
@@ -1289,6 +1317,9 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   // ── HSA (computed early — no dependency on Line 9) ──────
   const hsaResult = computeHSADeduction(model)
 
+  // ── Form 8606 (Nondeductible IRAs / Roth Conversions) ──────
+  const form8606Result = computeForm8606(model)
+
   // ── Income ──────────────────────────────────────────────
   const line1a = computeLine1a(model)
   const line1z = computeLine1z(line1a)
@@ -1296,8 +1327,8 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   const line2b = computeLine2b(model, k1Result?.totalInterest ?? 0)
   const line3a = computeLine3a(model)
   const line3b = computeLine3b(model, k1Result?.totalDividends ?? 0)
-  const line4a = computeLine4a(model)
-  const line4b = computeLine4b(model)
+  const line4a = computeLine4a(model, form8606Result)
+  const line4b = computeLine4b(model, form8606Result)
   const line5a = computeLine5a(model)
   const line5b = computeLine5b(model)
   const line6a = computeLine6a(model)
@@ -1605,6 +1636,7 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     k1Result,
     k1RentalPAL,
     foreignTaxCreditResult: foreignTaxCreditResult.applicable ? foreignTaxCreditResult : null,
+    form8606Result,
     validation,
     form8582Result,
     schedule1, scheduleA, scheduleD, scheduleE,

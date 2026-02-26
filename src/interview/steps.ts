@@ -17,6 +17,7 @@ import { RSUIncomePage } from '../ui/pages/RSUIncomePage.tsx'
 import { ISOExercisesPage } from '../ui/pages/ISOExercisesPage.tsx'
 import { Form1099GPage } from '../ui/pages/Form1099GPage.tsx'
 import { RetirementIncomePage } from '../ui/pages/RetirementIncomePage.tsx'
+import { Form8606Page } from '../ui/pages/Form8606Page.tsx'
 import { ScheduleEPage } from '../ui/pages/ScheduleEPage.tsx'
 import { Form1099NECPage } from '../ui/pages/Form1099NECPage.tsx'
 import { ScheduleCPage } from '../ui/pages/ScheduleCPage.tsx'
@@ -214,6 +215,15 @@ export const STEPS: InterviewStep[] = [
     isVisible: (tr) => hasSource(tr, 'retirement'),
     isComplete: () => true,
     component: RetirementIncomePage,
+  },
+  {
+    id: 'form-8606',
+    label: 'IRA Basis / Roth Conv.',
+    path: '/interview/form-8606',
+    section: 'income',
+    isVisible: (tr) => hasSource(tr, 'retirement') || tr.form8606 !== undefined,
+    isComplete: () => true,
+    component: Form8606Page,
   },
   {
     id: 'rental-income',

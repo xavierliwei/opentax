@@ -518,6 +518,18 @@ const retirementContributionsSchema = z.object({
   rothIRA: centsNonNeg,
 })
 
+// ── Form 8606 (Nondeductible IRAs / Roth Conversions) ────────────
+
+const form8606DataSchema = z.object({
+  nondeductibleContributions: centsNonNeg,
+  priorYearBasis: centsNonNeg,
+  traditionalIRAValueYearEnd: centsNonNeg,
+  distributionsInYear: centsNonNeg,
+  rothConversionAmount: centsNonNeg,
+  rothDistributions: centsNonNeg.optional(),
+  rothContributionBasis: centsNonNeg.optional(),
+})
+
 // ── Energy Credits ───────────────────────────────────────────────
 
 const energyCreditsSchema = z.object({
@@ -679,6 +691,9 @@ export const taxReturnSchema = z.object({
   hsa: hsaInfoSchema.optional(),
   form1099SAs: z.array(form1099SASchema).optional(),
 
+  // Form 8606
+  form8606: form8606DataSchema.optional(),
+
   // Other credit inputs
   dependentCare: dependentCareExpensesSchema.optional(),
   retirementContributions: retirementContributionsSchema.optional(),
@@ -763,4 +778,5 @@ export {
   deductionsSchema,
   estimatedTaxPaymentsSchema,
   educationExpensesSchema,
+  form8606DataSchema,
 }

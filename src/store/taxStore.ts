@@ -31,6 +31,7 @@ import type {
   EnergyCredits,
   EducationExpenses,
   HSAInfo,
+  Form8606Data,
 } from '../model/types.ts'
 import { emptyTaxReturn } from '../model/types.ts'
 import { computeAll } from '../rules/engine.ts'
@@ -110,6 +111,7 @@ export interface TaxStoreState {
   setHouseholdEmploymentTaxes: (cents: number) => void
   setEstimatedTaxPayment: (quarter: 'q1' | 'q2' | 'q3' | 'q4', cents: number) => void
   setHSA: (updates: Partial<HSAInfo>) => void
+  setForm8606: (updates: Partial<Form8606Data>) => void
   addScheduleC: (biz: ScheduleC) => void
   updateScheduleC: (id: string, updates: Partial<ScheduleC>) => void
   removeScheduleC: (id: string) => void
@@ -864,6 +866,27 @@ export const useTaxStore = create<TaxStoreState>()(
           ...prev,
           hsa: { ...existing, ...updates },
         }
+        set(recompute(tr))
+      },
+
+      setForm8606: (updates) => {
+        const prev = get().taxReturn
+        const existing: Form8606Data = prev.form8606 ?? {
+          nondeductibleContributions: 0,
+          priorYearBasis: 0,
+          traditionalIRAValueYearEnd: 0,
+          distributionsInYear: 0,
+          rothConversionAmount: 0,
+        }
+        const updated = { ...existing, ...updates }
+        // Clear if all zero
+        const allZero =
+          updated.nondeductibleContributions === 0 &&
+          updated.priorYearBasis === 0 &&
+          updated.traditionalIRAValueYearEnd === 0 &&
+          updated.distributionsInYear === 0 &&
+          updated.rothConversionAmount === 0
+        const tr = { ...prev, form8606: allZero ? undefined : updated }
         set(recompute(tr))
       },
 
