@@ -46,7 +46,12 @@ interface FormDetection {
 function detectFormTypeFromText(text: string): DetectedFormType {
   const upper = text.toUpperCase()
 
-  if (/WAGE\s+AND\s+TAX\s+STATEMENT/.test(upper) || /\bFORM\s+W[\s-]*2\b/.test(upper)) {
+  // ADP / payroll W-2s render "Wage and Tax", "W-2", "Statement" as
+  // separate text items so WAGE AND TAX STATEMENT may not be contiguous.
+  // Match when both phrases appear anywhere on the page.
+  if (/WAGE\s+AND\s+TAX\s+STATEMENT/.test(upper) ||
+      (/WAGE\s+AND\s+TAX/.test(upper) && /STATEMENT/.test(upper)) ||
+      /\bFORM\s+W[\s-]*2\b/.test(upper)) {
     return 'W-2'
   }
 
@@ -397,7 +402,12 @@ function parseW2Positional(items: RawItem[], formPage = 1): Map<string, Extracte
   const page1 = items.filter((it) => it.page === formPage)
 
   // W-2 box layout — the box labels are numbers like "1", "2" etc.
-  // with descriptive text nearby
+  // with descriptive text nearby.
+  //
+  // ADP / payroll-generated W-2s place values right-aligned within the
+  // cell, 30-50px to the right of the box number.  Multi-copy W-2s
+  // (4 copies on one page) are also common.  We pick the topmost
+  // matching label to avoid confusion from duplicate copies.
   const boxDefs: { num: string; key: string; descPattern: RegExp }[] = [
     { num: '1', key: 'box1', descPattern: /wages/i },
     { num: '2', key: 'box2', descPattern: /federal.*tax.*withheld/i },
@@ -410,44 +420,62 @@ function parseW2Positional(items: RawItem[], formPage = 1): Map<string, Extracte
   ]
 
   for (const def of boxDefs) {
-    const label = page1.find((it) => {
-      if (it.str.trim() !== def.num) return false
-      // Verify nearby description text
-      return page1.some((d) =>
-        def.descPattern.test(d.str) &&
-        Math.abs(d.y - it.y) < 5 &&
-        d.x > it.x,
-      )
-    })
-
-    if (label) {
-      const dollarSign = page1.find((it) =>
-        it.str.trim() === '$' &&
-        it.y > label.y && it.y <= label.y + 30 &&
-        Math.abs(it.x - label.x) < 25,
-      )
-
-      if (dollarSign) {
-        const val = page1.find((it) =>
-          DOLLARS_RE.test(it.str.trim()) &&
-          Math.abs(it.y - dollarSign.y) < 5 &&
-          it.x > dollarSign.x && it.x < dollarSign.x + 120,
+    // Find the topmost matching label (avoids picking from duplicate copies)
+    const label = page1
+      .filter((it) => {
+        if (it.str.trim() !== def.num) return false
+        return page1.some((d) =>
+          def.descPattern.test(d.str) &&
+          Math.abs(d.y - it.y) < 5 &&
+          d.x > it.x,
         )
-        if (val) {
-          fields.set(def.key, field(parseCents(val.str.trim())))
-          continue
-        }
-      }
+      })
+      .sort((a, b) => a.y - b.y)[0]
 
-      const val = findDollarBelow(page1, label)
-      if (val !== null) {
-        fields.set(def.key, field(val))
+    if (!label) continue
+
+    // Strategy 1: "$" sign below label (IRS fillable PDFs)
+    const dollarSign = page1.find((it) =>
+      it.str.trim() === '$' &&
+      it.y > label.y && it.y <= label.y + 30 &&
+      Math.abs(it.x - label.x) < 25,
+    )
+
+    if (dollarSign) {
+      const val = page1.find((it) =>
+        DOLLARS_RE.test(it.str.trim()) &&
+        Math.abs(it.y - dollarSign.y) < 5 &&
+        it.x > dollarSign.x && it.x < dollarSign.x + 120,
+      )
+      if (val) {
+        fields.set(def.key, field(parseCents(val.str.trim())))
+        continue
       }
+    }
+
+    // Strategy 2: dollar value below the label in a wider x-range.
+    // ADP W-2s have values right-aligned within the cell, offset 30-50px
+    // from the box number.  Search to the right of the label only, within
+    // the cell width (~90px for standard W-2 two-column layout).
+    const valCandidates = page1
+      .filter((it) => {
+        if (it.y <= label.y) return false
+        if (it.y > label.y + 25) return false
+        if (it.x < label.x - 5) return false
+        if (it.x > label.x + 85) return false
+        return DOLLARS_RE.test(it.str.trim())
+      })
+      .sort((a, b) => a.y - b.y)
+
+    if (valCandidates.length > 0) {
+      fields.set(def.key, field(parseCents(valCandidates[0].str.trim())))
     }
   }
 
-  // Employer name — find "Employer's name" label area
-  const empLabel = page1.find((it) => /employer.s?\s+name/i.test(it.str))
+  // Employer name — find "Employer's name" label area (pick topmost)
+  const empLabel = page1
+    .filter((it) => /employer.s?\s+name/i.test(it.str))
+    .sort((a, b) => a.y - b.y)[0]
   if (empLabel) {
     const name = findTextBelow(page1, empLabel)
     if (name) {
@@ -455,8 +483,9 @@ function parseW2Positional(items: RawItem[], formPage = 1): Map<string, Extracte
     }
   }
 
-  // EIN
-  for (const item of page1) {
+  // EIN — pick the first (topmost) occurrence
+  const sortedByY = [...page1].sort((a, b) => a.y - b.y)
+  for (const item of sortedByY) {
     const m = item.str.match(/(\d{2}-\d{7})/)
     if (m) {
       fields.set('employerEin', textField(m[1]))
@@ -464,11 +493,13 @@ function parseW2Positional(items: RawItem[], formPage = 1): Map<string, Extracte
     }
   }
 
-  // State abbreviation near box 15
-  const box15 = page1.find((it) =>
-    it.str.trim() === '15' &&
-    page1.some((d) => /state/i.test(d.str) && Math.abs(d.y - it.y) < 5),
-  )
+  // State abbreviation near box 15 (pick topmost)
+  const box15 = page1
+    .filter((it) =>
+      it.str.trim() === '15' &&
+      page1.some((d) => /state/i.test(d.str) && Math.abs(d.y - it.y) < 5),
+    )
+    .sort((a, b) => a.y - b.y)[0]
   if (box15) {
     const stateItem = page1.find((it) =>
       /^[A-Z]{2}$/.test(it.str.trim()) &&
@@ -480,27 +511,49 @@ function parseW2Positional(items: RawItem[], formPage = 1): Map<string, Extracte
     }
   }
 
-  // Box 12a–12d: code + amount pairs
+  // Box 12a–12d: code + amount pairs (pick topmost label for each slot)
   for (const slot of ['12a', '12b', '12c', '12d'] as const) {
-    const label = page1.find((it) => it.str.trim() === slot)
+    const label = page1
+      .filter((it) => it.str.trim() === slot)
+      .sort((a, b) => a.y - b.y)[0]
     if (!label) continue
 
-    // The code cell is a 1-2 letter uppercase code near the label
-    const codeItem = page1.find((it) =>
-      /^[A-Z]{1,2}$/.test(it.str.trim()) &&
-      it.y > label.y - 5 && it.y <= label.y + 30 &&
-      Math.abs(it.x - label.x) < 60 &&
-      it !== label,
-    )
-    if (codeItem) {
-      fields.set(`box${slot}_code`, textField(codeItem.str.trim()))
+    // The code cell is a 1-2 letter uppercase code to the right of
+    // the label.  Tight x-bound (35px) avoids picking up the box 13
+    // retirement-plan "X" checkbox which can appear ~42px away.
+    const codeItem = page1
+      .filter((it) =>
+        /^[A-Z]{1,2}$/.test(it.str.trim()) &&
+        it.y >= label.y - 3 && it.y <= label.y + 20 &&
+        it.x >= label.x + 2 && it.x <= label.x + 35 &&
+        it !== label,
+      )
+      .sort((a, b) => a.y - b.y)[0]
+    if (!codeItem) continue
 
-      // Dollar amount near the code
-      const amt = findDollarBelow(page1, codeItem, 60, 30)
-        ?? findDollarBelow(page1, label, 60, 40)
-      if (amt !== null) {
-        fields.set(`box${slot}_amount`, field(amt))
-      }
+    fields.set(`box${slot}_code`, textField(codeItem.str.trim()))
+
+    // Dollar amount: on the same line as the code OR below it.
+    // ADP W-2s place code and amount on the same row (e.g. "C  381.71").
+    const amtCandidates = page1
+      .filter((it) => {
+        if (!DOLLARS_RE.test(it.str.trim())) return false
+        // Same line as code — amount is to the right
+        if (Math.abs(it.y - codeItem.y) <= 3 && it.x > codeItem.x + 5) return true
+        // Below code, within the label's cell
+        if (it.y > codeItem.y + 3 && it.y <= codeItem.y + 25 &&
+            it.x >= label.x - 10 && it.x <= label.x + 90) return true
+        return false
+      })
+      .sort((a, b) => {
+        // Prefer same-line matches over below matches
+        const aOnLine = Math.abs(a.y - codeItem.y) <= 3 ? 0 : 1
+        const bOnLine = Math.abs(b.y - codeItem.y) <= 3 ? 0 : 1
+        return aOnLine - bOnLine || a.y - b.y
+      })
+
+    if (amtCandidates.length > 0) {
+      fields.set(`box${slot}_amount`, field(parseCents(amtCandidates[0].str.trim())))
     }
   }
 
