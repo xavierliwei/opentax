@@ -25,6 +25,7 @@ import { nyFormCompiler } from './fillers/formIT201Filler'
 import { ohFormCompiler } from './fillers/formIT1040OHFiller'
 import { paFormCompiler } from './fillers/formPA40Filler'
 import { vaFormCompiler } from './fillers/form760Filler'
+import { wiFormCompiler } from './fillers/wiForm1Filler'
 
 const STATE_COMPILERS: Map<SupportedStateCode, StateFormCompiler> = new Map([
   ['AZ', azFormCompiler],
@@ -48,6 +49,7 @@ const STATE_COMPILERS: Map<SupportedStateCode, StateFormCompiler> = new Map([
   ['OH', ohFormCompiler],
   ['PA', paFormCompiler],
   ['VA', vaFormCompiler],
+  ['WI', wiFormCompiler],
 ])
 
 export function getStateFormCompiler(code: SupportedStateCode): StateFormCompiler | undefined {

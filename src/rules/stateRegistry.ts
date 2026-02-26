@@ -25,6 +25,7 @@ import { ohModule } from './2025/oh/module'
 import { paModule } from './2025/pa/module'
 import { nyModule } from './2025/ny/module'
 import { vaModule } from './2025/va/module'
+import { wiModule } from './2025/wi/module'
 
 const STATE_MODULES: Map<SupportedStateCode, StateRulesModule> = new Map([
   ['AZ', azModule],
@@ -48,6 +49,7 @@ const STATE_MODULES: Map<SupportedStateCode, StateRulesModule> = new Map([
   ['OH', ohModule],
   ['PA', paModule],
   ['VA', vaModule],
+  ['WI', wiModule],
 ])
 
 export function getStateModule(code: SupportedStateCode): StateRulesModule | undefined {
