@@ -531,6 +531,23 @@ export interface RetirementContributions {
   // 401(k)/403(b) auto-derived from W-2 Box 12 codes D, E, AA, BB, G, H
 }
 
+// ── Form 8606 (Nondeductible IRAs / Roth Conversions) ────────────
+
+export interface Form8606Data {
+  // Part I — Nondeductible Contributions to Traditional IRAs
+  nondeductibleContributions: number   // Line 1: current year nondeductible contributions (cents)
+  priorYearBasis: number               // Line 2: total basis from prior years (cents)
+
+  // For pro-rata rule
+  traditionalIRAValueYearEnd: number   // Line 6: total value of ALL traditional/SEP/SIMPLE IRAs at Dec 31 (cents)
+  distributionsInYear: number          // Line 7: distributions received in year (cents) — can derive from 1099-R
+  rothConversionAmount: number         // Line 8: net amount converted to Roth (cents)
+
+  // Part III — Distributions from Roth IRAs (usually not taxable unless early)
+  rothDistributions?: number           // Line 19: Roth IRA distributions (cents)
+  rothContributionBasis?: number       // Line 22: Roth contribution basis (cents)
+}
+
 // ── Energy Credits (Form 5695) ──────────────────────────────────
 
 export interface EnergyCredits {
@@ -715,6 +732,9 @@ export interface TaxReturn {
   // HSA data
   hsa?: HSAInfo
   form1099SAs?: Form1099SA[]
+
+  // Form 8606 (Nondeductible IRAs / Roth Conversions)
+  form8606?: Form8606Data
 
   // Other credit inputs
   dependentCare?: DependentCareExpenses

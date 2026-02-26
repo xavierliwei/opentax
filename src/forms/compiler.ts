@@ -8,8 +8,8 @@
  *   → Schedule A (07) → Schedule B (08) → Schedule C (09) → Schedule D (12)
  *   → Form 8949 (12A) → Schedule E (13) → Schedule SE (17)
  *   → Form 8863 (18) → Form 1116 (19)
- *   → Form 6251 (32) → Form 8812 (47) → Form 8889 (52)
- *   → Form 8995 (55) / Form 8995-A (55A)
+ *   → Form 6251 (32) → Form 8812 (47) → Form 8606 (48)
+ *   → Form 8889 (52) → Form 8995 (55) / Form 8995-A (55A)
  */
 
 import { PDFDocument } from 'pdf-lib'
@@ -37,6 +37,7 @@ import { fillForm1116 } from './fillers/form1116Filler'
 import { fillScheduleE } from './fillers/scheduleEFiller'
 import { fillScheduleC } from './fillers/scheduleCFiller'
 import { fillScheduleSE } from './fillers/scheduleSEFiller'
+import { fillForm8606 } from './fillers/form8606Filler'
 import { fillForm8995 } from './fillers/form8995Filler'
 import { fillForm8995A } from './fillers/form8995aFiller'
 import { generateCoverSheet } from './fillers/coverSheet'
@@ -108,6 +109,9 @@ export async function compileFilingPackage(
     result.foreignTaxCreditResult !== null &&
     result.foreignTaxCreditResult.applicable &&
     !result.foreignTaxCreditResult.directCreditElection
+
+  const needsForm8606 =
+    result.form8606Result !== null
 
   const needsForm8889 = result.hsaResult !== null
 
@@ -289,6 +293,15 @@ export async function compileFilingPackage(
     filledDocs.push({
       doc: f8812Doc,
       summary: { formId: 'Form 8812', sequenceNumber: '47', pageCount: f8812Doc.getPageCount() },
+    })
+  }
+
+  // Form 8606 (sequence 48)
+  if (needsForm8606 && templates.f8606) {
+    const f8606Doc = await fillForm8606(templates.f8606, taxReturn, result.form8606Result!)
+    filledDocs.push({
+      doc: f8606Doc,
+      summary: { formId: 'Form 8606', sequenceNumber: '48', pageCount: f8606Doc.getPageCount() },
     })
   }
 

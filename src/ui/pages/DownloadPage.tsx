@@ -89,6 +89,11 @@ export function DownloadPage() {
         )
       }
 
+      // Load optional form templates (non-fatal — features degrade gracefully)
+      try {
+        templates.f8606 = await loadTemplate('forms/f8606.pdf')
+      } catch { /* Form 8606 template not available — PDF won't be generated but computation still works */ }
+
       // Load state templates (CA Form 540, MA Form 1, etc.) — failures are non-fatal (falls back to programmatic)
       const stateTemplateMap = new Map<SupportedStateCode, StateFormTemplates>()
       for (const config of taxReturn.stateReturns ?? []) {
