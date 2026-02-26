@@ -48,3 +48,9 @@ export const OH_EXEMPTION_COUNT: Record<FilingStatus, number> = {
   hoh: 1,
   qw: 1,
 }
+
+/**
+ * Ohio Earned Income Tax Credit: 30% of federal EITC.
+ * Ohio Rev. Code §5747.71
+ */
+export const OH_EITC_RATE = 0.30

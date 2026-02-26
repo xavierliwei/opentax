@@ -11,6 +11,7 @@ import {
   OH_EXEMPTION_PHASEOUT_THRESHOLD,
   OH_JOINT_FILING_CREDIT,
   OH_EXEMPTION_COUNT,
+  OH_EITC_RATE,
 } from './constants'
 
 export interface FormIT1040Result {
@@ -23,6 +24,8 @@ export interface FormIT1040Result {
   ohTaxBeforeCredits: number
   personalExemptionCredit: number
   jointFilingCredit: number
+  ohEITC: number
+  totalNonrefundableCredits: number
   totalCredits: number
   ohTax: number
   taxAfterCredits: number
@@ -140,22 +143,30 @@ export function computeFormIT1040(
     ? Math.min(OH_JOINT_FILING_CREDIT, taxAfterPersonalExemption)
     : 0
 
-  const totalCredits = personalExemptionCredit + jointFilingCredit
+  const totalNonrefundableCredits = personalExemptionCredit + jointFilingCredit
 
-  // 9. Tax after credits
+  // 9. Ohio EITC: 30% of federal EITC (nonrefundable — capped at remaining tax)
+  const federalEITC = form1040.earnedIncomeCredit?.creditAmount ?? 0
+  const ohEITCRaw = Math.round(federalEITC * OH_EITC_RATE)
+  const taxAfterNonrefundable = Math.max(0, ohTaxBeforeCredits - totalNonrefundableCredits)
+  const ohEITC = Math.min(ohEITCRaw, taxAfterNonrefundable)
+
+  const totalCredits = totalNonrefundableCredits + ohEITC
+
+  // 10. Tax after credits
   const ohTax = Math.max(0, ohTaxBeforeCredits - totalCredits)
 
-  // 10. Apply apportionment for part-year/nonresident
+  // 11. Apply apportionment for part-year/nonresident
   const taxAfterCredits = ratio < 1 ? Math.round(ohTax * ratio) : ohTax
 
-  // 11. State withholding from W-2s where box15State === 'OH'
+  // 12. State withholding from W-2s where box15State === 'OH'
   const stateWithholding = model.w2s.reduce((sum, w2) => (
     w2.box15State === 'OH' ? sum + (w2.box17StateIncomeTax ?? 0) : sum
   ), 0)
 
   const totalPayments = stateWithholding
 
-  // 12–13. Overpaid / amount owed
+  // 13–14. Overpaid / amount owed
   const overpaid = Math.max(0, totalPayments - taxAfterCredits)
   const amountOwed = Math.max(0, taxAfterCredits - totalPayments)
 
@@ -169,6 +180,8 @@ export function computeFormIT1040(
     ohTaxBeforeCredits,
     personalExemptionCredit,
     jointFilingCredit,
+    ohEITC,
+    totalNonrefundableCredits,
     totalCredits,
     ohTax,
     taxAfterCredits,
