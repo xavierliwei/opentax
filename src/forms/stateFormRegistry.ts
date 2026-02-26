@@ -27,6 +27,7 @@ import { paFormCompiler } from './fillers/formPA40Filler'
 import { scFormCompiler } from './fillers/sc1040Filler'
 import { utFormCompiler } from './fillers/tc40Filler'
 import { vaFormCompiler } from './fillers/form760Filler'
+import { wiFormCompiler } from './fillers/wiForm1Filler'
 
 const STATE_COMPILERS: Map<SupportedStateCode, StateFormCompiler> = new Map([
   ['AZ', azFormCompiler],
@@ -52,6 +53,7 @@ const STATE_COMPILERS: Map<SupportedStateCode, StateFormCompiler> = new Map([
   ['SC', scFormCompiler],
   ['UT', utFormCompiler],
   ['VA', vaFormCompiler],
+  ['WI', wiFormCompiler],
 ])
 
 export function getStateFormCompiler(code: SupportedStateCode): StateFormCompiler | undefined {
