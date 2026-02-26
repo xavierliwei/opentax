@@ -43,7 +43,7 @@ const centsAny = z.number().int()
 
 const incomeSourceIdSchema = z.enum([
   'w2', 'interest', 'dividends', 'unemployment', 'retirement',
-  'stocks', 'rsu', 'iso', 'rental', 'business', 'k1', 'other',
+  'stocks', 'rsu', 'iso', 'rental', 'business', '1099-nec', 'k1', 'other',
   'health-marketplace',
 ])
 
@@ -194,6 +194,19 @@ const form1099MISCSchema = z.object({
   box2: centsNonNeg,
   box3: centsNonNeg,
   box4: centsNonNeg,
+})
+
+// ── 1099-NEC ────────────────────────────────────────────────────
+
+const form1099NECSchema = z.object({
+  id: z.string(),
+  payerName: z.string(),
+  payerTIN: z.string().optional(),
+  nonemployeeCompensation: centsNonNeg,
+  federalTaxWithheld: centsNonNeg.optional(),
+  stateTaxWithheld: centsNonNeg.optional(),
+  statePayerNo: z.string().optional(),
+  stateIncome: centsNonNeg.optional(),
 })
 
 // ── 1099-G ───────────────────────────────────────────────────────
@@ -623,6 +636,7 @@ export const taxReturnSchema = z.object({
   form1099INTs: z.array(form1099INTSchema),
   form1099DIVs: z.array(form1099DIVSchema),
   form1099MISCs: z.array(form1099MISCSchema),
+  form1099NECs: z.array(form1099NECSchema),
   form1099Gs: z.array(form1099GSchema),
   form1099Rs: z.array(form1099RSchema),
   formSSA1099s: z.array(formSSA1099Schema),
@@ -724,6 +738,7 @@ export {
   form1099INTSchema,
   form1099DIVSchema,
   form1099MISCSchema,
+  form1099NECSchema,
   form1099GSchema,
   form1099RSchema,
   form1099SASchema,

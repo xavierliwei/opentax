@@ -823,7 +823,7 @@ export function computeLine24(line22: TracedValue, line23: TracedValue): TracedV
 }
 
 // ── Line 25 — Federal income tax withheld ──────────────────────
-// Sum of W-2 Box 2 + 1099-INT Box 4 + 1099-DIV Box 4 + 1099-MISC Box 4 + 1099-G Box 4 + 1099-B withholding.
+// Sum of W-2 Box 2 + 1099-INT Box 4 + 1099-DIV Box 4 + 1099-MISC Box 4 + 1099-NEC Box 4 + 1099-G Box 4 + 1099-B withholding.
 
 export function computeLine25(model: TaxReturn): TracedValue {
   const inputIds: string[] = []
@@ -873,6 +873,14 @@ export function computeLine25(model: TaxReturn): TracedValue {
     if (f.federalTaxWithheld > 0) {
       total += f.federalTaxWithheld
       inputIds.push(`1099b:${f.id}:federalTaxWithheld`)
+    }
+  }
+
+  // 1099-NEC Box 4 — federal income tax withheld (backup withholding)
+  for (const f of (model.form1099NECs ?? [])) {
+    if ((f.federalTaxWithheld ?? 0) > 0) {
+      total += f.federalTaxWithheld!
+      inputIds.push(`1099nec:${f.id}:box4`)
     }
   }
 
@@ -1167,9 +1175,16 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     ? computeAllScheduleC(model.scheduleCBusinesses)
     : null
 
-  // Schedule SE (compute if there is SE income from Schedule C or K-1 Box 14)
+  // 1099-NEC: aggregate Box 1 amounts as self-employment income
+  // This flows to Schedule C gross receipts / Schedule 1 Line 3 and triggers SE tax
+  const nec1099Total = (model.form1099NECs ?? []).reduce(
+    (sum, f) => sum + (f.nonemployeeCompensation ?? 0), 0,
+  )
+  const has1099NEC = nec1099Total > 0
+
+  // Schedule SE (compute if there is SE income from Schedule C, 1099-NEC, or K-1 Box 14)
   const w2SSWages = model.w2s.reduce((sum, w) => sum + w.box3, 0)
-  const scheduleCNetProfit = scheduleCResult?.totalNetProfitCents ?? 0
+  const scheduleCNetProfit = (scheduleCResult?.totalNetProfitCents ?? 0) + nec1099Total
   const k1SEEarnings = k1Result?.totalSEEarnings ?? 0
   const k1GuaranteedPayments = k1Result?.totalGuaranteedPayments ?? 0
   // Guaranteed payments are always subject to SE tax (IRC §1402(a))
@@ -1191,7 +1206,7 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     const prelimLine2b = computeLine2b(model, k1Result?.totalInterest ?? 0)
     const prelimLine3b = computeLine3b(model, k1Result?.totalDividends ?? 0)
     const prelimLine7 = computeLine7(scheduleD?.line21)
-    const schedCIncome = scheduleCResult?.totalNetProfitCents ?? 0
+    const schedCIncome = (scheduleCResult?.totalNetProfitCents ?? 0) + nec1099Total
     const k1PassthroughIncome = k1Result?.totalPassthroughIncome ?? 0
     const prelimAGI = prelimLine1a.amount + prelimLine2b.amount + prelimLine3b.amount + prelimLine7.amount + schedCIncome + k1PassthroughIncome
     scheduleE = computeScheduleE(model.scheduleEProperties, model.filingStatus, prelimAGI)
@@ -1210,11 +1225,11 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
     const palAGI = hasScheduleEProperties
       ? (computeLine1a(model).amount + computeLine2b(model, k1Result.totalInterest).amount +
          computeLine3b(model, k1Result.totalDividends).amount +
-         computeLine7(scheduleD?.line21).amount + (scheduleCResult?.totalNetProfitCents ?? 0) +
+         computeLine7(scheduleD?.line21).amount + (scheduleCResult?.totalNetProfitCents ?? 0) + nec1099Total +
          k1Result.totalPassthroughIncome)
       : (prelimLine1a + computeLine2b(model, k1Result.totalInterest).amount +
          computeLine3b(model, k1Result.totalDividends).amount +
-         computeLine7(scheduleD?.line21).amount + (scheduleCResult?.totalNetProfitCents ?? 0) +
+         computeLine7(scheduleD?.line21).amount + (scheduleCResult?.totalNetProfitCents ?? 0) + nec1099Total +
          k1Result.totalPassthroughIncome)
     k1RentalPAL = computeK1RentalPAL(
       k1Result.totalRentalIncome,
@@ -1246,7 +1261,7 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   )
   const hasK1Passthrough = (k1ResultForSchedule1?.totalPassthroughIncome ?? 0) !== 0
   const hasAlimony = alimonyReceivedResult !== null
-  const needSchedule1 = has1099MISCIncome || has1099GIncome || hasScheduleEProperties || hasScheduleC || hasK1Passthrough || hasSEIncome || hasAlimony
+  const needSchedule1 = has1099MISCIncome || has1099GIncome || has1099NEC || hasScheduleEProperties || hasScheduleC || hasK1Passthrough || hasSEIncome || hasAlimony
   const schedule1 = needSchedule1
     ? computeSchedule1(model, scheduleE ?? undefined, scheduleCResult ?? undefined, scheduleSEResult ?? undefined, k1ResultForSchedule1 ?? undefined, alimonyReceivedResult)
     : null
@@ -1352,8 +1367,8 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
 
   const { deduction: line12, scheduleA } = computeLine12(model, line11.amount, netInvestmentIncome, earnedIncome, seniorDeductionResult)
 
-  // QBI deduction (IRC §199A) — compute if there is QBI from Schedule C or K-1
-  const scheduleCQBI = scheduleCResult?.totalNetProfitCents ?? 0
+  // QBI deduction (IRC §199A) — compute if there is QBI from Schedule C, 1099-NEC, or K-1
+  const scheduleCQBI = (scheduleCResult?.totalNetProfitCents ?? 0) + nec1099Total
   const k1QBI = (model.scheduleK1s ?? []).reduce((sum, k) => sum + k.section199AQBI, 0)
   const taxableIncomeBeforeQBI = Math.max(0, line11.amount - line12.amount)
   let qbiResult: QBIDeductionResult | null = null

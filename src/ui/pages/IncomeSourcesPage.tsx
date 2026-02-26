@@ -20,10 +20,11 @@ const COMMON_SOURCES: IncomeSourceOption[] = [
 ]
 
 const LESS_COMMON_SOURCES: IncomeSourceOption[] = [
+  { id: '1099-nec', label: '1099-NEC / Freelance income', description: 'Nonemployee compensation from freelance, gig, or contract work' },
   { id: 'rsu', label: 'RSU vest events', description: 'Restricted stock unit vesting from your employer' },
   { id: 'iso', label: 'ISO / stock option exercises', description: 'Incentive stock option exercises (AMT preference item)' },
   { id: 'rental', label: 'Rental property income (Schedule E)', description: 'Rental real estate income and expenses' },
-  { id: 'business', label: 'Self-employment / business income (Schedule C)', description: 'Freelance, gig work, or sole proprietorship' },
+  { id: 'business', label: 'Self-employment / business income (Schedule C)', description: 'Sole proprietorship with business expenses' },
   { id: 'k1', label: 'Partnership / S-Corp / Trust K-1 income', description: 'Schedule K-1 from partnerships, S-corps, or trusts' },
 ]
 

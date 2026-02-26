@@ -72,13 +72,25 @@ export function computeSchedule1(
     ? tracedFromComputation(alimonyResult.amount, 'schedule1.line2a', ['alimony.received'], 'Schedule 1, Line 2a')
     : tracedZero('schedule1.line2a', 'Schedule 1, Line 2a')
 
-  // Line 3 — Business income or (loss) from Schedule C
+  // Line 3 — Business income or (loss) from Schedule C + 1099-NEC
+  const scheduleCProfit = scheduleCAggregate?.totalNetProfitCents ?? 0
+  const nec1099Total = (model.form1099NECs ?? []).reduce(
+    (sum, f) => sum + (f.nonemployeeCompensation ?? 0), 0,
+  )
+  const line3Total = scheduleCProfit + nec1099Total
   let line3: TracedValue
-  if (scheduleCAggregate && scheduleCAggregate.totalNetProfitCents !== 0) {
+  if (line3Total !== 0) {
+    const line3Inputs: string[] = []
+    if (scheduleCProfit !== 0) line3Inputs.push('scheduleC.totalNetProfit')
+    for (const f of (model.form1099NECs ?? [])) {
+      if ((f.nonemployeeCompensation ?? 0) > 0) {
+        line3Inputs.push(`1099nec:${f.id}:box1`)
+      }
+    }
     line3 = tracedFromComputation(
-      scheduleCAggregate.totalNetProfitCents,
+      line3Total,
       'schedule1.line3',
-      ['scheduleC.totalNetProfit'],
+      line3Inputs,
       'Schedule 1, Line 3',
     )
   } else {

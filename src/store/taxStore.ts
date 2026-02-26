@@ -11,6 +11,7 @@ import type {
   Form1099INT,
   Form1099DIV,
   Form1099MISC,
+  Form1099NEC,
   Form1099G,
   Form1099R,
   Form1099B,
@@ -69,6 +70,9 @@ export interface TaxStoreState {
   appendForm1099MISCs: (forms: Form1099MISC[]) => void
   updateForm1099MISC: (id: string, form: Partial<Form1099MISC>) => void
   removeForm1099MISC: (id: string) => void
+  addForm1099NEC: (form: Form1099NEC) => void
+  updateForm1099NEC: (id: string, form: Partial<Form1099NEC>) => void
+  removeForm1099NEC: (id: string) => void
   addForm1099G: (form: Form1099G) => void
   updateForm1099G: (id: string, form: Partial<Form1099G>) => void
   removeForm1099G: (id: string) => void
@@ -204,6 +208,10 @@ function syncIncomeSources(tr: TaxReturn): TaxReturn {
   if (tr.scheduleEProperties.length > 0) {
     sources.add('rental')
   }
+  // 1099-NEC → 1099-nec
+  if ((tr.form1099NECs ?? []).length > 0) {
+    sources.add('1099-nec')
+  }
   // Schedule C → business
   if (tr.scheduleCBusinesses.length > 0) {
     sources.add('business')
@@ -235,6 +243,7 @@ function detectIncomeSources(tr: TaxReturn): IncomeSourceId[] {
   if (tr.form1099Rs?.length > 0) sources.push('retirement')
   if (tr.form1099Bs?.length > 0) sources.push('stocks')
   if (tr.form1099MISCs?.length > 0) sources.push('other')
+  if ((tr.form1099NECs ?? []).length > 0) sources.push('1099-nec')
   if (tr.rsuVestEvents?.length > 0 || tr.w2s?.some(w => (w.box12 ?? []).some(e => e.code === 'V'))) {
     sources.push('rsu')
   }
@@ -467,6 +476,32 @@ export const useTaxStore = create<TaxStoreState>()(
         const tr = {
           ...get().taxReturn,
           form1099MISCs: get().taxReturn.form1099MISCs.filter((f) => f.id !== id),
+        }
+        set(recompute(tr))
+      },
+
+      addForm1099NEC: (form) => {
+        const tr = syncIncomeSources({
+          ...get().taxReturn,
+          form1099NECs: [...(get().taxReturn.form1099NECs ?? []), form],
+        })
+        set(recompute(tr))
+      },
+
+      updateForm1099NEC: (id, updates) => {
+        const tr = {
+          ...get().taxReturn,
+          form1099NECs: (get().taxReturn.form1099NECs ?? []).map((f) =>
+            f.id === id ? { ...f, ...updates } : f,
+          ),
+        }
+        set(recompute(tr))
+      },
+
+      removeForm1099NEC: (id) => {
+        const tr = {
+          ...get().taxReturn,
+          form1099NECs: (get().taxReturn.form1099NECs ?? []).filter((f) => f.id !== id),
         }
         set(recompute(tr))
       },
