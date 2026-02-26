@@ -36,6 +36,7 @@ import { fillForm8889 } from './fillers/form8889Filler'
 import { fillForm1116 } from './fillers/form1116Filler'
 import { fillScheduleE } from './fillers/scheduleEFiller'
 import { fillScheduleC } from './fillers/scheduleCFiller'
+import { fillForm8829 } from './fillers/form8829Filler'
 import { fillScheduleSE } from './fillers/scheduleSEFiller'
 import { fillForm8995 } from './fillers/form8995Filler'
 import { fillForm8995A } from './fillers/form8995aFiller'
@@ -100,6 +101,10 @@ export async function compileFilingPackage(
 
   const needsScheduleC = result.scheduleCResult !== null &&
     result.scheduleCResult.businesses.length > 0
+
+  // Form 8829 is needed for regular method home office deductions
+  const needsForm8829 = result.form8829Results.length > 0 &&
+    result.form8829Results.some(r => r.method === 'regular' && r.deduction > 0)
 
   const needsScheduleSE = result.scheduleSEResult !== null &&
     result.scheduleSEResult.totalSETax > 0
@@ -209,6 +214,23 @@ export async function compileFilingPackage(
             : 'Schedule C',
           sequenceNumber: '09',
           pageCount: schCDoc.getPageCount(),
+        },
+      })
+    }
+  }
+
+  // Form 8829 (sequence 66) — one per home office, only for regular method
+  if (needsForm8829) {
+    for (const f8829Result of result.form8829Results) {
+      if (f8829Result.method !== 'regular' || f8829Result.deduction <= 0) continue
+      const f8829Doc = await fillForm8829(taxReturn, f8829Result)
+      const biz = (taxReturn.scheduleCBusinesses ?? []).find(b => b.id === f8829Result.scheduleCId)
+      filledDocs.push({
+        doc: f8829Doc,
+        summary: {
+          formId: biz ? `Form 8829 (${biz.businessName})` : 'Form 8829',
+          sequenceNumber: '66',
+          pageCount: f8829Doc.getPageCount(),
         },
       })
     }

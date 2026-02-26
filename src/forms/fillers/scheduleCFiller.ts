@@ -100,8 +100,9 @@ export async function fillScheduleC(
   // ── Summary (Lines 28–31) ────────────────────────────────────
   setDollarField(form, SCHC_SUMMARY.line28, result.line28.amount)
   // Line 29 = Tentative profit: line 7 − line 28
-  setDollarField(form, SCHC_SUMMARY.line29, result.line7.amount - result.line28.amount)
-  // Line 30 = Business use of home (not supported — always 0)
+  setDollarField(form, SCHC_SUMMARY.line29, result.line29.amount)
+  // Line 30 = Business use of home (Form 8829)
+  setDollarField(form, SCHC_SUMMARY.line30, result.line30.amount)
   // Line 31 = Net profit or (loss)
   setDollarField(form, SCHC_SUMMARY.line31, result.line31.amount)
 

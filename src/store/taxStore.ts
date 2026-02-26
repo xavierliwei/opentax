@@ -23,6 +23,7 @@ import type {
   ScheduleC,
   ScheduleK1,
   Form1095A,
+  Form8829Data,
   ItemizedDeductions,
   PriorYearInfo,
   DependentCareExpenses,
@@ -106,6 +107,9 @@ export interface TaxStoreState {
   setHouseholdEmploymentTaxes: (cents: number) => void
   setEstimatedTaxPayment: (quarter: 'q1' | 'q2' | 'q3' | 'q4', cents: number) => void
   setHSA: (updates: Partial<HSAInfo>) => void
+  addForm8829: (data: Form8829Data) => void
+  updateForm8829: (scheduleCId: string, updates: Partial<Form8829Data>) => void
+  removeForm8829: (scheduleCId: string) => void
   addScheduleC: (biz: ScheduleC) => void
   updateScheduleC: (id: string, updates: Partial<ScheduleC>) => void
   removeScheduleC: (id: string) => void
@@ -832,6 +836,35 @@ export const useTaxStore = create<TaxStoreState>()(
         set(recompute(tr))
       },
 
+      addForm8829: (data) => {
+        const prev = get().taxReturn
+        const existing = prev.form8829s ?? []
+        // Prevent duplicates per Schedule C
+        if (existing.some(f => f.scheduleCId === data.scheduleCId)) return
+        const tr = { ...prev, form8829s: [...existing, data] }
+        set(recompute(tr))
+      },
+
+      updateForm8829: (scheduleCId, updates) => {
+        const prev = get().taxReturn
+        const tr = {
+          ...prev,
+          form8829s: (prev.form8829s ?? []).map(f =>
+            f.scheduleCId === scheduleCId ? { ...f, ...updates } : f,
+          ),
+        }
+        set(recompute(tr))
+      },
+
+      removeForm8829: (scheduleCId) => {
+        const prev = get().taxReturn
+        const tr = {
+          ...prev,
+          form8829s: (prev.form8829s ?? []).filter(f => f.scheduleCId !== scheduleCId),
+        }
+        set(recompute(tr))
+      },
+
       addScheduleC: (biz) => {
         const prev = get().taxReturn
         const tr = syncIncomeSources({ ...prev, scheduleCBusinesses: [...prev.scheduleCBusinesses, biz] })
@@ -854,6 +887,8 @@ export const useTaxStore = create<TaxStoreState>()(
         const tr = {
           ...prev,
           scheduleCBusinesses: prev.scheduleCBusinesses.filter((b) => b.id !== id),
+          // Also remove associated Form 8829
+          form8829s: (prev.form8829s ?? []).filter(f => f.scheduleCId !== id),
         }
         set(recompute(tr))
       },
