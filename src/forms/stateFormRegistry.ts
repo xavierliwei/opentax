@@ -24,6 +24,7 @@ import { njFormCompiler } from './fillers/nj1040Filler'
 import { nyFormCompiler } from './fillers/formIT201Filler'
 import { ohFormCompiler } from './fillers/formIT1040OHFiller'
 import { paFormCompiler } from './fillers/formPA40Filler'
+import { scFormCompiler } from './fillers/sc1040Filler'
 import { vaFormCompiler } from './fillers/form760Filler'
 
 const STATE_COMPILERS: Map<SupportedStateCode, StateFormCompiler> = new Map([
@@ -47,6 +48,7 @@ const STATE_COMPILERS: Map<SupportedStateCode, StateFormCompiler> = new Map([
   ['NY', nyFormCompiler],
   ['OH', ohFormCompiler],
   ['PA', paFormCompiler],
+  ['SC', scFormCompiler],
   ['VA', vaFormCompiler],
 ])
 
