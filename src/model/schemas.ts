@@ -550,7 +550,7 @@ const creditSchema = z.object({
 // ── State Return Config ──────────────────────────────────────────
 
 const supportedStateCodeSchema = z.enum([
-  'CA', 'CT', 'DC', 'FL', 'GA', 'MA', 'MD', 'NC', 'NJ', 'NY', 'PA', 'VA',
+  'CA', 'CO', 'CT', 'DC', 'FL', 'GA', 'MA', 'MD', 'NC', 'NJ', 'NY', 'PA', 'VA',
 ])
 
 const residencyTypeSchema = z.enum(['full-year', 'part-year', 'nonresident'])
