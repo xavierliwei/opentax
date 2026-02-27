@@ -657,6 +657,8 @@ const nraInfoSchema = z.object({
   fdapWithholdingRate: z.number().min(0).max(1).optional(),
   scholarshipIncome: centsNonNeg.optional(),
   daysInUS: z.number().int().min(0).max(366).optional(),
+  rentalElectECI: z.boolean().optional(),
+  socialSecurityTreatyExempt: z.boolean().optional(),
 })
 
 // ── Deductions block ─────────────────────────────────────────────
