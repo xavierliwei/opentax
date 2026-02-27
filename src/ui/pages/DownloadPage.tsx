@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useTaxStore } from '../../store/taxStore.ts'
 import { useInterview } from '../../interview/useInterview.ts'
 import { InterviewNav } from './InterviewNav.tsx'
@@ -7,6 +7,8 @@ import type { FormTemplates, StatePackage } from '../../forms/types.ts'
 import type { SupportedStateCode } from '../../model/types.ts'
 import type { StateFormTemplates } from '../../forms/stateCompiler.ts'
 import { dollars } from '../../model/traced.ts'
+import { PIIExportDialog, type ExportMode } from '../components/PIIExportDialog.tsx'
+import { redactPII, detectSensitiveFields } from '../../export/redactPII.ts'
 
 function formatCurrency(cents: number): string {
   return dollars(cents).toLocaleString('en-US', {
@@ -50,6 +52,8 @@ export function DownloadPage() {
   const [error, setError] = useState<string | null>(null)
   const [combinedPdfBytes, setCombinedPdfBytes] = useState<Uint8Array | null>(null)
   const [statePackages, setStatePackages] = useState<StatePackage[]>([])
+
+  const [showPIIDialog, setShowPIIDialog] = useState(false)
 
   const generated = combinedPdfBytes !== null
   const hasStates = stateResults.length > 0
@@ -208,8 +212,27 @@ export function DownloadPage() {
     if (combinedPdfBytes) downloadBlob(combinedPdfBytes, `OpenTax-2025-${lastName}.pdf`)
   }
 
-  const handleExportJSON = () => {
-    const json = JSON.stringify(taxReturn, null, 2)
+  const sensitiveFields = detectSensitiveFields(taxReturn)
+
+  const handleExportJSONClick = () => {
+    if (sensitiveFields.length > 0) {
+      setShowPIIDialog(true)
+    } else {
+      downloadJSON(taxReturn)
+    }
+  }
+
+  const handlePIIConfirm = useCallback(
+    (mode: ExportMode) => {
+      setShowPIIDialog(false)
+      const data = mode === 'redacted' ? redactPII(taxReturn) : taxReturn
+      downloadJSON(data)
+    },
+    [taxReturn, lastName],
+  )
+
+  function downloadJSON(data: typeof taxReturn) {
+    const json = JSON.stringify(data, null, 2)
     const blob = new Blob([json], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -373,7 +396,7 @@ export function DownloadPage() {
         )}
         <button
           type="button"
-          onClick={handleExportJSON}
+          onClick={handleExportJSONClick}
           className="w-full sm:w-auto px-6 py-3.5 sm:py-3 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 active:bg-gray-100 transition-colors"
           data-testid="export-json-btn"
         >
@@ -393,6 +416,13 @@ export function DownloadPage() {
       </div>
 
       <InterviewNav interview={interview} />
+
+      <PIIExportDialog
+        open={showPIIDialog}
+        onConfirm={handlePIIConfirm}
+        onCancel={() => setShowPIIDialog(false)}
+        sensitiveFields={sensitiveFields}
+      />
     </div>
   )
 }
