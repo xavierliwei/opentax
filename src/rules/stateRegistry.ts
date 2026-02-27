@@ -5,12 +5,14 @@
 import type { SupportedStateCode } from '../model/types'
 import type { StateRulesModule } from './stateEngine'
 import { alModule } from './2025/al/module'
+import { arModule } from './2025/ar/module'
 import { azModule } from './2025/az/module'
 import { caModule } from './2025/ca/module'
 import { coModule } from './2025/co/module'
 import { ctModule } from './2025/ct/module'
 import { dcModule } from './2025/dc/module'
 import { gaModule } from './2025/ga/module'
+import { hiModule } from './2025/hi/module'
 import { iaModule } from './2025/ia/module'
 import { idModule } from './2025/id/module'
 import { ilModule } from './2025/il/module'
@@ -20,11 +22,13 @@ import { kyModule } from './2025/ky/module'
 import { laModule } from './2025/la/module'
 import { maModule } from './2025/ma/module'
 import { mdModule } from './2025/md/module'
+import { meModule } from './2025/me/module'
 import { miModule } from './2025/mi/module'
 import { mnModule } from './2025/mn/module'
 import { moModule } from './2025/mo/module'
 import { msModule } from './2025/ms/module'
 import { ncModule } from './2025/nc/module'
+import { neModule } from './2025/ne/module'
 import { njModule } from './2025/nj/module'
 import { ohModule } from './2025/oh/module'
 import { okModule } from './2025/ok/module'
@@ -35,15 +39,18 @@ import { scModule } from './2025/sc/module'
 import { utModule } from './2025/ut/module'
 import { vaModule } from './2025/va/module'
 import { wiModule } from './2025/wi/module'
+import { wvModule } from './2025/wv/module'
 
 const STATE_MODULES: Map<SupportedStateCode, StateRulesModule> = new Map([
   ['AL', alModule],
+  ['AR', arModule],
   ['AZ', azModule],
   ['CA', caModule],
   ['CO', coModule],
   ['CT', ctModule],
   ['DC', dcModule],
   ['GA', gaModule],
+  ['HI', hiModule],
   ['IA', iaModule],
   ['ID', idModule],
   ['IL', ilModule],
@@ -53,11 +60,13 @@ const STATE_MODULES: Map<SupportedStateCode, StateRulesModule> = new Map([
   ['LA', laModule],
   ['MA', maModule],
   ['MD', mdModule],
+  ['ME', meModule],
   ['MI', miModule],
   ['MN', mnModule],
   ['MO', moModule],
   ['MS', msModule],
   ['NC', ncModule],
+  ['NE', neModule],
   ['NJ', njModule],
   ['NY', nyModule],
   ['OH', ohModule],
@@ -68,6 +77,7 @@ const STATE_MODULES: Map<SupportedStateCode, StateRulesModule> = new Map([
   ['UT', utModule],
   ['VA', vaModule],
   ['WI', wiModule],
+  ['WV', wvModule],
 ])
 
 export function getStateModule(code: SupportedStateCode): StateRulesModule | undefined {
