@@ -387,6 +387,7 @@ const scheduleK1Schema = z.object({
   rentalIncome: centsAny,
   interestIncome: centsAny,
   dividendIncome: centsAny,
+  qualifiedDividends: centsNonNeg.optional(),
   shortTermCapitalGain: centsAny,
   longTermCapitalGain: centsAny,
   section199AQBI: centsAny,

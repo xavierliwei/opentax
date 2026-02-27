@@ -16,8 +16,6 @@
  *   Box 20 Code Z (QBI)         → Form 8995 (already handled by qbiDeduction.ts)
  *
  * Limitations:
- *   - K-1 dividends treated as ordinary (non-qualified) — conservative; the
- *     data model does not yet capture the qualified dividend breakdown.
  *   - Passive activity loss rules for K-1 rental income: a conservative
  *     $25K special allowance guardrail is applied (same as Schedule E Part I)
  *     but full basis/at-risk tracking is not modeled.
@@ -48,6 +46,7 @@ export interface K1EntityResult {
   guaranteedPayments: number
   interestIncome: number
   dividendIncome: number
+  qualifiedDividends: number
   shortTermCapitalGain: number
   longTermCapitalGain: number
   section199AQBI: number
@@ -67,8 +66,11 @@ export interface K1AggregateResult {
   /** Total interest income from all K-1s → Form 1040 Line 2b */
   totalInterest: number
 
-  /** Total dividend income from all K-1s → Form 1040 Line 3b (as ordinary) */
+  /** Total dividend income from all K-1s → Form 1040 Line 3b */
   totalDividends: number
+
+  /** Total qualified dividends from all K-1s → Form 1040 Line 3a (preferential LTCG rates) */
+  totalQualifiedDividends: number
 
   /** Total short-term capital gains from all K-1s → Schedule D */
   totalSTCapitalGain: number
@@ -106,6 +108,7 @@ export function computeK1Aggregate(k1s: ScheduleK1[]): K1AggregateResult {
   let totalGuaranteedPayments = 0
   let totalInterest = 0
   let totalDividends = 0
+  let totalQualifiedDividends = 0
   let totalSTCapitalGain = 0
   let totalLTCapitalGain = 0
   let totalQBI = 0
@@ -116,12 +119,14 @@ export function computeK1Aggregate(k1s: ScheduleK1[]): K1AggregateResult {
   for (const k of k1s) {
     const gp = k.guaranteedPayments ?? 0
     const se = k.selfEmploymentEarnings ?? 0
+    const qd = k.qualifiedDividends ?? 0
 
     totalOrdinaryIncome += k.ordinaryIncome
     totalRentalIncome += k.rentalIncome
     totalGuaranteedPayments += gp
     totalInterest += k.interestIncome
     totalDividends += k.dividendIncome
+    totalQualifiedDividends += qd
     totalSTCapitalGain += k.shortTermCapitalGain
     totalLTCapitalGain += k.longTermCapitalGain
     totalQBI += k.section199AQBI
@@ -136,6 +141,7 @@ export function computeK1Aggregate(k1s: ScheduleK1[]): K1AggregateResult {
       guaranteedPayments: gp,
       interestIncome: k.interestIncome,
       dividendIncome: k.dividendIncome,
+      qualifiedDividends: qd,
       shortTermCapitalGain: k.shortTermCapitalGain,
       longTermCapitalGain: k.longTermCapitalGain,
       section199AQBI: k.section199AQBI,
@@ -149,6 +155,7 @@ export function computeK1Aggregate(k1s: ScheduleK1[]): K1AggregateResult {
     totalGuaranteedPayments,
     totalInterest,
     totalDividends,
+    totalQualifiedDividends,
     totalSTCapitalGain,
     totalLTCapitalGain,
     totalQBI,

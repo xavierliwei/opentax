@@ -283,13 +283,15 @@ function validateK1(model: TaxReturn): FederalValidationItem[] {
     category: 'compliance',
   })
 
-  // Warn that K-1 dividends are treated as non-qualified (conservative)
-  const totalDividends = k1s.reduce((s, k) => s + k.dividendIncome, 0)
-  if (totalDividends > 0) {
+  // Warn when K-1 dividends exist but qualified breakdown is not specified
+  const unclassifiedDividends = k1s.reduce(
+    (s, k) => s + (k.dividendIncome > 0 && k.qualifiedDividends == null ? k.dividendIncome : 0), 0,
+  )
+  if (unclassifiedDividends > 0) {
     items.push({
       code: 'K1_DIVIDENDS_NOT_QUALIFIED',
       severity: 'warning',
-      message: `K-1 dividends of $${(totalDividends / 100).toFixed(0)} are treated as ordinary (non-qualified) dividends because the qualified dividend breakdown is not yet captured. This may overstate tax if some dividends qualify for the preferential rate. Verify with your K-1 Schedule for Box 6b (qualified dividends).`,
+      message: `K-1 dividends of $${(unclassifiedDividends / 100).toFixed(0)} do not have a qualified dividend breakdown entered. These are treated as ordinary (non-qualified) dividends. If some are qualified, enter the qualified amount from Box 6b (Form 1065) / Box 5b (Form 1120-S) to receive the preferential tax rate.`,
       irsCitation: 'Form 1040, Line 3a',
       category: 'accuracy',
     })
