@@ -11,20 +11,16 @@
 import type { TaxReturn, ItemizedDeductions } from '../model/types'
 import type { TracedValue } from '../model/traced'
 import { tracedFromComputation, tracedZero } from '../model/traced'
-import { computeForm1040 } from './2025/form1040'
 import type { Form1040Result } from './2025/form1040'
 import { computeForm1040NR, form1040NRToForm1040Compat } from './2025/form1040NR'
 import type { Form1040NRResult } from './2025/form1040NR'
-import { computeScheduleB } from './2025/scheduleB'
 import type { ScheduleBResult } from './2025/scheduleB'
-import { STANDARD_DEDUCTION } from './2025/constants'
 import type { Form540Result } from './2025/ca/form540'
 import type { StateComputeResult } from './stateEngine'
-import { getStateModule } from './stateRegistry'
-import { extractForm540 } from './2025/ca/module'
 import { getAllStateNodeLabels } from './stateRegistry'
 import { validateComputeResult, validateCrossStateConsistency, runAllGates } from './qualityGates'
 import type { GateResult } from './qualityGates'
+import { getYearModule } from './yearModules'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -281,16 +277,17 @@ export const NODE_LABELS: Record<string, string> = {
 // ── computeAll ───────────────────────────────────────────────────
 
 export function computeAll(model: TaxReturn): ComputeResult {
+  const yearMod = getYearModule(model.taxYear)
   const isNRA = model.isNonresidentAlien === true
   const form1040NR = isNRA ? computeForm1040NR(model) : null
-  const form1040 = isNRA ? form1040NRToForm1040Compat(form1040NR!) : computeForm1040(model)
-  const scheduleB = computeScheduleB(model)
+  const form1040 = isNRA ? form1040NRToForm1040Compat(form1040NR!) : yearMod.computeForm1040(model)
+  const scheduleB = yearMod.computeScheduleB(model)
 
-  // Compute all selected state returns via the registry
+  // Compute all selected state returns via the year module's state registry
   const stateReturns = model.stateReturns ?? []
   const stateResults: StateComputeResult[] = []
   for (const config of stateReturns) {
-    const mod = getStateModule(config.stateCode)
+    const mod = yearMod.getStateModule(config.stateCode)
     if (mod) {
       stateResults.push(mod.compute(model, form1040, config))
     }
@@ -298,7 +295,7 @@ export function computeAll(model: TaxReturn): ComputeResult {
 
   // Backward compat: populate form540 from stateResults
   const caResult = stateResults.find(r => r.stateCode === 'CA')
-  const form540 = caResult ? extractForm540(caResult) : null
+  const form540 = caResult ? yearMod.extractForm540(caResult) : null
 
   const values = collectAllValues(form1040, scheduleB, model, form540, stateResults, form1040NR)
 
@@ -1133,9 +1130,10 @@ export function collectAllValues(
     }
   }
 
-  // Standard deduction pseudo-node
+  // Standard deduction pseudo-node — resolved from the year module
+  const yearMod = getYearModule(model.taxYear)
   values.set('standardDeduction', tracedFromComputation(
-    STANDARD_DEDUCTION[model.filingStatus],
+    yearMod.standardDeduction[model.filingStatus],
     'standardDeduction',
     [],
     'Standard Deduction',
@@ -1144,7 +1142,7 @@ export function collectAllValues(
   // State return traced values — delegated to each state module
   if (stateResults) {
     for (const sr of stateResults) {
-      const mod = getStateModule(sr.stateCode)
+      const mod = yearMod.getStateModule(sr.stateCode)
       if (mod) {
         const stateValues = mod.collectTracedValues(sr)
         for (const [key, tv] of stateValues) {
@@ -1511,9 +1509,10 @@ export function resolveDocumentRef(
 
   // Standard deduction
   if (refId === 'standardDeduction') {
+    const ym = getYearModule(model.taxYear)
     return {
       label: `Standard deduction (${model.filingStatus})`,
-      amount: STANDARD_DEDUCTION[model.filingStatus],
+      amount: ym.standardDeduction[model.filingStatus],
     }
   }
 

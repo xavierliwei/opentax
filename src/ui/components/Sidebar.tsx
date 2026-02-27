@@ -14,6 +14,7 @@ interface SidebarProps {
   steps: SidebarStep[]
   currentPath: string
   onNavigate?: () => void
+  taxYear?: number
 }
 
 const SECTION_LABELS: Record<InterviewSection, string> = {
@@ -57,7 +58,7 @@ function StepBadge({ status, index }: { status: SidebarStep['status']; index: nu
   )
 }
 
-export function Sidebar({ steps, onNavigate }: SidebarProps) {
+export function Sidebar({ steps, onNavigate, taxYear = 2025 }: SidebarProps) {
   const completedCount = steps.filter((s) => s.isComplete).length
   const progress = steps.length > 0 ? completedCount / steps.length : 0
 
@@ -71,7 +72,7 @@ export function Sidebar({ steps, onNavigate }: SidebarProps) {
         <div className="flex items-center justify-between">
           <span className="text-base font-bold text-gray-900 tracking-tight">OpenTax</span>
           <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 border border-blue-100 rounded px-1.5 py-0.5 tracking-wide">
-            2025
+            {taxYear}
           </span>
         </div>
         <p className="text-[11px] text-gray-400 mt-0.5">Federal return</p>
