@@ -56,8 +56,18 @@ Last updated: 2026-02-26
 - Passive Activity Loss limitation (Form 8582, $25K special allowance)
 - Nondeductible IRA / Roth conversions (Form 8606, pro-rata rule)
 
+### Form 1040-NR (Nonresident Alien)
+- ECI Income: wages, interest, dividends, capital gains, business income, scholarship, retirement (pension), rental (§871(d) election)
+- FDAP Income: dividends, interest, royalties, retirement (IRA/SEP), rental, Social Security (85%), other
+- Auto FDAP classification (1099-INT/DIV → FDAP when no Schedule C)
+- Treaty rate table (17 countries auto-fill dividend rates)
+- SS treaty exemption auto-detection (25 countries)
+- Credits: Foreign Tax Credit (direct election), Child Tax Credit (non-refundable)
+- Itemized deductions (SALT cap, charitable)
+- Schedule NEC, Schedule OI
+
 ### Forms with PDF Fillers
-Form 1040, Schedules 1-3/A-E/SE, Forms 2441, 4952, 5695, 6251, 8582, 8606, 8812, 8829, 8863, 8880, 8889, 8949, 8959, 8960, 8995, 8995-A, 1116
+Form 1040, Form 1040-NR, Schedules 1-3/A-E/SE, Forms 2441, 4952, 5695, 6251, 8582, 8606, 8812, 8829, 8863, 8880, 8889, 8949, 8959, 8960, 8995, 8995-A, 1116
 
 ---
 
@@ -67,7 +77,6 @@ Form 1040, Schedules 1-3/A-E/SE, Forms 2441, 4952, 5695, 6251, 8582, 8606, 8812,
 
 | Gap | Who it affects | Effort |
 |-----|---------------|--------|
-| **Form 1040-NR (Nonresident Alien)** | Foreign nationals with US income | High |
 | **Schedule F (Farm Income)** | Farmers — SE variant of Schedule C | Medium |
 | **Form 2555 (Foreign Earned Income Exclusion)** | US citizens/residents working abroad | Medium-High |
 | **Form 4562 (Full Depreciation / MACRS)** | Business/rental owners — currently manual entry only | High |
