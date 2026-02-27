@@ -2,8 +2,8 @@
  * Delaware Form 200-01 constants (Tax Year 2025)
  *
  * Sources:
- *   - Delaware Division of Revenue Form 200-01 Instructions
- *   - 30 Del. C. § 1102 (personal income tax rates)
+ *   - Delaware Division of Revenue Form 200-01 Instructions (2024)
+ *   - 30 Del. C. § 1102 (tax rate schedule)
  *
  * NOTE: All dollar amounts are in cents.
  *
@@ -17,16 +17,16 @@ import type { FilingStatus } from '../../../model/types'
 const c = (dollars: number): number => Math.round(dollars * 100)
 
 /**
- * DE graduated income tax brackets (7 brackets).
+ * DE progressive income tax brackets (7 brackets).
  *
  * Delaware uses the SAME brackets for ALL filing statuses:
- *   0% on $0–$2,000
- *   2.2% on $2,000–$5,000
- *   3.9% on $5,000–$10,000
- *   4.8% on $10,000–$20,000
- *   5.2% on $20,000–$25,000
+ *   0%    on $0–$2,000
+ *   2.2%  on $2,000–$5,000
+ *   3.9%  on $5,000–$10,000
+ *   4.8%  on $10,000–$20,000
+ *   5.2%  on $20,000–$25,000
  *   5.55% on $25,000–$60,000
- *   6.6% on $60,000+
+ *   6.6%  on $60,000+
  */
 const DE_BRACKETS: { limit: number; rate: number }[] = [
   { limit: c(2000),    rate: 0.0 },
@@ -49,7 +49,7 @@ export const DE_TAX_BRACKETS: Record<FilingStatus, { limit: number; rate: number
 /**
  * DE standard deduction by filing status.
  *
- * Single: $3,250  MFJ: $6,500  MFS: $3,250  HOH: $3,250  QW: $6,500
+ * Single: $3,250, MFJ: $6,500, MFS: $3,250, HOH: $3,250, QW: $6,500
  */
 export const DE_STANDARD_DEDUCTION: Record<FilingStatus, number> = {
   single: c(3250),

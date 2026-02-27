@@ -11,6 +11,7 @@ import { caModule } from './2025/ca/module'
 import { coModule } from './2025/co/module'
 import { ctModule } from './2025/ct/module'
 import { dcModule } from './2025/dc/module'
+import { deModule } from './2025/de/module'
 import { gaModule } from './2025/ga/module'
 import { hiModule } from './2025/hi/module'
 import { iaModule } from './2025/ia/module'
@@ -27,17 +28,22 @@ import { miModule } from './2025/mi/module'
 import { mnModule } from './2025/mn/module'
 import { moModule } from './2025/mo/module'
 import { msModule } from './2025/ms/module'
+import { mtModule } from './2025/mt/module'
 import { ncModule } from './2025/nc/module'
+import { ndModule } from './2025/nd/module'
 import { neModule } from './2025/ne/module'
 import { njModule } from './2025/nj/module'
+import { nmModule } from './2025/nm/module'
 import { ohModule } from './2025/oh/module'
 import { okModule } from './2025/ok/module'
 import { orModule } from './2025/or/module'
 import { paModule } from './2025/pa/module'
 import { nyModule } from './2025/ny/module'
+import { riModule } from './2025/ri/module'
 import { scModule } from './2025/sc/module'
 import { utModule } from './2025/ut/module'
 import { vaModule } from './2025/va/module'
+import { vtModule } from './2025/vt/module'
 import { wiModule } from './2025/wi/module'
 import { wvModule } from './2025/wv/module'
 
@@ -49,6 +55,7 @@ const STATE_MODULES: Map<SupportedStateCode, StateRulesModule> = new Map([
   ['CO', coModule],
   ['CT', ctModule],
   ['DC', dcModule],
+  ['DE', deModule],
   ['GA', gaModule],
   ['HI', hiModule],
   ['IA', iaModule],
@@ -65,17 +72,22 @@ const STATE_MODULES: Map<SupportedStateCode, StateRulesModule> = new Map([
   ['MN', mnModule],
   ['MO', moModule],
   ['MS', msModule],
+  ['MT', mtModule],
   ['NC', ncModule],
+  ['ND', ndModule],
   ['NE', neModule],
   ['NJ', njModule],
+  ['NM', nmModule],
   ['NY', nyModule],
   ['OH', ohModule],
   ['OK', okModule],
   ['OR', orModule],
   ['PA', paModule],
+  ['RI', riModule],
   ['SC', scModule],
   ['UT', utModule],
   ['VA', vaModule],
+  ['VT', vtModule],
   ['WI', wiModule],
   ['WV', wvModule],
 ])

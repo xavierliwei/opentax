@@ -11,6 +11,7 @@ import { caFormCompiler } from './fillers/form540Filler'
 import { coFormCompiler } from './fillers/dr0104Filler'
 import { ctFormCompiler } from './fillers/formCT1040Filler'
 import { dcFormCompiler } from './fillers/formD40Filler'
+import { deFormCompiler } from './fillers/deForm200Filler'
 import { gaFormCompiler } from './fillers/form500Filler'
 import { hiFormCompiler } from './fillers/hiN11Filler'
 import { iaFormCompiler } from './fillers/ia1040Filler'
@@ -27,17 +28,22 @@ import { miFormCompiler } from './fillers/mi1040Filler'
 import { mnFormCompiler } from './fillers/m1Filler'
 import { moFormCompiler } from './fillers/mo1040Filler'
 import { msFormCompiler } from './fillers/msForm80105Filler'
+import { mtFormCompiler } from './fillers/mtForm2Filler'
 import { ncFormCompiler } from './fillers/formD400Filler'
+import { ndFormCompiler } from './fillers/ndND1Filler'
 import { neFormCompiler } from './fillers/ne1040NFiller'
 import { njFormCompiler } from './fillers/nj1040Filler'
+import { nmFormCompiler } from './fillers/nmPIT1Filler'
 import { nyFormCompiler } from './fillers/formIT201Filler'
 import { ohFormCompiler } from './fillers/formIT1040OHFiller'
 import { okFormCompiler } from './fillers/okForm511Filler'
 import { orFormCompiler } from './fillers/or40Filler'
 import { paFormCompiler } from './fillers/formPA40Filler'
+import { riFormCompiler } from './fillers/riRI1040Filler'
 import { scFormCompiler } from './fillers/sc1040Filler'
 import { utFormCompiler } from './fillers/tc40Filler'
 import { vaFormCompiler } from './fillers/form760Filler'
+import { vtFormCompiler } from './fillers/vtIN111Filler'
 import { wiFormCompiler } from './fillers/wiForm1Filler'
 import { wvFormCompiler } from './fillers/wvIT140Filler'
 
@@ -49,6 +55,7 @@ const STATE_COMPILERS: Map<SupportedStateCode, StateFormCompiler> = new Map([
   ['CO', coFormCompiler],
   ['CT', ctFormCompiler],
   ['DC', dcFormCompiler],
+  ['DE', deFormCompiler],
   ['GA', gaFormCompiler],
   ['HI', hiFormCompiler],
   ['IA', iaFormCompiler],
@@ -65,17 +72,22 @@ const STATE_COMPILERS: Map<SupportedStateCode, StateFormCompiler> = new Map([
   ['MN', mnFormCompiler],
   ['MO', moFormCompiler],
   ['MS', msFormCompiler],
+  ['MT', mtFormCompiler],
   ['NC', ncFormCompiler],
+  ['ND', ndFormCompiler],
   ['NE', neFormCompiler],
   ['NJ', njFormCompiler],
+  ['NM', nmFormCompiler],
   ['NY', nyFormCompiler],
   ['OH', ohFormCompiler],
   ['OK', okFormCompiler],
   ['OR', orFormCompiler],
   ['PA', paFormCompiler],
+  ['RI', riFormCompiler],
   ['SC', scFormCompiler],
   ['UT', utFormCompiler],
   ['VA', vaFormCompiler],
+  ['VT', vtFormCompiler],
   ['WI', wiFormCompiler],
   ['WV', wvFormCompiler],
 ])
