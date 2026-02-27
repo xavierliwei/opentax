@@ -652,7 +652,7 @@ export interface Credit {
 // ── State Return Config ────────────────────────────────────────
 
 /** Supported state codes (expand as states are added) */
-export type SupportedStateCode = 'AL' | 'AZ' | 'CA' | 'CO' | 'CT' | 'DC' | 'GA' | 'IA' | 'ID' | 'IL' | 'IN' | 'KS' | 'KY' | 'LA' | 'MA' | 'MD' | 'MI' | 'MN' | 'MO' | 'MS' | 'NC' | 'NJ' | 'NY' | 'OH' | 'OK' | 'OR' | 'PA' | 'SC' | 'UT' | 'VA' | 'WI'
+export type SupportedStateCode = 'AL' | 'AR' | 'AZ' | 'CA' | 'CO' | 'CT' | 'DC' | 'GA' | 'HI' | 'IA' | 'ID' | 'IL' | 'IN' | 'KS' | 'KY' | 'LA' | 'MA' | 'MD' | 'ME' | 'MI' | 'MN' | 'MO' | 'MS' | 'NC' | 'NE' | 'NJ' | 'NY' | 'OH' | 'OK' | 'OR' | 'PA' | 'SC' | 'UT' | 'VA' | 'WI' | 'WV'
 
 /** Residency classification for a state return */
 export type ResidencyType = 'full-year' | 'part-year' | 'nonresident'
