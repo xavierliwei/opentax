@@ -392,6 +392,7 @@ export interface ScheduleK1 {
   rentalIncome: number            // Box 2 (1065)
   interestIncome: number          // Box 5 (1065) / Box 4 (1120-S)
   dividendIncome: number          // Box 6a (1065) / Box 5a (1120-S)
+  qualifiedDividends?: number     // Box 6b (1065) / Box 5b (1120-S) — subset of dividendIncome eligible for LTCG rates
   shortTermCapitalGain: number    // Box 8 (1065) / Box 7 (1120-S)
   longTermCapitalGain: number     // Box 9a (1065) / Box 8a (1120-S)
   section199AQBI: number          // Box 20 Code Z (1065) / Box 17 Code V (1120-S)

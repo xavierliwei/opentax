@@ -153,6 +153,12 @@ function K1Card({ k1 }: { k1: ScheduleK1 }) {
             helperText={k1.entityType === 'partnership' ? 'Box 6a (Form 1065)' : 'Box 5a (Form 1120-S)'}
           />
           <CurrencyInput
+            label="Qualified dividends"
+            value={k1.qualifiedDividends ?? 0}
+            onChange={(v) => update({ qualifiedDividends: v || undefined })}
+            helperText={k1.entityType === 'partnership' ? 'Box 6b (Form 1065)' : 'Box 5b (Form 1120-S)'}
+          />
+          <CurrencyInput
             label="Short-term capital gain"
             value={k1.shortTermCapitalGain}
             onChange={(v) => update({ shortTermCapitalGain: v })}
