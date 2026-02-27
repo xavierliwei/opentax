@@ -166,11 +166,27 @@ export function ReviewPage() {
             {form1040NR.eciBusinessIncome.amount !== 0 && (
               <LineItem label="Business income" nodeId="form1040nr.eciBusinessIncome" amount={form1040NR.eciBusinessIncome.amount} />
             )}
+            {(form1040NR.eciRetirement?.amount ?? 0) > 0 && (
+              <LineItem label="Retirement income (ECI)" nodeId="form1040nr.eciRetirement" amount={form1040NR.eciRetirement?.amount ?? 0} />
+            )}
+            {(form1040NR.eciRentalIncome?.amount ?? 0) !== 0 && (
+              <LineItem label="Rental income (ECI)" nodeId="form1040nr.eciRentalIncome" amount={form1040NR.eciRentalIncome?.amount ?? 0} />
+            )}
             {form1040NR.eciScholarship.amount > 0 && (
               <LineItem label="Scholarship income" nodeId="form1040nr.eciScholarship" amount={form1040NR.eciScholarship.amount} />
             )}
             {form1040NR.eciOtherIncome.amount > 0 && (
               <LineItem label="Other ECI" nodeId="form1040nr.eciOtherIncome" amount={form1040NR.eciOtherIncome.amount} />
+            )}
+            {(form1040NR.ssaBenefits?.amount ?? 0) > 0 && (
+              <div className="flex flex-col">
+                <LineItem label="Social Security benefits" nodeId="form1040nr.ssaBenefits" amount={form1040NR.ssaBenefits?.amount ?? 0} />
+                {taxReturn.nraInfo?.socialSecurityTreatyExempt && taxReturn.nraInfo?.treatyCountry && (
+                  <p className="text-xs text-blue-700 ml-1 -mt-1 mb-1">
+                    (Exempt under US-{taxReturn.nraInfo.treatyCountry} treaty)
+                  </p>
+                )}
+              </div>
             )}
             {form1040NR.treatyExemption.amount > 0 && (
               <LineItem label="Treaty exempt income" nodeId="form1040nr.treatyExemption" amount={-form1040NR.treatyExemption.amount} />
@@ -204,6 +220,24 @@ export function ReviewPage() {
           </div>
         </section>
 
+        {/* Credits */}
+        {(form1040NR.creditTotal?.amount ?? 0) > 0 && (
+          <section className="mt-6">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-200 pb-1">
+              Credits
+            </h2>
+            <div className="mt-2 flex flex-col">
+              {(form1040NR.foreignTaxCredit?.amount ?? 0) > 0 && (
+                <LineItem label="Foreign tax credit" nodeId="form1040nr.foreignTaxCredit" amount={form1040NR.foreignTaxCredit?.amount ?? 0} />
+              )}
+              {(form1040NR.childTaxCredit?.amount ?? 0) > 0 && (
+                <LineItem label="Child tax credit" nodeId="form1040nr.childTaxCredit" amount={form1040NR.childTaxCredit?.amount ?? 0} />
+              )}
+              <LineItem label="Total credits" nodeId="form1040nr.creditTotal" amount={form1040NR.creditTotal?.amount ?? 0} />
+            </div>
+          </section>
+        )}
+
         {/* FDAP Income */}
         {form1040NR.totalFDAP.amount > 0 && (
           <section className="mt-6">
@@ -223,6 +257,15 @@ export function ReviewPage() {
               {form1040NR.fdapOther.amount > 0 && (
                 <LineItem label="FDAP Other" nodeId="form1040nr.fdapOther" amount={form1040NR.fdapOther.amount} />
               )}
+              {(form1040NR.fdapRetirement?.amount ?? 0) > 0 && (
+                <LineItem label="FDAP Retirement" nodeId="form1040nr.fdapRetirement" amount={form1040NR.fdapRetirement?.amount ?? 0} />
+              )}
+              {(form1040NR.fdapRentalIncome?.amount ?? 0) > 0 && (
+                <LineItem label="FDAP Rental" nodeId="form1040nr.fdapRentalIncome" amount={form1040NR.fdapRentalIncome?.amount ?? 0} />
+              )}
+              {(form1040NR.fdapSocialSecurity?.amount ?? 0) > 0 && (
+                <LineItem label="FDAP Social Security (85%)" nodeId="form1040nr.fdapSocialSecurity" amount={form1040NR.fdapSocialSecurity?.amount ?? 0} />
+              )}
               <LineItem label="Total FDAP" nodeId="form1040nr.totalFDAP" amount={form1040NR.totalFDAP.amount} />
               <LineItem label="Tax on FDAP" nodeId="form1040nr.fdapTax" amount={form1040NR.fdapTax.amount} />
             </div>
@@ -236,6 +279,11 @@ export function ReviewPage() {
           </h2>
           <div className="mt-2 flex flex-col">
             <LineItem label="Total tax" nodeId="form1040nr.totalTax" amount={form1040NR.totalTax.amount} />
+            {(form1040NR.creditTotal?.amount ?? 0) > 0 && (
+              <p className="text-xs text-green-700 ml-1 -mt-1 mb-1">
+                (After {formatCurrency(form1040NR.creditTotal?.amount ?? 0)} in credits applied)
+              </p>
+            )}
             <LineItem label="Federal tax withheld" nodeId="form1040nr.withheld" amount={form1040NR.withheld.amount} />
             {form1040NR.estimatedPayments.amount > 0 && (
               <LineItem label="Estimated payments" nodeId="form1040nr.estimatedPayments" amount={form1040NR.estimatedPayments.amount} />

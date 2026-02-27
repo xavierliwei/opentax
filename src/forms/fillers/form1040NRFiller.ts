@@ -95,6 +95,14 @@ export async function fillForm1040NR(
     drawLine(page1, '8c.', 'Other effectively connected income', result.eciOtherIncome.amount, 72, y)
     y -= 16
   }
+  if ((result as any).eciRetirement?.amount > 0) {
+    drawLine(page1, '4b.', 'Retirement income (pensions)', (result as any).eciRetirement.amount, 72, y)
+    y -= 16
+  }
+  if ((result as any).eciRentalIncome?.amount !== 0 && (result as any).eciRentalIncome?.amount !== undefined) {
+    drawLine(page1, '8d.', 'Rental income (ECI election)', (result as any).eciRentalIncome.amount, 72, y)
+    y -= 16
+  }
   if (result.treatyExemption.amount > 0) {
     drawLine(page1, '', 'Less: Treaty exempt income', -result.treatyExemption.amount, 72, y)
     y -= 16
@@ -132,6 +140,29 @@ export async function fillForm1040NR(
 
   drawLine(page1, '16.', 'Tax on ECI (graduated rates)', result.eciTax.amount, 72, y)
   y -= 16
+
+  // Credits (if any)
+  const creditTotal = (result as any).creditTotal?.amount ?? 0
+  if (creditTotal > 0) {
+    page1.drawRectangle({ x: 72, y: y - 2, width: 468, height: 16, color: lightGray })
+    page1.drawText('Credits', { x: 76, y: y + 1, size: 10, font: fontBold, color: darkBlue })
+    y -= 22
+
+    const ftc = (result as any).foreignTaxCredit?.amount ?? 0
+    if (ftc > 0) {
+      drawLine(page1, 'FTC.', 'Foreign tax credit', ftc, 72, y)
+      y -= 16
+    }
+    const ctc = (result as any).childTaxCredit?.amount ?? 0
+    if (ctc > 0) {
+      drawLine(page1, 'CTC.', 'Child tax credit', ctc, 72, y)
+      y -= 16
+    }
+    page1.drawLine({ start: { x: 400, y: y + 12 }, end: { x: 540, y: y + 12 }, thickness: 0.5, color: gray })
+    drawLine(page1, '', 'Total credits', creditTotal, 72, y)
+    y -= 25
+  }
+
   if (result.totalFDAP.amount > 0) {
     drawLine(page1, '17.', `Tax on FDAP income (${(result.fdapTaxRate * 100).toFixed(0)}%)`, result.fdapTax.amount, 72, y)
     y -= 16
@@ -200,6 +231,9 @@ export async function fillForm1040NR(
       { label: 'Interest', amount: result.fdapInterest.amount },
       { label: 'Royalties', amount: result.fdapRoyalties.amount },
       { label: 'Other FDAP income', amount: result.fdapOther.amount },
+      { label: 'Retirement (IRA/SEP)', amount: (result as any).fdapRetirement?.amount ?? 0 },
+      { label: 'Rental income', amount: (result as any).fdapRentalIncome?.amount ?? 0 },
+      { label: 'Social Security (85%)', amount: (result as any).fdapSocialSecurity?.amount ?? 0 },
     ]
 
     for (const item of items) {
@@ -254,6 +288,10 @@ export async function fillForm1040NR(
     oiLines.push(`Treaty article: ${nra.treatyArticle ?? 'N/A'}`)
     oiLines.push(`Income exempt under treaty: ${nra.treatyExemptIncome ? formatDollars(nra.treatyExemptIncome) : '$0'}`)
   }
+
+  oiLines.push('')
+  oiLines.push(`IRC §871(d) election (treat rental as ECI): ${(nra?.rentalElectECI ?? false) ? 'Yes' : 'No'}`)
+  oiLines.push(`Social Security treaty exemption: ${(nra?.socialSecurityTreatyExempt ?? false) ? 'Yes' : 'No'}`)
 
   for (const line of oiLines) {
     pageOI.drawText(line, { x: 72, y: yOI, size: 9, font, color: black })

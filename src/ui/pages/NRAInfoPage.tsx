@@ -14,6 +14,25 @@ import { useInterview } from '../../interview/useInterview.ts'
 import { InfoTooltip } from '../components/InfoTooltip.tsx'
 import { InterviewNav } from './InterviewNav.tsx'
 
+/** Treaty dividend withholding rates by country */
+const TREATY_RATES: Record<string, number> = {
+  'Australia': 0.15, 'Austria': 0.15, 'Belgium': 0.15, 'Canada': 0.15,
+  'China': 0.10, 'Czech Republic': 0.10, 'Denmark': 0.15, 'Finland': 0.15,
+  'France': 0.15, 'Germany': 0.15, 'India': 0.25, 'Ireland': 0.15,
+  'Israel': 0.25, 'Italy': 0.15, 'Japan': 0.10, 'Korea (South)': 0.15,
+  'Luxembourg': 0.15, 'Mexico': 0.10, 'Netherlands': 0.15, 'New Zealand': 0.15,
+  'Norway': 0.15, 'Poland': 0.15, 'Spain': 0.15, 'Sweden': 0.15,
+  'Switzerland': 0.15, 'United Kingdom': 0.15,
+}
+
+/** Countries where Social Security benefits are treaty-exempt */
+const SS_EXEMPT_COUNTRIES = [
+  'Australia', 'Austria', 'Belgium', 'Canada', 'Czech Republic', 'Denmark',
+  'Finland', 'France', 'Germany', 'Greece', 'Hungary', 'Ireland', 'Italy',
+  'Japan', 'Korea (South)', 'Luxembourg', 'Netherlands', 'Norway', 'Poland',
+  'Portugal', 'Slovakia', 'Spain', 'Sweden', 'Switzerland', 'United Kingdom',
+]
+
 /** Countries with U.S. income tax treaties */
 const TREATY_COUNTRIES = [
   '', 'Australia', 'Austria', 'Bangladesh', 'Barbados', 'Belgium',
@@ -43,9 +62,13 @@ function stringToCents(value: string): number {
 export function NRAInfoPage() {
   const nraInfo = useTaxStore((s) => s.taxReturn.nraInfo)
   const setNRAInfo = useTaxStore((s) => s.setNRAInfo)
+  const scheduleEProperties = useTaxStore((s) => s.taxReturn.scheduleEProperties)
   const interview = useInterview()
 
   const info = nraInfo ?? { countryOfResidence: '' }
+  const treatyCountry = info.treatyCountry ?? ''
+  const treatyRate = treatyCountry ? TREATY_RATES[treatyCountry] : undefined
+  const isSSTreatyExempt = treatyCountry ? SS_EXEMPT_COUNTRIES.includes(treatyCountry) : false
 
   return (
     <div data-testid="page-nra-info" className="max-w-xl mx-auto">
@@ -116,7 +139,21 @@ export function NRAInfoPage() {
             <select
               className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-tax-blue focus:border-transparent"
               value={info.treatyCountry ?? ''}
-              onChange={(e) => setNRAInfo({ treatyCountry: e.target.value || undefined })}
+              onChange={(e) => {
+                const country = e.target.value || undefined
+                const updates: Record<string, unknown> = { treatyCountry: country }
+                // Auto-fill FDAP withholding rate from treaty table
+                if (country && TREATY_RATES[country] !== undefined) {
+                  updates.fdapWithholdingRate = TREATY_RATES[country]
+                }
+                // Auto-detect SS treaty exemption
+                if (country && SS_EXEMPT_COUNTRIES.includes(country)) {
+                  updates.socialSecurityTreatyExempt = true
+                } else {
+                  updates.socialSecurityTreatyExempt = false
+                }
+                setNRAInfo(updates)
+              }}
             >
               <option value="">None / Not claiming treaty benefits</option>
               {TREATY_COUNTRIES.filter(c => c).map(c => (
@@ -148,6 +185,13 @@ export function NRAInfoPage() {
                   placeholder="0.00"
                 />
               </div>
+              {isSSTreatyExempt && (
+                <div className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2">
+                  <p className="text-xs text-blue-800">
+                    Social Security benefits are exempt from U.S. tax under the US-{treatyCountry} treaty.
+                  </p>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -167,10 +211,16 @@ export function NRAInfoPage() {
           Enter U.S.-source income NOT connected with a U.S. trade or business.
           This income is taxed at a flat rate (default 30%, or your treaty rate).
         </p>
+        <div className="mt-3 bg-blue-50 border border-blue-200 rounded-md px-3 py-2">
+          <p className="text-xs text-blue-800">
+            Dividends and interest from your 1099-DIV and 1099-INT forms are automatically classified
+            as FDAP income. Only enter additional FDAP amounts not captured by your 1099 forms below.
+          </p>
+        </div>
         <div className="mt-4 flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">Dividends ($)</label>
+              <label className="text-sm font-medium text-gray-700">Additional FDAP dividends ($)</label>
               <input
                 type="text"
                 inputMode="decimal"
@@ -181,7 +231,7 @@ export function NRAInfoPage() {
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">Interest ($)</label>
+              <label className="text-sm font-medium text-gray-700">Additional FDAP interest ($)</label>
               <input
                 type="text"
                 inputMode="decimal"
@@ -194,7 +244,7 @@ export function NRAInfoPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">Royalties ($)</label>
+              <label className="text-sm font-medium text-gray-700">Additional FDAP royalties ($)</label>
               <input
                 type="text"
                 inputMode="decimal"
@@ -240,9 +290,56 @@ export function NRAInfoPage() {
               />
               <span className="text-sm text-gray-500">%</span>
             </div>
+            {treatyRate !== undefined && (
+              <p className="text-xs text-green-700 mt-1">
+                Auto-set to {(treatyRate * 100).toFixed(0)}% per US-{treatyCountry} treaty
+              </p>
+            )}
           </div>
         </div>
       </section>
+
+      {/* Rental Income Election (IRC §871(d)) — only when user has Schedule E properties */}
+      {scheduleEProperties.length > 0 && (
+        <section className="mt-6">
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-200 pb-1 inline-flex items-center">
+            Rental Income Election (IRC &sect;871(d))
+            <InfoTooltip
+              explanation="As a nonresident alien, your U.S. rental income is normally taxed at a flat 30% rate on gross rents (FDAP). You may elect under IRC §871(d) to treat real property income as effectively connected income (ECI), which allows you to deduct rental expenses and pay tax at graduated rates. This election is generally beneficial if you have significant rental expenses."
+              pubName="IRS Publication 519 — Real Property Income"
+              pubUrl="https://www.irs.gov/publications/p519"
+            />
+          </h2>
+          <p className="mt-2 text-xs text-gray-500">
+            As a nonresident alien, your U.S. rental income is normally taxed at a flat 30% rate
+            on gross rents (FDAP). You may elect under IRC &sect;871(d) to treat real property income
+            as effectively connected income (ECI), which allows you to deduct rental expenses and
+            pay tax at graduated rates.
+          </p>
+          <div className="mt-4 flex items-center gap-3">
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                className="sr-only peer"
+                checked={info.rentalElectECI ?? false}
+                onChange={(e) => setNRAInfo({ rentalElectECI: e.target.checked })}
+              />
+              <div className="w-9 h-5 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-tax-blue rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-tax-blue"></div>
+            </label>
+            <span className="text-sm font-medium text-gray-700">
+              Elect to treat rental income as ECI
+            </span>
+          </div>
+          {(info.rentalElectECI ?? false) && (
+            <div className="mt-3 bg-green-50 border border-green-200 rounded-md px-3 py-2">
+              <p className="text-xs text-green-800">
+                Your rental income from {scheduleEProperties.length} propert{scheduleEProperties.length > 1 ? 'ies' : 'y'} will
+                be treated as ECI. Rental expenses will be deductible and income taxed at graduated rates.
+              </p>
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Scholarship Income */}
       <section className="mt-6">
