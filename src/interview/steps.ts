@@ -24,6 +24,7 @@ import { ScheduleCPage } from '../ui/pages/ScheduleCPage.tsx'
 import { Form8829Page } from '../ui/pages/Form8829Page.tsx'
 import { ScheduleK1Page } from '../ui/pages/ScheduleK1Page.tsx'
 import { Form1095APage } from '../ui/pages/Form1095APage.tsx'
+import { NRAInfoPage } from '../ui/pages/NRAInfoPage.tsx'
 import { PriorYearPage } from '../ui/pages/PriorYearPage.tsx'
 import { DeductionsPage } from '../ui/pages/DeductionsPage.tsx'
 import { CreditsPage } from '../ui/pages/CreditsPage.tsx'
@@ -111,6 +112,17 @@ export const STEPS: InterviewStep[] = [
       tr.taxpayer.address.state.length === 2 &&
       tr.taxpayer.address.zip.length >= 5,
     component: PersonalInfoPage,
+  },
+  {
+    id: 'nra-info',
+    label: 'NRA Details',
+    path: '/interview/nra-info',
+    section: 'getting-started',
+    isVisible: (tr) => tr.isNonresidentAlien === true,
+    isComplete: (tr) =>
+      tr.nraInfo !== undefined &&
+      tr.nraInfo.countryOfResidence.length > 0,
+    component: NRAInfoPage,
   },
   {
     id: 'spouse-info',

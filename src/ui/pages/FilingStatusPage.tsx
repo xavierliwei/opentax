@@ -69,7 +69,14 @@ export function FilingStatusPage() {
   const setFilingStatus = useTaxStore((s) => s.setFilingStatus)
   const canBeClaimedAsDependent = useTaxStore((s) => s.taxReturn.canBeClaimedAsDependent ?? false)
   const setCanBeClaimedAsDependent = useTaxStore((s) => s.setCanBeClaimedAsDependent)
+  const isNRA = useTaxStore((s) => s.taxReturn.isNonresidentAlien ?? false)
+  const setIsNonresidentAlien = useTaxStore((s) => s.setIsNonresidentAlien)
   const interview = useInterview()
+
+  // NRA filers can only choose Single or MFS
+  const availableOptions = isNRA
+    ? FILING_OPTIONS.filter(opt => opt.value === 'single' || opt.value === 'mfs')
+    : FILING_OPTIONS
 
   return (
     <div data-testid="page-filing-status" className="max-w-xl mx-auto">
@@ -78,9 +85,67 @@ export function FilingStatusPage() {
         Select the filing status that applies to you.
       </p>
 
+      {/* Residency Status */}
+      <div className="mt-6">
+        <h2 className="text-sm font-semibold text-gray-700 mb-3">Tax residency status</h2>
+        <div className="flex flex-col gap-3">
+          <label
+            className={`flex items-start gap-3 p-4 border rounded-lg cursor-pointer transition-colors ${
+              !isNRA
+                ? 'border-tax-blue bg-blue-50'
+                : 'border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            <input
+              type="radio"
+              name="residencyStatus"
+              checked={!isNRA}
+              onChange={() => setIsNonresidentAlien(false)}
+              className="mt-1"
+            />
+            <div>
+              <span className="font-medium text-gray-900">U.S. Citizen or Resident Alien</span>
+              <p className="text-sm text-gray-500 mt-0.5">File Form 1040. Includes green card holders and those who pass the substantial presence test.</p>
+            </div>
+          </label>
+          <label
+            className={`flex items-start gap-3 p-4 border rounded-lg cursor-pointer transition-colors ${
+              isNRA
+                ? 'border-tax-blue bg-blue-50'
+                : 'border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            <input
+              type="radio"
+              name="residencyStatus"
+              checked={isNRA}
+              onChange={() => setIsNonresidentAlien(true)}
+              className="mt-1"
+            />
+            <div>
+              <span className="font-medium text-gray-900">Nonresident Alien</span>
+              <p className="text-sm text-gray-500 mt-0.5">File Form 1040-NR. For those who do not meet the green card test or substantial presence test.</p>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      {isNRA && (
+        <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h3 className="text-sm font-semibold text-blue-800">Form 1040-NR</h3>
+          <ul className="mt-2 text-xs text-blue-700 list-disc list-inside space-y-1">
+            <li>Only Single or Married Filing Separately filing status is available</li>
+            <li>Standard deduction is generally not available</li>
+            <li>Only U.S.-source income is taxable</li>
+            <li>FDAP income (dividends, interest, royalties) is taxed at 30% or your treaty rate</li>
+            <li>Effectively connected income (wages, business) is taxed at graduated rates</li>
+          </ul>
+        </div>
+      )}
+
       <fieldset className="mt-6 flex flex-col gap-3">
         <legend className="sr-only">Filing status</legend>
-        {FILING_OPTIONS.map((opt) => (
+        {availableOptions.map((opt) => (
           <label
             key={opt.value}
             className={`flex items-start gap-3 p-4 border rounded-lg cursor-pointer transition-colors ${
@@ -112,29 +177,31 @@ export function FilingStatusPage() {
         ))}
       </fieldset>
 
-      <div className="mt-6 border border-gray-200 rounded-lg p-4">
-        <label className="flex items-start gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={canBeClaimedAsDependent}
-            onChange={(e) => setCanBeClaimedAsDependent(e.target.checked)}
-            className="mt-1"
-          />
-          <div>
-            <span className="font-medium text-gray-900 inline-flex items-center">
-              Someone can claim me as a dependent
-              <InfoTooltip
-                explanation="Check this box if someone else (such as a parent) can claim you as a dependent on their tax return. This limits your standard deduction to the greater of $1,350 or your earned income plus $450."
-                pubName="IRS Publication 501 — Dependents"
-                pubUrl="https://www.irs.gov/publications/p501"
-              />
-            </span>
-            <p className="text-sm text-gray-500 mt-0.5">
-              This limits your standard deduction. Most adult filers leave this unchecked.
-            </p>
-          </div>
-        </label>
-      </div>
+      {!isNRA && (
+        <div className="mt-6 border border-gray-200 rounded-lg p-4">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={canBeClaimedAsDependent}
+              onChange={(e) => setCanBeClaimedAsDependent(e.target.checked)}
+              className="mt-1"
+            />
+            <div>
+              <span className="font-medium text-gray-900 inline-flex items-center">
+                Someone can claim me as a dependent
+                <InfoTooltip
+                  explanation="Check this box if someone else (such as a parent) can claim you as a dependent on their tax return. This limits your standard deduction to the greater of $1,350 or your earned income plus $450."
+                  pubName="IRS Publication 501 — Dependents"
+                  pubUrl="https://www.irs.gov/publications/p501"
+                />
+              </span>
+              <p className="text-sm text-gray-500 mt-0.5">
+                This limits your standard deduction. Most adult filers leave this unchecked.
+              </p>
+            </div>
+          </label>
+        </div>
+      )}
 
       <InterviewNav interview={interview} />
     </div>

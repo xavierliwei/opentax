@@ -694,9 +694,33 @@ export interface StateReturnConfig {
   njCollegeStudentDependentCount?: number // Manual count of college-student dependents (fallback when DOBs unavailable)
 }
 
+// ── NRA (Nonresident Alien) Info ─────────────────────────────────
+
+export interface NRAInfo {
+  countryOfResidence: string           // ISO country code or country name
+  visaType?: string                    // F-1, J-1, H-1B, etc. (informational)
+  treatyCountry?: string               // Tax treaty country (if claiming treaty benefits)
+  treatyArticle?: string               // Treaty article number
+  treatyExemptIncome?: number          // cents — income exempt under treaty
+
+  // FDAP income (30% flat tax or treaty rate)
+  fdapDividends?: number               // cents — U.S.-source dividends (not effectively connected)
+  fdapInterest?: number                // cents — U.S.-source interest (not effectively connected)
+  fdapRoyalties?: number               // cents
+  fdapOtherIncome?: number             // cents
+  fdapWithholdingRate?: number         // decimal (0.30 = 30%, or lower treaty rate)
+
+  // Scholarship/fellowship grant income
+  scholarshipIncome?: number           // cents — taxable portion of scholarship
+
+  daysInUS?: number                    // Days present in U.S. during tax year
+}
+
 // ── Tax Return (top-level) ─────────────────────────────────────
 
 export interface TaxReturn {
+  isNonresidentAlien?: boolean          // Master toggle — when true, use 1040-NR instead of 1040
+  nraInfo?: NRAInfo                     // NRA-specific config (only when isNonresidentAlien)
   taxYear: number
   filingStatus: FilingStatus
   canBeClaimedAsDependent: boolean  // checked on Form 1040 — limits standard deduction

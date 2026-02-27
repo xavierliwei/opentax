@@ -33,6 +33,7 @@ import type {
   EducationExpenses,
   HSAInfo,
   Form8606Data,
+  NRAInfo,
 } from '../model/types.ts'
 import { emptyTaxReturn } from '../model/types.ts'
 import { computeAll } from '../rules/engine.ts'
@@ -132,6 +133,8 @@ export interface TaxStoreState {
   setCAResident: (value: boolean) => void
   /** @deprecated Use updateStateReturn instead */
   setRentPaidInCA: (value: boolean) => void
+  setIsNonresidentAlien: (value: boolean) => void
+  setNRAInfo: (updates: Partial<NRAInfo>) => void
   importReturn: (taxReturn: TaxReturn) => void
   resetReturn: () => void
 }
@@ -1055,6 +1058,29 @@ export const useTaxStore = create<TaxStoreState>()(
 
       setRentPaidInCA: (value) => {
         get().updateStateReturn('CA', { rentPaid: value })
+      },
+
+      setIsNonresidentAlien: (value) => {
+        const prev = get().taxReturn
+        const tr = {
+          ...prev,
+          isNonresidentAlien: value,
+          // When enabling NRA, restrict filing status to single/mfs
+          filingStatus: value && prev.filingStatus !== 'mfs' ? 'single' as FilingStatus : prev.filingStatus,
+          // Initialize nraInfo with defaults if not present
+          nraInfo: value ? (prev.nraInfo ?? { countryOfResidence: '' }) : prev.nraInfo,
+        }
+        set(recompute(tr))
+      },
+
+      setNRAInfo: (updates) => {
+        const prev = get().taxReturn
+        const existing = prev.nraInfo ?? { countryOfResidence: '' }
+        const tr = {
+          ...prev,
+          nraInfo: { ...existing, ...updates },
+        }
+        set(recompute(tr))
       },
 
       importReturn: (taxReturn) => {

@@ -13,6 +13,8 @@ import type { TracedValue } from '../model/traced'
 import { tracedFromComputation, tracedZero } from '../model/traced'
 import { computeForm1040 } from './2025/form1040'
 import type { Form1040Result } from './2025/form1040'
+import { computeForm1040NR, form1040NRToForm1040Compat } from './2025/form1040NR'
+import type { Form1040NRResult } from './2025/form1040NR'
 import { computeScheduleB } from './2025/scheduleB'
 import type { ScheduleBResult } from './2025/scheduleB'
 import { STANDARD_DEDUCTION } from './2025/constants'
@@ -28,6 +30,8 @@ import type { GateResult } from './qualityGates'
 
 export interface ComputeResult {
   form1040: Form1040Result
+  /** Form 1040-NR result (populated when isNonresidentAlien is true) */
+  form1040NR: Form1040NRResult | null
   scheduleB: ScheduleBResult
   /** @deprecated Use stateResults instead — kept for backward compatibility */
   form540: Form540Result | null
@@ -226,6 +230,34 @@ export const NODE_LABELS: Record<string, string> = {
   'amt.tentativeMinimumTax': 'Tentative minimum tax',
   'amt.amt': 'Alternative minimum tax',
 
+  // Form 1040-NR (Nonresident Alien)
+  'form1040nr.eciWages': 'ECI Wages (Form 1040-NR)',
+  'form1040nr.eciInterest': 'ECI Interest (Form 1040-NR)',
+  'form1040nr.eciDividends': 'ECI Dividends (Form 1040-NR)',
+  'form1040nr.eciCapitalGains': 'ECI Capital Gains (Form 1040-NR)',
+  'form1040nr.eciBusinessIncome': 'ECI Business Income (Form 1040-NR)',
+  'form1040nr.eciScholarship': 'Taxable Scholarship Income (Form 1040-NR)',
+  'form1040nr.eciOtherIncome': 'Other ECI (Form 1040-NR)',
+  'form1040nr.totalECI': 'Total Effectively Connected Income',
+  'form1040nr.adjustments': 'Adjustments (Form 1040-NR)',
+  'form1040nr.agi': 'AGI (Form 1040-NR)',
+  'form1040nr.deductions': 'Itemized Deductions (Form 1040-NR)',
+  'form1040nr.taxableIncome': 'Taxable Income (Form 1040-NR)',
+  'form1040nr.eciTax': 'Tax on ECI (Form 1040-NR)',
+  'form1040nr.fdapDividends': 'FDAP Dividends (Schedule NEC)',
+  'form1040nr.fdapInterest': 'FDAP Interest (Schedule NEC)',
+  'form1040nr.fdapRoyalties': 'FDAP Royalties (Schedule NEC)',
+  'form1040nr.fdapOther': 'FDAP Other Income (Schedule NEC)',
+  'form1040nr.totalFDAP': 'Total FDAP Income (Schedule NEC)',
+  'form1040nr.fdapTax': 'Tax on FDAP Income (Schedule NEC)',
+  'form1040nr.treatyExemption': 'Treaty Exempt Income',
+  'form1040nr.totalTax': 'Total Tax (Form 1040-NR)',
+  'form1040nr.withheld': 'Federal Tax Withheld (Form 1040-NR)',
+  'form1040nr.estimatedPayments': 'Estimated Tax Payments (Form 1040-NR)',
+  'form1040nr.totalPayments': 'Total Payments (Form 1040-NR)',
+  'form1040nr.refund': 'Refund (Form 1040-NR)',
+  'form1040nr.amountOwed': 'Amount You Owe (Form 1040-NR)',
+
   // State labels are merged dynamically from state modules
   ...getAllStateNodeLabels(),
 
@@ -249,7 +281,9 @@ export const NODE_LABELS: Record<string, string> = {
 // ── computeAll ───────────────────────────────────────────────────
 
 export function computeAll(model: TaxReturn): ComputeResult {
-  const form1040 = computeForm1040(model)
+  const isNRA = model.isNonresidentAlien === true
+  const form1040NR = isNRA ? computeForm1040NR(model) : null
+  const form1040 = isNRA ? form1040NRToForm1040Compat(form1040NR!) : computeForm1040(model)
   const scheduleB = computeScheduleB(model)
 
   // Compute all selected state returns via the registry
@@ -266,9 +300,9 @@ export function computeAll(model: TaxReturn): ComputeResult {
   const caResult = stateResults.find(r => r.stateCode === 'CA')
   const form540 = caResult ? extractForm540(caResult) : null
 
-  const values = collectAllValues(form1040, scheduleB, model, form540, stateResults)
+  const values = collectAllValues(form1040, scheduleB, model, form540, stateResults, form1040NR)
 
-  const executedSchedules: string[] = ['B']
+  const executedSchedules: string[] = isNRA ? ['1040-NR'] : ['B']
   if (form1040.schedule1) executedSchedules.push('1')
   if (form1040.scheduleA) executedSchedules.push('A')
   if (form1040.scheduleD) executedSchedules.push('D')
@@ -305,7 +339,7 @@ export function computeAll(model: TaxReturn): ComputeResult {
     qualityGates = runAllGates(gateResults)
   }
 
-  return { form1040, scheduleB, form540, stateResults, values, executedSchedules, qualityGates }
+  return { form1040, form1040NR, scheduleB, form540, stateResults, values, executedSchedules, qualityGates }
 }
 
 // ── collectAllValues ─────────────────────────────────────────────
@@ -316,6 +350,7 @@ export function collectAllValues(
   model: TaxReturn,
   _form540?: Form540Result | null,
   stateResults?: StateComputeResult[],
+  form1040NR?: Form1040NRResult | null,
 ): Map<string, TracedValue> {
   const values = new Map<string, TracedValue>()
 
@@ -1145,6 +1180,37 @@ export function collectAllValues(
         NODE_LABELS[nodeId] ?? nodeId,
       ))
     }
+  }
+
+  // Form 1040-NR traced values
+  if (form1040NR) {
+    const nr = form1040NR
+    add(nr.eciWages)
+    add(nr.eciInterest)
+    add(nr.eciDividends)
+    add(nr.eciCapitalGains)
+    add(nr.eciBusinessIncome)
+    add(nr.eciScholarship)
+    add(nr.eciOtherIncome)
+    add(nr.totalECI)
+    add(nr.adjustments)
+    add(nr.agi)
+    add(nr.deductions)
+    add(nr.taxableIncome)
+    add(nr.eciTax)
+    add(nr.fdapDividends)
+    add(nr.fdapInterest)
+    add(nr.fdapRoyalties)
+    add(nr.fdapOther)
+    add(nr.totalFDAP)
+    add(nr.fdapTax)
+    add(nr.treatyExemption)
+    add(nr.totalTax)
+    add(nr.withheld)
+    add(nr.estimatedPayments)
+    add(nr.totalPayments)
+    add(nr.refund)
+    add(nr.amountOwed)
   }
 
   return values

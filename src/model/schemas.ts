@@ -641,6 +641,23 @@ const stateReturnConfigSchema = z.object({
   njDependentCollegeStudents: z.array(z.string()).optional(),
 })
 
+// ── NRA Info ────────────────────────────────────────────────────
+
+const nraInfoSchema = z.object({
+  countryOfResidence: z.string(),
+  visaType: z.string().optional(),
+  treatyCountry: z.string().optional(),
+  treatyArticle: z.string().optional(),
+  treatyExemptIncome: centsNonNeg.optional(),
+  fdapDividends: centsNonNeg.optional(),
+  fdapInterest: centsNonNeg.optional(),
+  fdapRoyalties: centsNonNeg.optional(),
+  fdapOtherIncome: centsNonNeg.optional(),
+  fdapWithholdingRate: z.number().min(0).max(1).optional(),
+  scholarshipIncome: centsNonNeg.optional(),
+  daysInUS: z.number().int().min(0).max(366).optional(),
+})
+
 // ── Deductions block ─────────────────────────────────────────────
 
 const deductionsSchema = z.object({
@@ -665,6 +682,8 @@ const estimatedTaxPaymentsSchema = z.object({
 // ── Tax Return (top-level) ───────────────────────────────────────
 
 export const taxReturnSchema = z.object({
+  isNonresidentAlien: z.boolean().optional(),
+  nraInfo: nraInfoSchema.optional(),
   taxYear: z.number().int(),
   filingStatus: filingStatusSchema,
   canBeClaimedAsDependent: z.boolean(),
@@ -815,4 +834,5 @@ export {
   estimatedTaxPaymentsSchema,
   educationExpensesSchema,
   form8606DataSchema,
+  nraInfoSchema,
 }

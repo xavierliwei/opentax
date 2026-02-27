@@ -234,7 +234,9 @@ export function DownloadPage() {
 
       {/* Federal card */}
       <div className="mt-4 border border-gray-200 rounded-lg p-4 sm:p-6 flex flex-col gap-1 text-sm">
-        <h2 className="font-semibold text-gray-900 mb-2">Federal (Form 1040)</h2>
+        <h2 className="font-semibold text-gray-900 mb-2">
+          Federal ({taxReturn.isNonresidentAlien ? 'Form 1040-NR' : 'Form 1040'})
+        </h2>
         <div className="grid grid-cols-2 gap-x-6 gap-y-1">
           <div className="flex justify-between">
             <span className="text-gray-600">AGI</span>

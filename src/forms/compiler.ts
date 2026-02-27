@@ -19,6 +19,8 @@ import type { FormTemplates, CompiledForms, FormSummary, ReturnSummary, StatePac
 import type { StateFormTemplates } from './stateCompiler'
 import { computeForm1040 } from '../rules/2025/form1040'
 import type { Form1040Result } from '../rules/2025/form1040'
+import { computeForm1040NR, form1040NRToForm1040Compat } from '../rules/2025/form1040NR'
+import { fillForm1040NR } from './fillers/form1040NRFiller'
 import { computeScheduleB } from '../rules/2025/scheduleB'
 import { getStateModule } from '../rules/stateRegistry'
 import { getStateFormCompiler } from './stateFormRegistry'
@@ -68,7 +70,9 @@ export async function compileFilingPackage(
   stateTemplates?: Map<SupportedStateCode, StateFormTemplates>,
 ): Promise<CompiledForms> {
   // ── Run rules engine ──────────────────────────────────────
-  const result = computeForm1040(taxReturn)
+  const isNRA = taxReturn.isNonresidentAlien === true
+  const nrResult = isNRA ? computeForm1040NR(taxReturn) : null
+  const result = isNRA ? form1040NRToForm1040Compat(nrResult!) : computeForm1040(taxReturn)
   const scheduleB = computeScheduleB(taxReturn)
 
   // ── Determine which forms are needed ──────────────────────
@@ -163,12 +167,20 @@ export async function compileFilingPackage(
   // ── Fill forms (in IRS attachment sequence order) ──────────
   const filledDocs: Array<{ doc: PDFDocument; summary: FormSummary }> = []
 
-  // Form 1040 (sequence 00)
-  const f1040Doc = await fillForm1040(templates.f1040, taxReturn, result)
-  filledDocs.push({
-    doc: f1040Doc,
-    summary: { formId: 'Form 1040', sequenceNumber: '00', pageCount: f1040Doc.getPageCount() },
-  })
+  // Form 1040 or Form 1040-NR (sequence 00)
+  if (isNRA && nrResult) {
+    const f1040NRDoc = await fillForm1040NR(taxReturn, nrResult)
+    filledDocs.push({
+      doc: f1040NRDoc,
+      summary: { formId: 'Form 1040-NR', sequenceNumber: '00', pageCount: f1040NRDoc.getPageCount() },
+    })
+  } else {
+    const f1040Doc = await fillForm1040(templates.f1040, taxReturn, result)
+    filledDocs.push({
+      doc: f1040Doc,
+      summary: { formId: 'Form 1040', sequenceNumber: '00', pageCount: f1040Doc.getPageCount() },
+    })
+  }
 
   // Schedule 1 (sequence 02)
   if (needsSchedule1) {
