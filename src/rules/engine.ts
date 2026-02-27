@@ -251,12 +251,21 @@ export const NODE_LABELS: Record<string, string> = {
   'form1040nr.totalFDAP': 'Total FDAP Income (Schedule NEC)',
   'form1040nr.fdapTax': 'Tax on FDAP Income (Schedule NEC)',
   'form1040nr.treatyExemption': 'Treaty Exempt Income',
+  'form1040nr.eciRetirement': 'ECI Retirement/Pension (Form 1040-NR)',
+  'form1040nr.eciRentalIncome': 'ECI Rental Income — §871(d) (Form 1040-NR)',
+  'form1040nr.fdapRetirement': 'FDAP Retirement IRA/SEP (Schedule NEC)',
+  'form1040nr.fdapRentalIncome': 'FDAP Rental Income (Schedule NEC)',
+  'form1040nr.fdapSocialSecurity': 'FDAP Social Security (Schedule NEC)',
+  'form1040nr.ssaBenefits': 'Gross Social Security Benefits (Form 1040-NR)',
   'form1040nr.totalTax': 'Total Tax (Form 1040-NR)',
   'form1040nr.withheld': 'Federal Tax Withheld (Form 1040-NR)',
   'form1040nr.estimatedPayments': 'Estimated Tax Payments (Form 1040-NR)',
   'form1040nr.totalPayments': 'Total Payments (Form 1040-NR)',
   'form1040nr.refund': 'Refund (Form 1040-NR)',
   'form1040nr.amountOwed': 'Amount You Owe (Form 1040-NR)',
+  'form1040nr.foreignTaxCredit': 'Foreign Tax Credit (Form 1040-NR)',
+  'form1040nr.childTaxCredit': 'Child Tax Credit (Form 1040-NR)',
+  'form1040nr.creditTotal': 'Total Credits (Form 1040-NR)',
 
   // State labels are merged dynamically from state modules
   ...getAllStateNodeLabels(),
@@ -1192,6 +1201,8 @@ export function collectAllValues(
     add(nr.eciBusinessIncome)
     add(nr.eciScholarship)
     add(nr.eciOtherIncome)
+    add(nr.eciRetirement)
+    add(nr.eciRentalIncome)
     add(nr.totalECI)
     add(nr.adjustments)
     add(nr.agi)
@@ -1202,9 +1213,16 @@ export function collectAllValues(
     add(nr.fdapInterest)
     add(nr.fdapRoyalties)
     add(nr.fdapOther)
+    add(nr.fdapRetirement)
+    add(nr.fdapRentalIncome)
+    add(nr.fdapSocialSecurity)
+    add(nr.ssaBenefits)
     add(nr.totalFDAP)
     add(nr.fdapTax)
     add(nr.treatyExemption)
+    add(nr.foreignTaxCredit)
+    add(nr.childTaxCredit)
+    add(nr.creditTotal)
     add(nr.totalTax)
     add(nr.withheld)
     add(nr.estimatedPayments)

@@ -714,6 +714,12 @@ export interface NRAInfo {
   scholarshipIncome?: number           // cents — taxable portion of scholarship
 
   daysInUS?: number                    // Days present in U.S. during tax year
+
+  // IRC §871(d) election to treat real property income as ECI (graduated rates with deductions)
+  rentalElectECI?: boolean
+
+  // Social Security benefits exempt under tax treaty (auto-detected from treaty country)
+  socialSecurityTreatyExempt?: boolean
 }
 
 // ── Tax Return (top-level) ─────────────────────────────────────
