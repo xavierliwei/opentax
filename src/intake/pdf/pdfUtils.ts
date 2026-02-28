@@ -6,32 +6,19 @@
  */
 
 import * as pdfjsLib from 'pdfjs-dist'
-import rawWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+import PdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?worker&url'
 
 // ── PDF.js worker setup ───────────────────────────────────────
 //
-// The worker file (.mjs) must be served with a JavaScript MIME type, but
-// some static servers (including the OpenTax dev server) may not handle .mjs
-// correctly. To work around this, we fetch the worker source and re-serve it
-// via a blob URL with the correct MIME type, which is guaranteed to work.
-// The blob URL is cached so the fetch only happens once per page load.
+// The worker file is set inside ensureWorker to avoid top-level side effects.
 
-let _workerBlobUrl: string | null = null
+let _workerSet = false
 
 export async function ensureWorker(): Promise<void> {
-  if (_workerBlobUrl) return
-  try {
-    const res = await fetch(rawWorkerUrl)
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const text = await res.text()
-    _workerBlobUrl = URL.createObjectURL(
-      new Blob([text], { type: 'application/javascript' }),
-    )
-  } catch {
-    // Fall back to the direct URL — works when the server is configured correctly
-    _workerBlobUrl = rawWorkerUrl
-  }
-  pdfjsLib.GlobalWorkerOptions.workerSrc = _workerBlobUrl
+  if (_workerSet) return
+
+  pdfjsLib.GlobalWorkerOptions.workerSrc = PdfWorkerUrl
+  _workerSet = true
 }
 
 // ── Types ─────────────────────────────────────────────────────
@@ -55,7 +42,15 @@ export interface Line {
 // ── PDF text extraction ───────────────────────────────────────
 
 export async function extractItems(data: ArrayBuffer): Promise<RawItem[]> {
-  const pdf = await pdfjsLib.getDocument({ data }).promise
+  let pdf
+  try {
+    pdf = await pdfjsLib.getDocument({ data }).promise
+  } catch (e) {
+    if (e instanceof Error && e.name === 'PasswordException') {
+      throw new Error('The PDF file is password-protected and cannot be read.')
+    }
+    throw new Error(`Failed to load PDF: ${e instanceof Error ? e.message : String(e)}. The file may be corrupted.`)
+  }
   const out: RawItem[] = []
 
   for (let p = 1; p <= pdf.numPages; p++) {
