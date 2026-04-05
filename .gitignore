@@ -25,6 +25,13 @@ test-results
 *.sln
 *.sw?
 
+# Personal tax documents (must never be committed)
+*1099*.pdf
+*1099*.csv
+*W-2*.pdf
+*W2*.pdf
+*.tax.pdf
+
 # Local tax datastore (must never be committed)
 opentax.db
 opentax.db-shm
