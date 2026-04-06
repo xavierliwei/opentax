@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
@@ -25,6 +25,9 @@ function renderPage() {
   )
 }
 
+// jsdom doesn't support scrollIntoView
+Element.prototype.scrollIntoView = vi.fn()
+
 beforeEach(() => {
   useTaxStore.getState().resetReturn()
 })
@@ -36,39 +39,45 @@ describe('StateReturnsPage accessibility', () => {
     expect(form).toBeDefined()
   })
 
-  it('has aria-label on each state group', () => {
+  it('has a combobox for state search', () => {
     renderPage()
-    const groups = screen.getAllByRole('group')
-    // The first group is the "Available states" wrapper, the rest are per-state groups
-    const availableStates = groups.find((g) => g.getAttribute('aria-label') === 'Available states')
-    expect(availableStates).toBeDefined()
-
-    // Each state card should have an aria-label like "California state return options"
-    const stateGroups = groups.filter((g) =>
-      g.getAttribute('aria-label')?.endsWith('state return options'),
-    )
-    expect(stateGroups.length).toBeGreaterThan(0)
+    const combobox = screen.getByRole('combobox')
+    expect(combobox).toBeDefined()
+    expect(combobox.getAttribute('aria-autocomplete')).toBe('list')
   })
 
-  it('checkboxes have aria-label for state filing', () => {
+  it('shows listbox with state options when combobox is focused', async () => {
+    const user = userEvent.setup()
     renderPage()
-    const caCheckbox = screen.getByRole('checkbox', { name: /file california state return/i })
-    expect(caCheckbox).toBeDefined()
+
+    const combobox = screen.getByRole('combobox')
+    await user.click(combobox)
+
+    const listbox = screen.getByRole('listbox', { name: /available states/i })
+    expect(listbox).toBeDefined()
+
+    const options = screen.getAllByRole('option')
+    expect(options.length).toBeGreaterThan(0)
   })
 
   it('shows residency fieldset with aria-label when state is selected', async () => {
     const user = userEvent.setup()
     renderPage()
 
-    const caCheckbox = screen.getByRole('checkbox', { name: /file california state return/i })
-    await user.click(caCheckbox)
+    // Use combobox to select California
+    const combobox = screen.getByRole('combobox')
+    await user.click(combobox)
+    await user.type(combobox, 'California')
+
+    const options = screen.getAllByRole('option')
+    const caOption = options.find(o => o.textContent?.includes('California'))
+    if (caOption) await user.click(caOption)
 
     const fieldset = screen.getByRole('group', { name: /california residency status/i })
     expect(fieldset).toBeDefined()
   })
 
   it('date inputs have htmlFor/id linkage and aria-describedby', async () => {
-    const user = userEvent.setup()
     useTaxStore.getState().addStateReturn({ stateCode: 'CA', residencyType: 'part-year' })
     renderPage()
 

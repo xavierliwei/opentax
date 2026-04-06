@@ -255,8 +255,8 @@ export async function parseFidelityPdf(data: ArrayBuffer): Promise<ConsolidatedP
     // ── Phase 1: Identify sections and collect section lines ──
     type Section = 'div' | 'int' | '1099b' | 'supplemental' | null
     let currentSection: Section = null
-    let divLines: Line[] = []
-    let intLines: Line[] = []
+    const divLines: Line[] = []
+    const intLines: Line[] = []
 
     // 1099-B state
     let currentCategory: Category8949 | null = null

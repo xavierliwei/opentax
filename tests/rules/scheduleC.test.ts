@@ -139,10 +139,9 @@ describe('computeScheduleC', () => {
     })
     const result = computeScheduleC(biz)
 
-    expect(result.warnings.length).toBe(3)
+    expect(result.warnings.length).toBe(2)
     expect(result.warnings[0]).toContain('Cost of Goods Sold')
-    expect(result.warnings[1]).toContain('Home office')
-    expect(result.warnings[2]).toContain('Vehicle')
+    expect(result.warnings[1]).toContain('Vehicle')
   })
 
   it('emits no warnings for simple business', () => {

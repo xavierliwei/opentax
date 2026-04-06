@@ -279,7 +279,7 @@ describe('OCRUpload', () => {
     await userEvent.upload(fileInput, createPdfFile())
 
     await waitFor(() => {
-      expect(screen.getByText(/Failed to read PDF/)).toBeDefined()
+      expect(screen.getByText(/PDF load failed/)).toBeDefined()
     })
   })
 
