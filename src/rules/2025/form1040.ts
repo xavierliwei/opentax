@@ -162,15 +162,17 @@ export function computeLine2b(model: TaxReturn, k1Interest: number = 0): TracedV
 }
 
 // ── Line 3a — Qualified dividends ──────────────────────────────
-// Sum of all 1099-DIV Box 1b values.
+// Sum of all 1099-DIV Box 1b values + K-1 qualified dividends.
 // (Informational — used in QDCG worksheet, not added to total income.)
-// Note: K-1 dividends are NOT added here because the K-1 data model does
-// not yet capture the qualified/ordinary dividend breakdown. All K-1
-// dividends flow to Line 3b as ordinary dividends (conservative).
 
-export function computeLine3a(model: TaxReturn): TracedValue {
+export function computeLine3a(model: TaxReturn, k1QualifiedDividends: number = 0): TracedValue {
   const inputIds = model.form1099DIVs.map(f => `1099div:${f.id}:box1b`)
-  const total = model.form1099DIVs.reduce((sum, f) => sum + f.box1b, 0)
+  let total = model.form1099DIVs.reduce((sum, f) => sum + f.box1b, 0)
+
+  if (k1QualifiedDividends > 0) {
+    total += k1QualifiedDividends
+    inputIds.push('k1.totalQualifiedDividends')
+  }
 
   return tracedFromComputation(
     total,
@@ -1377,7 +1379,7 @@ export function computeForm1040(model: TaxReturn): Form1040Result {
   const line1z = computeLine1z(line1a)
   const line2a = computeLine2a(model)
   const line2b = computeLine2b(model, k1Result?.totalInterest ?? 0)
-  const line3a = computeLine3a(model)
+  const line3a = computeLine3a(model, k1Result?.totalQualifiedDividends ?? 0)
   const line3b = computeLine3b(model, k1Result?.totalDividends ?? 0)
   const line4a = computeLine4a(model, form8606Result)
   const line4b = computeLine4b(model, form8606Result)

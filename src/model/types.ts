@@ -392,6 +392,7 @@ export interface ScheduleK1 {
   rentalIncome: number            // Box 2 (1065)
   interestIncome: number          // Box 5 (1065) / Box 4 (1120-S)
   dividendIncome: number          // Box 6a (1065) / Box 5a (1120-S)
+  qualifiedDividends?: number     // Box 6b (1065) / Box 5b (1120-S) — subset of dividendIncome eligible for LTCG rates
   shortTermCapitalGain: number    // Box 8 (1065) / Box 7 (1120-S)
   longTermCapitalGain: number     // Box 9a (1065) / Box 8a (1120-S)
   section199AQBI: number          // Box 20 Code Z (1065) / Box 17 Code V (1120-S)
@@ -651,7 +652,7 @@ export interface Credit {
 // ── State Return Config ────────────────────────────────────────
 
 /** Supported state codes (expand as states are added) */
-export type SupportedStateCode = 'AL' | 'AZ' | 'CA' | 'CO' | 'CT' | 'DC' | 'GA' | 'IA' | 'ID' | 'IL' | 'IN' | 'KS' | 'KY' | 'LA' | 'MA' | 'MD' | 'MI' | 'MN' | 'MO' | 'MS' | 'NC' | 'NJ' | 'NY' | 'OH' | 'OK' | 'OR' | 'PA' | 'SC' | 'UT' | 'VA' | 'WI'
+export type SupportedStateCode = 'AL' | 'AR' | 'AZ' | 'CA' | 'CO' | 'CT' | 'DC' | 'DE' | 'GA' | 'HI' | 'IA' | 'ID' | 'IL' | 'IN' | 'KS' | 'KY' | 'LA' | 'MA' | 'MD' | 'ME' | 'MI' | 'MN' | 'MO' | 'MS' | 'MT' | 'NC' | 'ND' | 'NE' | 'NJ' | 'NM' | 'NY' | 'OH' | 'OK' | 'OR' | 'PA' | 'RI' | 'SC' | 'UT' | 'VA' | 'VT' | 'WI' | 'WV'
 
 /** Residency classification for a state return */
 export type ResidencyType = 'full-year' | 'part-year' | 'nonresident'
@@ -694,9 +695,39 @@ export interface StateReturnConfig {
   njCollegeStudentDependentCount?: number // Manual count of college-student dependents (fallback when DOBs unavailable)
 }
 
+// ── NRA (Nonresident Alien) Info ─────────────────────────────────
+
+export interface NRAInfo {
+  countryOfResidence: string           // ISO country code or country name
+  visaType?: string                    // F-1, J-1, H-1B, etc. (informational)
+  treatyCountry?: string               // Tax treaty country (if claiming treaty benefits)
+  treatyArticle?: string               // Treaty article number
+  treatyExemptIncome?: number          // cents — income exempt under treaty
+
+  // FDAP income (30% flat tax or treaty rate)
+  fdapDividends?: number               // cents — U.S.-source dividends (not effectively connected)
+  fdapInterest?: number                // cents — U.S.-source interest (not effectively connected)
+  fdapRoyalties?: number               // cents
+  fdapOtherIncome?: number             // cents
+  fdapWithholdingRate?: number         // decimal (0.30 = 30%, or lower treaty rate)
+
+  // Scholarship/fellowship grant income
+  scholarshipIncome?: number           // cents — taxable portion of scholarship
+
+  daysInUS?: number                    // Days present in U.S. during tax year
+
+  // IRC §871(d) election to treat real property income as ECI (graduated rates with deductions)
+  rentalElectECI?: boolean
+
+  // Social Security benefits exempt under tax treaty (auto-detected from treaty country)
+  socialSecurityTreatyExempt?: boolean
+}
+
 // ── Tax Return (top-level) ─────────────────────────────────────
 
 export interface TaxReturn {
+  isNonresidentAlien?: boolean          // Master toggle — when true, use 1040-NR instead of 1040
+  nraInfo?: NRAInfo                     // NRA-specific config (only when isNonresidentAlien)
   taxYear: number
   filingStatus: FilingStatus
   canBeClaimedAsDependent: boolean  // checked on Form 1040 — limits standard deduction

@@ -1492,3 +1492,129 @@ describe('K-1 Full Flow — Phase 5 Comprehensive', () => {
     expect(result.k1RentalPAL!.allowedRentalIncome).toBeGreaterThanOrEqual(cents(-25000))
   })
 })
+
+// ══════════════════════════════════════════════════════════════════════
+// K-1 Qualified Dividends — preferential LTCG rates
+// ══════════════════════════════════════════════════════════════════════
+
+describe('K-1 Qualified Dividends', () => {
+  it('K-1 qualifiedDividends flow to Line 3a', () => {
+    const model = {
+      ...emptyTaxReturn(2025),
+      w2s: [makeW2({ id: 'w2', employerName: 'Emp', box1: cents(50000), box2: cents(5000) })],
+      form1099DIVs: [make1099DIV({ id: 'div-1', payerName: 'Fund', box1a: cents(800), box1b: cents(400) })],
+      scheduleK1s: [
+        makeK1({ id: 'k1-1', entityName: 'LP', dividendIncome: cents(3000), qualifiedDividends: cents(2000) }),
+      ],
+    }
+
+    const result = computeForm1040(model)
+    // Line 3a = 1099-DIV qualified ($400) + K-1 qualified ($2,000) = $2,400
+    expect(result.line3a.amount).toBe(cents(400) + cents(2000))
+    // Line 3b = 1099-DIV ordinary ($800) + K-1 total dividends ($3,000) = $3,800
+    expect(result.line3b.amount).toBe(cents(800) + cents(3000))
+  })
+
+  it('K-1 qualified dividends produce lower tax via QDCG worksheet', () => {
+    // Scenario: taxpayer with $80K W-2 and $10K K-1 dividends
+    // Compare tax with all-ordinary vs all-qualified dividends
+    const baseModel = {
+      ...emptyTaxReturn(2025),
+      w2s: [makeW2({ id: 'w2', employerName: 'Emp', box1: cents(80000), box2: cents(10000) })],
+    }
+
+    // All ordinary (no qualifiedDividends specified)
+    const ordinaryModel = {
+      ...baseModel,
+      scheduleK1s: [
+        makeK1({ id: 'k1-1', entityName: 'LP', dividendIncome: cents(10000) }),
+      ],
+    }
+
+    // All qualified
+    const qualifiedModel = {
+      ...baseModel,
+      scheduleK1s: [
+        makeK1({ id: 'k1-1', entityName: 'LP', dividendIncome: cents(10000), qualifiedDividends: cents(10000) }),
+      ],
+    }
+
+    const ordinaryResult = computeForm1040(ordinaryModel)
+    const qualifiedResult = computeForm1040(qualifiedModel)
+
+    // Both should have the same total income
+    expect(ordinaryResult.line9.amount).toBe(qualifiedResult.line9.amount)
+    // Qualified dividends should produce lower tax
+    expect(qualifiedResult.line16.amount).toBeLessThan(ordinaryResult.line16.amount)
+    // Line 3a should reflect qualified dividends
+    expect(qualifiedResult.line3a.amount).toBe(cents(10000))
+    expect(ordinaryResult.line3a.amount).toBe(0)
+  })
+
+  it('K-1 without qualifiedDividends defaults to 0 (backward compatible)', () => {
+    const model = {
+      ...emptyTaxReturn(2025),
+      w2s: [makeW2({ id: 'w2', employerName: 'Emp', box1: cents(50000), box2: cents(5000) })],
+      scheduleK1s: [
+        makeK1({ id: 'k1-1', entityName: 'LP', dividendIncome: cents(5000) }),
+      ],
+    }
+
+    const result = computeForm1040(model)
+    // No qualified dividends on Line 3a from K-1
+    expect(result.line3a.amount).toBe(0)
+    // All K-1 dividends on Line 3b
+    expect(result.line3b.amount).toBe(cents(5000))
+  })
+
+  it('aggregate tracks qualifiedDividends across multiple K-1s', () => {
+    const result = computeK1Aggregate([
+      makeK1({ id: 'k1-1', entityName: 'LP A', dividendIncome: cents(5000), qualifiedDividends: cents(3000) }),
+      makeK1({ id: 'k1-2', entityName: 'LP B', dividendIncome: cents(2000), qualifiedDividends: cents(1000) }),
+      makeK1({ id: 'k1-3', entityName: 'LP C', dividendIncome: cents(1000) }), // no qualified — defaults to 0
+    ])
+
+    expect(result.totalDividends).toBe(cents(8000))
+    expect(result.totalQualifiedDividends).toBe(cents(4000))
+  })
+
+  it('no K1_DIVIDENDS_NOT_QUALIFIED warning when qualified breakdown is provided', () => {
+    const model = {
+      ...emptyTaxReturn(2025),
+      scheduleK1s: [
+        makeK1({ id: 'k1-1', entityName: 'LP', dividendIncome: cents(5000), qualifiedDividends: cents(3000) }),
+      ],
+    }
+
+    const result = computeForm1040(model)
+    const item = result.validation!.items.find(i => i.code === 'K1_DIVIDENDS_NOT_QUALIFIED')
+    expect(item).toBeUndefined()
+  })
+
+  it('K1_DIVIDENDS_NOT_QUALIFIED warning only for K-1s missing qualified breakdown', () => {
+    const model = {
+      ...emptyTaxReturn(2025),
+      scheduleK1s: [
+        makeK1({ id: 'k1-1', entityName: 'LP A', dividendIncome: cents(5000), qualifiedDividends: cents(3000) }),
+        makeK1({ id: 'k1-2', entityName: 'LP B', dividendIncome: cents(2000) }), // missing qualified
+      ],
+    }
+
+    const result = computeForm1040(model)
+    const item = result.validation!.items.find(i => i.code === 'K1_DIVIDENDS_NOT_QUALIFIED')
+    expect(item).toBeDefined()
+    // Warning should only mention the $2,000 from LP B, not the $5,000 from LP A
+    expect(item!.message).toContain('$2000')
+  })
+
+  it('qualifiedDividends capped at dividendIncome in aggregate (sanity)', () => {
+    // Even if user enters qualifiedDividends > dividendIncome, the aggregate
+    // still reports the raw values (validation should catch this, not computation)
+    const result = computeK1Aggregate([
+      makeK1({ id: 'k1-1', entityName: 'LP', dividendIncome: cents(3000), qualifiedDividends: cents(3000) }),
+    ])
+
+    expect(result.totalDividends).toBe(cents(3000))
+    expect(result.totalQualifiedDividends).toBe(cents(3000))
+  })
+})

@@ -43,6 +43,7 @@ function LimitedBadge({ entered, deductible }: { entered: number; deductible: nu
 
 export function DeductionsPage() {
   const filingStatus = useTaxStore((s) => s.taxReturn.filingStatus)
+  const isNRA = useTaxStore((s) => s.taxReturn.isNonresidentAlien ?? false)
   const deductions = useTaxStore((s) => s.taxReturn.deductions)
   const agi = useTaxStore((s) => s.computeResult.form1040.line11.amount)
   const computeResult = useTaxStore((s) => s.computeResult)
@@ -186,63 +187,77 @@ export function DeductionsPage() {
     <div data-testid="page-deductions" className="max-w-xl mx-auto">
       <h1 className="text-2xl font-bold text-gray-900">Deductions</h1>
       <p className="mt-1 text-sm text-gray-600">
-        Choose between the standard deduction or itemizing your deductions.
+        {isNRA
+          ? 'Nonresident aliens generally cannot take the standard deduction. Enter your itemized deductions below.'
+          : 'Choose between the standard deduction or itemizing your deductions.'}
       </p>
 
+      {isNRA && (
+        <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
+          <p className="text-xs text-blue-700">
+            Form 1040-NR filers are limited to itemized deductions: state/local taxes (SALT) and
+            charitable contributions. Medical expenses and mortgage interest are generally not
+            deductible for nonresident aliens.
+          </p>
+        </div>
+      )}
+
       {/* Method selection */}
-      <fieldset className="mt-6 grid grid-cols-2 gap-3">
-        <legend className="sr-only">Deduction method</legend>
-        <label
-          className={`flex flex-col items-center gap-1 border rounded-lg p-4 cursor-pointer transition-colors ${
-            deductions.method === 'standard'
-              ? 'border-tax-blue bg-blue-50'
-              : 'border-gray-200 hover:border-gray-300'
-          }`}
-        >
-          <input
-            type="radio"
-            name="deduction-method"
-            value="standard"
-            checked={deductions.method === 'standard'}
-            onChange={() => setDeductionMethod('standard')}
-            className="sr-only"
-          />
-          <span className="text-sm font-medium text-gray-900">Standard</span>
-          <span className="text-lg font-bold text-gray-700">
-            {formatCurrency(standardAmount)}
-          </span>
-          {standardBetter && diff > 0 && (
-            <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
-              Best choice
+      {!isNRA && (
+        <fieldset className="mt-6 grid grid-cols-2 gap-3">
+          <legend className="sr-only">Deduction method</legend>
+          <label
+            className={`flex flex-col items-center gap-1 border rounded-lg p-4 cursor-pointer transition-colors ${
+              deductions.method === 'standard'
+                ? 'border-tax-blue bg-blue-50'
+                : 'border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            <input
+              type="radio"
+              name="deduction-method"
+              value="standard"
+              checked={deductions.method === 'standard'}
+              onChange={() => setDeductionMethod('standard')}
+              className="sr-only"
+            />
+            <span className="text-sm font-medium text-gray-900">Standard</span>
+            <span className="text-lg font-bold text-gray-700">
+              {formatCurrency(standardAmount)}
             </span>
-          )}
-        </label>
-        <label
-          className={`flex flex-col items-center gap-1 border rounded-lg p-4 cursor-pointer transition-colors ${
-            deductions.method === 'itemized'
-              ? 'border-tax-blue bg-blue-50'
-              : 'border-gray-200 hover:border-gray-300'
-          }`}
-        >
-          <input
-            type="radio"
-            name="deduction-method"
-            value="itemized"
-            checked={deductions.method === 'itemized'}
-            onChange={() => setDeductionMethod('itemized')}
-            className="sr-only"
-          />
-          <span className="text-sm font-medium text-gray-900">Itemized</span>
-          <span className="text-lg font-bold text-gray-700">
-            {formatCurrency(itemizedTotal)}
-          </span>
-          {!standardBetter && diff > 0 && (
-            <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
-              Best choice
+            {standardBetter && diff > 0 && (
+              <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
+                Best choice
+              </span>
+            )}
+          </label>
+          <label
+            className={`flex flex-col items-center gap-1 border rounded-lg p-4 cursor-pointer transition-colors ${
+              deductions.method === 'itemized'
+                ? 'border-tax-blue bg-blue-50'
+                : 'border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            <input
+              type="radio"
+              name="deduction-method"
+              value="itemized"
+              checked={deductions.method === 'itemized'}
+              onChange={() => setDeductionMethod('itemized')}
+              className="sr-only"
+            />
+            <span className="text-sm font-medium text-gray-900">Itemized</span>
+            <span className="text-lg font-bold text-gray-700">
+              {formatCurrency(itemizedTotal)}
             </span>
-          )}
-        </label>
-      </fieldset>
+            {!standardBetter && diff > 0 && (
+              <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
+                Best choice
+              </span>
+            )}
+          </label>
+        </fieldset>
+      )}
 
       {/* Additional standard deduction for age 65+ / blind */}
       <div className="mt-4 bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">

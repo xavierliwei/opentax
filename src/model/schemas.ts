@@ -387,6 +387,7 @@ const scheduleK1Schema = z.object({
   rentalIncome: centsAny,
   interestIncome: centsAny,
   dividendIncome: centsAny,
+  qualifiedDividends: centsNonNeg.optional(),
   shortTermCapitalGain: centsAny,
   longTermCapitalGain: centsAny,
   section199AQBI: centsAny,
@@ -608,7 +609,7 @@ const creditSchema = z.object({
 // ── State Return Config ──────────────────────────────────────────
 
 const supportedStateCodeSchema = z.enum([
-  'AL', 'AZ', 'CA', 'CO', 'CT', 'DC', 'FL', 'GA', 'IA', 'ID', 'IL', 'IN', 'KS', 'KY', 'LA', 'MA', 'MD', 'MI', 'MN', 'MO', 'MS', 'NC', 'NJ', 'NY', 'OH', 'OK', 'OR', 'PA', 'SC', 'UT', 'VA', 'WI',
+  'AL', 'AR', 'AZ', 'CA', 'CO', 'CT', 'DC', 'DE', 'FL', 'GA', 'HI', 'IA', 'ID', 'IL', 'IN', 'KS', 'KY', 'LA', 'MA', 'MD', 'ME', 'MI', 'MN', 'MO', 'MS', 'MT', 'NC', 'ND', 'NE', 'NJ', 'NM', 'NY', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'UT', 'VA', 'VT', 'WI', 'WV',
 ])
 
 const residencyTypeSchema = z.enum(['full-year', 'part-year', 'nonresident'])
@@ -641,6 +642,25 @@ const stateReturnConfigSchema = z.object({
   njDependentCollegeStudents: z.array(z.string()).optional(),
 })
 
+// ── NRA Info ────────────────────────────────────────────────────
+
+const nraInfoSchema = z.object({
+  countryOfResidence: z.string(),
+  visaType: z.string().optional(),
+  treatyCountry: z.string().optional(),
+  treatyArticle: z.string().optional(),
+  treatyExemptIncome: centsNonNeg.optional(),
+  fdapDividends: centsNonNeg.optional(),
+  fdapInterest: centsNonNeg.optional(),
+  fdapRoyalties: centsNonNeg.optional(),
+  fdapOtherIncome: centsNonNeg.optional(),
+  fdapWithholdingRate: z.number().min(0).max(1).optional(),
+  scholarshipIncome: centsNonNeg.optional(),
+  daysInUS: z.number().int().min(0).max(366).optional(),
+  rentalElectECI: z.boolean().optional(),
+  socialSecurityTreatyExempt: z.boolean().optional(),
+})
+
 // ── Deductions block ─────────────────────────────────────────────
 
 const deductionsSchema = z.object({
@@ -665,6 +685,8 @@ const estimatedTaxPaymentsSchema = z.object({
 // ── Tax Return (top-level) ───────────────────────────────────────
 
 export const taxReturnSchema = z.object({
+  isNonresidentAlien: z.boolean().optional(),
+  nraInfo: nraInfoSchema.optional(),
   taxYear: z.number().int(),
   filingStatus: filingStatusSchema,
   canBeClaimedAsDependent: z.boolean(),
@@ -815,4 +837,5 @@ export {
   estimatedTaxPaymentsSchema,
   educationExpensesSchema,
   form8606DataSchema,
+  nraInfoSchema,
 }
