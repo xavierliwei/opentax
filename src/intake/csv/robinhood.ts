@@ -28,7 +28,7 @@ const COLUMN_PATTERNS: Record<string, RegExp> = {
   proceeds:      /^(proceeds|sales?\s*proceeds|gross\s*proceeds)/i,
   costBasis:     /^(cost\s*basis|basis|cost)/i,
   washSale:      /^(wash\s*sale|wash\s*sale\s*loss|wash\s*sale\s*loss\s*disallowed|accrued\s*mkt)/i,
-  gainLoss:      /^(gain|loss|gain\s*[\/(or)]*\s*loss|realized\s*gain)/i,
+  gainLoss:      /^(gain|loss|gain\s*[/(or)]*\s*loss|realized\s*gain)/i,
   term:          /^(term|holding\s*period|type)/i,
   box:           /^(box|category|form\s*8949\s*box|reporting\s*category)/i,
   quantity:      /^(quantity|qty|shares|units)/i,

@@ -571,7 +571,7 @@ function parse1099IntLineScan(lineTexts: string[]): Map<string, ExtractedField> 
 
   for (const t of lineTexts) {
     if (/payer/i.test(t) && !/box|form|copy|1099/i.test(t)) {
-      const nameMatch = t.match(/(?:payer.s?\s+name\s*[:\-]?\s*)(.+)/i)
+      const nameMatch = t.match(/(?:payer.s?\s+name\s*[:-]?\s*)(.+)/i)
       if (nameMatch) {
         fields.set('payerName', textField(nameMatch[1].trim()))
         break
@@ -604,7 +604,7 @@ function parse1099DivLineScan(lineTexts: string[]): Map<string, ExtractedField> 
 
   for (const t of lineTexts) {
     if (/payer/i.test(t) && !/box|form|copy|1099/i.test(t)) {
-      const nameMatch = t.match(/(?:payer.s?\s+name\s*[:\-]?\s*)(.+)/i)
+      const nameMatch = t.match(/(?:payer.s?\s+name\s*[:-]?\s*)(.+)/i)
       if (nameMatch) {
         fields.set('payerName', textField(nameMatch[1].trim()))
         break
@@ -760,7 +760,7 @@ function parse1099RLineScan(lineTexts: string[]): Map<string, ExtractedField> {
 
   for (const t of lineTexts) {
     if (/payer/i.test(t) && !/box|form|copy|1099/i.test(t)) {
-      const nameMatch = t.match(/(?:payer.s?\s+name\s*[:\-]?\s*)(.+)/i)
+      const nameMatch = t.match(/(?:payer.s?\s+name\s*[:-]?\s*)(.+)/i)
       if (nameMatch) {
         fields.set('payerName', textField(nameMatch[1].trim()))
         break
@@ -787,7 +787,7 @@ function parse1099RLineScan(lineTexts: string[]): Map<string, ExtractedField> {
 
   // Distribution code — look for code pattern
   for (const t of lineTexts) {
-    const codeMatch = t.match(/\b(?:box\s*)?7\b.*?(?:distribution\s+code)?\s*[:\-]?\s*([1-9A-T]{1,2})\b/i)
+    const codeMatch = t.match(/\b(?:box\s*)?7\b.*?(?:distribution\s+code)?\s*[:-]?\s*([1-9A-T]{1,2})\b/i)
     if (codeMatch) {
       fields.set('box7', textField(codeMatch[1].toUpperCase()))
       break

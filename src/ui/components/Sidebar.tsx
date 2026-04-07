@@ -86,6 +86,7 @@ export function Sidebar({ steps, onNavigate, taxYear = 2025 }: SidebarProps) {
 
           // Render section header when section changes
           const showHeader = step.section !== lastSection
+          // eslint-disable-next-line react-hooks/immutability
           lastSection = step.section
 
           return (

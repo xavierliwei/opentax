@@ -355,7 +355,7 @@ export async function parseFidelityPdf(data: ArrayBuffer): Promise<ConsolidatedP
         continue
       }
       if (/^Box\s+[ABDE]\s+(Short|Long)/i.test(text)) continue
-      if (/^[\s\-]+$/.test(text.replace(/\s/g, ''))) continue  // dash separators
+      if (/^[\s-]+$/.test(text.replace(/\s/g, ''))) continue  // dash separators
       if (/^\*\s*This\s+is\s+important/i.test(text)) continue  // footer disclaimer
       if (/^Acquired\b/i.test(text)) continue  // continuation of column header
       if (/^Discount\b/i.test(text)) continue  // continuation of column header

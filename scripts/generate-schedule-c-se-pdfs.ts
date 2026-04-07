@@ -7,7 +7,7 @@
  * Run: npx tsx scripts/generate-schedule-c-se-pdfs.ts
  */
 
-import { PDFDocument, PDFTextField } from 'pdf-lib'
+import { PDFDocument } from 'pdf-lib'
 import { writeFileSync } from 'fs'
 import { join } from 'path'
 
@@ -17,7 +17,7 @@ const FORMS_DIR = join(import.meta.dirname, '..', 'public', 'forms')
 // Follows IRS naming pattern: topmostSubform[0].Page1[0].f1_NN[0]
 
 const SCHC_P1 = 'topmostSubform[0].Page1[0].'
-const SCHC_P2 = 'topmostSubform[0].Page2[0].'
+const _SCHC_P2 = 'topmostSubform[0].Page2[0].'
 
 const SCHEDULE_C_FIELDS = [
   // Header
