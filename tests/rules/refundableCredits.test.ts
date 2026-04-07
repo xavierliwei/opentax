@@ -72,6 +72,115 @@ describe('computeExcessSSWithholding', () => {
     expect(result!.amount).toBeGreaterThan(0)
   })
 
+  it('MFJ: returns null when neither spouse exceeds limit individually', () => {
+    const model = {
+      ...emptyTaxReturn(2025),
+      filingStatus: 'mfj' as const,
+      w2s: [
+        makeW2({
+          id: 'w2-1',
+          owner: 'taxpayer',
+          employerName: 'Co A',
+          box1: cents(90000),
+          box4: cents(5580),  // 6.2% of $90K
+        }),
+        makeW2({
+          id: 'w2-2',
+          owner: 'spouse',
+          employerName: 'Co B',
+          box1: cents(95000),
+          box4: cents(5890),  // 6.2% of $95K
+        }),
+      ],
+    }
+    // Neither spouse exceeds $10,918 individually
+    // Old bug: $5,580 + $5,890 = $11,470 > $10,918 → false excess
+    expect(computeExcessSSWithholding(model)).toBeNull()
+  })
+
+  it('MFJ: computes excess per-spouse correctly', () => {
+    const model = {
+      ...emptyTaxReturn(2025),
+      filingStatus: 'mfj' as const,
+      w2s: [
+        makeW2({
+          id: 'w2-1',
+          owner: 'taxpayer',
+          employerName: 'Co A',
+          box1: cents(100000),
+          box4: cents(6200),
+        }),
+        makeW2({
+          id: 'w2-2',
+          owner: 'taxpayer',
+          employerName: 'Co B',
+          box1: cents(90000),
+          box4: cents(5580),
+        }),
+        makeW2({
+          id: 'w2-3',
+          owner: 'spouse',
+          employerName: 'Co C',
+          box1: cents(80000),
+          box4: cents(4960),
+        }),
+      ],
+    }
+    // Taxpayer: $6,200 + $5,580 = $11,780 → excess = $11,780 - $10,918 = $862
+    // Spouse: $4,960 → no excess
+    // Total excess: $862
+    const maxSS = Math.round(SS_WAGE_BASE * SS_TAX_RATE)
+    const result = computeExcessSSWithholding(model)
+    expect(result).not.toBeNull()
+    expect(result!.amount).toBe(cents(6200) + cents(5580) - maxSS)
+  })
+
+  it('MFJ: both spouses have excess', () => {
+    const model = {
+      ...emptyTaxReturn(2025),
+      filingStatus: 'mfj' as const,
+      w2s: [
+        makeW2({
+          id: 'w2-1',
+          owner: 'taxpayer',
+          employerName: 'Co A',
+          box1: cents(100000),
+          box4: cents(6200),
+        }),
+        makeW2({
+          id: 'w2-2',
+          owner: 'taxpayer',
+          employerName: 'Co B',
+          box1: cents(90000),
+          box4: cents(5580),
+        }),
+        makeW2({
+          id: 'w2-3',
+          owner: 'spouse',
+          employerName: 'Co C',
+          box1: cents(100000),
+          box4: cents(6200),
+        }),
+        makeW2({
+          id: 'w2-4',
+          owner: 'spouse',
+          employerName: 'Co D',
+          box1: cents(85000),
+          box4: cents(5270),
+        }),
+      ],
+    }
+    // Taxpayer: $6,200 + $5,580 = $11,780 → excess $862
+    // Spouse: $6,200 + $5,270 = $11,470 → excess $552
+    // Total: $1,414
+    const maxSS = Math.round(SS_WAGE_BASE * SS_TAX_RATE)
+    const result = computeExcessSSWithholding(model)
+    expect(result).not.toBeNull()
+    const taxpayerExcess = cents(6200) + cents(5580) - maxSS
+    const spouseExcess = cents(6200) + cents(5270) - maxSS
+    expect(result!.amount).toBe(taxpayerExcess + spouseExcess)
+  })
+
   it('handles three employers each withholding on their own wages', () => {
     const model = {
       ...emptyTaxReturn(2025),

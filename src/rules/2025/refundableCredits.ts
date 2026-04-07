@@ -52,16 +52,39 @@ export interface RefundableCreditWarning {
 export function computeExcessSSWithholding(model: TaxReturn): RefundableCreditItem | null {
   if (model.w2s.length < 2) return null  // single employer can't over-withhold
 
+  const maxSSPerPerson = Math.round(SS_WAGE_BASE * SS_TAX_RATE)
+
+  // The SS wage base is a per-person limit. For MFJ, compute excess
+  // separately for each spouse, then sum.
+  if (model.filingStatus === 'mfj') {
+    const taxpayerSS = model.w2s
+      .filter(w => w.owner !== 'spouse')
+      .reduce((sum, w) => sum + w.box4, 0)
+    const spouseSS = model.w2s
+      .filter(w => w.owner === 'spouse')
+      .reduce((sum, w) => sum + w.box4, 0)
+
+    const taxpayerExcess = Math.max(0, taxpayerSS - maxSSPerPerson)
+    const spouseExcess = Math.max(0, spouseSS - maxSSPerPerson)
+    const excess = taxpayerExcess + spouseExcess
+
+    if (excess <= 0) return null
+    return {
+      creditId: 'excessSSWithholding',
+      description: 'Excess Social Security tax withheld (multiple employers)',
+      amount: excess,
+      irsCitation: 'Schedule 3, Line 11',
+    }
+  }
+
+  // Single / HoH / MFS — all W-2s belong to one person
   const totalSSWithheld = model.w2s.reduce((sum, w) => sum + w.box4, 0)
-  const maxSSWithholding = Math.round(SS_WAGE_BASE * SS_TAX_RATE)
+  if (totalSSWithheld <= maxSSPerPerson) return null
 
-  if (totalSSWithheld <= maxSSWithholding) return null
-
-  const excess = totalSSWithheld - maxSSWithholding
   return {
     creditId: 'excessSSWithholding',
     description: 'Excess Social Security tax withheld (multiple employers)',
-    amount: excess,
+    amount: totalSSWithheld - maxSSPerPerson,
     irsCitation: 'Schedule 3, Line 11',
   }
 }
