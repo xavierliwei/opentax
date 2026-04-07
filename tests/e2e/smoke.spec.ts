@@ -8,7 +8,7 @@ test('app loads and navigates core OpenTax workflow pages', async ({ page }) => 
 
   // 2. Start the interview → first step (Filing Status)
   await page.getByRole('button', { name: /let.s start/i }).click()
-  await expect(page.getByRole('heading', { name: /filing status/i })).toBeVisible()
+  await expect(page.locator('h1', { hasText: /filing status/i })).toBeVisible()
 
   // 3. Navigate to Federal Review via sidebar
   await page.getByRole('link', { name: /federal review/i }).click()
