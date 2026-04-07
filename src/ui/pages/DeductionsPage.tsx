@@ -4,6 +4,7 @@ import type { ItemizedDeductions } from '../../model/types.ts'
 import { useInterview } from '../../interview/useInterview.ts'
 import { CurrencyInput } from '../components/CurrencyInput.tsx'
 import { InfoTooltip } from '../components/InfoTooltip.tsx'
+import { CollapsibleCard } from '../components/CollapsibleCard.tsx'
 import { InterviewNav } from './InterviewNav.tsx'
 import {
   STANDARD_DEDUCTION,
@@ -260,15 +261,16 @@ export function DeductionsPage() {
       )}
 
       {/* Additional standard deduction for age 65+ / blind */}
-      <div className="mt-4 bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
-        <div className="flex items-center gap-1">
-          <span className="text-sm font-semibold text-gray-800">Additional Standard Deduction</span>
-          <InfoTooltip
-            explanation={`If you or your spouse are age 65 or older or blind, you qualify for an additional standard deduction of ${formatCurrency(additionalPer)} per person per condition. These amounts increase your standard deduction whether you choose standard or itemized (they affect the standard deduction comparison).`}
-            pubName="IRS Form 1040 Instructions — Standard Deduction Chart"
-            pubUrl="https://www.irs.gov/instructions/i1040gi"
-          />
-        </div>
+      <CollapsibleCard
+        title="Additional Standard Deduction"
+        badge={additionalAmount > 0 ? <span className="text-sm font-semibold text-gray-700">{formatCurrency(additionalAmount)}</span> : undefined}
+        defaultOpen={additionalCount > 0}
+      >
+        <InfoTooltip
+          explanation={`If you or your spouse are age 65 or older or blind, you qualify for an additional standard deduction of ${formatCurrency(additionalPer)} per person per condition. These amounts increase your standard deduction whether you choose standard or itemized (they affect the standard deduction comparison).`}
+          pubName="IRS Form 1040 Instructions — Standard Deduction Chart"
+          pubUrl="https://www.irs.gov/instructions/i1040gi"
+        />
         <div className="flex flex-col gap-2">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Taxpayer</p>
           <label className="flex items-center gap-2 text-sm text-gray-700">
@@ -318,30 +320,24 @@ export function DeductionsPage() {
             Additional deduction: {formatCurrency(additionalAmount)} ({additionalCount} &times; {formatCurrency(additionalPer)})
           </div>
         )}
-      </div>
+      </CollapsibleCard>
 
       {/* Itemized detail form */}
       {deductions.method === 'itemized' && (
         <div className="mt-6 flex flex-col gap-4">
 
           {/* Medical & Dental */}
-          <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
-            <div className="flex items-baseline justify-between">
-              <div className="flex items-center gap-1">
-                <span className="text-sm font-semibold text-gray-800">Medical &amp; Dental</span>
-                <InfoTooltip
-                  explanation="Deductible medical and dental expenses include costs for diagnosis, treatment, and prevention of disease. Only the portion exceeding 7.5% of your AGI qualifies. Eligible expenses include doctor visits, prescriptions, dental and vision care, and long-term care premiums."
-                  pubName="IRS Publication 502 — Medical and Dental Expenses"
-                  pubUrl="https://www.irs.gov/publications/p502"
-                />
-                <span className="text-xs text-gray-400">Lines 1–4</span>
-              </div>
-              {scheduleA && (
-                <span className="text-sm font-semibold text-gray-700">
-                  {formatCurrency(medicalDeductible)}
-                </span>
-              )}
-            </div>
+          <CollapsibleCard
+            title="Medical & Dental"
+            subtitle="Lines 1–4"
+            badge={scheduleA ? <span className="text-sm font-semibold text-gray-700">{formatCurrency(medicalDeductible)}</span> : undefined}
+            defaultOpen={itemized.medicalExpenses > 0}
+          >
+            <InfoTooltip
+              explanation="Deductible medical and dental expenses include costs for diagnosis, treatment, and prevention of disease. Only the portion exceeding 7.5% of your AGI qualifies. Eligible expenses include doctor visits, prescriptions, dental and vision care, and long-term care premiums."
+              pubName="IRS Publication 502 — Medical and Dental Expenses"
+              pubUrl="https://www.irs.gov/publications/p502"
+            />
             <CurrencyInput
               label="Medical expenses"
               value={itemized.medicalExpenses}
@@ -351,26 +347,20 @@ export function DeductionsPage() {
             {scheduleA && (
               <LimitedBadge entered={itemized.medicalExpenses} deductible={medicalDeductible} />
             )}
-          </div>
+          </CollapsibleCard>
 
           {/* State & Local Taxes */}
-          <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
-            <div className="flex items-baseline justify-between">
-              <div className="flex items-center gap-1">
-                <span className="text-sm font-semibold text-gray-800">State &amp; Local Taxes</span>
-                <InfoTooltip
-                  explanation="Deduct state/local income taxes OR general sales taxes — whichever is higher (not both). Add real estate taxes and personal property taxes. For 2025 the combined SALT deduction is capped at $40,000 (One Big Beautiful Bill Act §70120), with a 30% phase-out above $500,000 AGI and a $10,000 floor."
-                  pubName="IRS Schedule A Instructions — Taxes You Paid (Lines 5–6)"
-                  pubUrl="https://www.irs.gov/instructions/i1040sca"
-                />
-                <span className="text-xs text-gray-400">Lines 5a–7</span>
-              </div>
-              {scheduleA && (
-                <span className="text-sm font-semibold text-gray-700">
-                  {formatCurrency(saltDeductible)}
-                </span>
-              )}
-            </div>
+          <CollapsibleCard
+            title="State & Local Taxes"
+            subtitle="Lines 5a–7"
+            badge={scheduleA ? <span className="text-sm font-semibold text-gray-700">{formatCurrency(saltDeductible)}</span> : undefined}
+            defaultOpen={totalSalt > 0}
+          >
+            <InfoTooltip
+              explanation="Deduct state/local income taxes OR general sales taxes — whichever is higher (not both). Add real estate taxes and personal property taxes. For 2025 the combined SALT deduction is capped at $40,000 (One Big Beautiful Bill Act §70120), with a 30% phase-out above $500,000 AGI and a $10,000 floor."
+              pubName="IRS Schedule A Instructions — Taxes You Paid (Lines 5–6)"
+              pubUrl="https://www.irs.gov/instructions/i1040sca"
+            />
             <CurrencyInput
               label="State/local income taxes (Line 5a)"
               value={itemized.stateLocalIncomeTaxes}
@@ -402,26 +392,20 @@ export function DeductionsPage() {
             {scheduleA && (
               <LimitedBadge entered={totalSalt} deductible={saltDeductible} />
             )}
-          </div>
+          </CollapsibleCard>
 
           {/* Interest */}
-          <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
-            <div className="flex items-baseline justify-between">
-              <div className="flex items-center gap-1">
-                <span className="text-sm font-semibold text-gray-800">Interest</span>
-                <InfoTooltip
-                  explanation="Home mortgage interest (Form 1098) is deductible on acquisition debt up to $750,000 for loans originated after Dec 15, 2017, or $1,000,000 for earlier loans (IRC §163(h)(3)). Investment interest expense is deductible only up to your net investment income for the year (IRC §163(d))."
-                  pubName="IRS Publication 936 — Home Mortgage Interest Deduction"
-                  pubUrl="https://www.irs.gov/publications/p936"
-                />
-                <span className="text-xs text-gray-400">Lines 8–10</span>
-              </div>
-              {scheduleA && (
-                <span className="text-sm font-semibold text-gray-700">
-                  {formatCurrency(interestDeductible)}
-                </span>
-              )}
-            </div>
+          <CollapsibleCard
+            title="Interest"
+            subtitle="Lines 8–10"
+            badge={scheduleA ? <span className="text-sm font-semibold text-gray-700">{formatCurrency(interestDeductible)}</span> : undefined}
+            defaultOpen={(itemized.mortgageInterest + itemized.investmentInterest + (itemized.homeEquityInterest ?? 0)) > 0}
+          >
+            <InfoTooltip
+              explanation="Home mortgage interest (Form 1098) is deductible on acquisition debt up to $750,000 for loans originated after Dec 15, 2017, or $1,000,000 for earlier loans (IRC §163(h)(3)). Investment interest expense is deductible only up to your net investment income for the year (IRC §163(d))."
+              pubName="IRS Publication 936 — Home Mortgage Interest Deduction"
+              pubUrl="https://www.irs.gov/publications/p936"
+            />
 
             {/* Form 1098 upload zone */}
             <div
@@ -538,26 +522,20 @@ export function DeductionsPage() {
               onChange={(v) => setItemizedDeductions({ priorYearInvestmentInterestCarryforward: v })}
               helperText="Disallowed investment interest expense carried forward from prior tax year(s)"
             />
-          </div>
+          </CollapsibleCard>
 
           {/* Charitable Contributions */}
-          <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
-            <div className="flex items-baseline justify-between">
-              <div className="flex items-center gap-1">
-                <span className="text-sm font-semibold text-gray-800">Charitable Contributions</span>
-                <InfoTooltip
-                  explanation="Donations to qualifying 501(c)(3) organizations are deductible. Cash contributions are limited to 60% of AGI; non-cash property donations to 30% of AGI (IRC §170(b)). Keep written acknowledgment for any single donation of $250 or more. Non-cash donations over $500 require Form 8283."
-                  pubName="IRS Publication 526 — Charitable Contributions"
-                  pubUrl="https://www.irs.gov/publications/p526"
-                />
-                <span className="text-xs text-gray-400">Lines 11–14</span>
-              </div>
-              {scheduleA && (
-                <span className="text-sm font-semibold text-gray-700">
-                  {formatCurrency(charitableDeductible)}
-                </span>
-              )}
-            </div>
+          <CollapsibleCard
+            title="Charitable Contributions"
+            subtitle="Lines 11–14"
+            badge={scheduleA ? <span className="text-sm font-semibold text-gray-700">{formatCurrency(charitableDeductible)}</span> : undefined}
+            defaultOpen={(itemized.charitableCash + itemized.charitableNoncash) > 0}
+          >
+            <InfoTooltip
+              explanation="Donations to qualifying 501(c)(3) organizations are deductible. Cash contributions are limited to 60% of AGI; non-cash property donations to 30% of AGI (IRC §170(b)). Keep written acknowledgment for any single donation of $250 or more. Non-cash donations over $500 require Form 8283."
+              pubName="IRS Publication 526 — Charitable Contributions"
+              pubUrl="https://www.irs.gov/publications/p526"
+            />
             <CurrencyInput
               label="Cash / check donations (Line 11)"
               value={itemized.charitableCash}
@@ -576,7 +554,7 @@ export function DeductionsPage() {
                 deductible={charitableDeductible}
               />
             )}
-          </div>
+          </CollapsibleCard>
 
           {/* Other Deductions — collapsible */}
           <OtherDeductionsSection
@@ -686,27 +664,20 @@ function StudentLoanSection() {
   const isMFS = phaseOut === null
 
   return (
-    <div className={`mt-4 rounded-xl border p-4 flex flex-col gap-3 ${
-      isMFS ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-200'
-    }`}>
-      <div className="flex items-baseline justify-between">
-        <div className="flex items-center gap-1">
-          <span className={`text-sm font-semibold ${isMFS ? 'text-gray-400' : 'text-gray-800'}`}>
-            Student Loan Interest
-          </span>
-          <InfoTooltip
-            explanation="Deduct up to $2,500 of interest paid on qualified education loans (Form 1098-E). This is an above-the-line deduction — you can claim it even if you take the standard deduction. The deduction phases out at higher income levels and is not available for Married Filing Separately."
-            pubName="IRS Publication 970 — Tax Benefits for Education"
-            pubUrl="https://www.irs.gov/publications/p970"
-          />
-          <span className="text-xs text-gray-400">Schedule 1, Line 21</span>
-        </div>
-        {studentLoanDeduction && studentLoanDeduction.deductibleAmount > 0 && (
-          <span className="text-sm font-semibold text-gray-700">
-            {formatCurrency(studentLoanDeduction.deductibleAmount)}
-          </span>
-        )}
-      </div>
+    <CollapsibleCard
+      title="Student Loan Interest"
+      subtitle="Schedule 1, Line 21"
+      badge={studentLoanDeduction && studentLoanDeduction.deductibleAmount > 0
+        ? <span className="text-sm font-semibold text-gray-700">{formatCurrency(studentLoanDeduction.deductibleAmount)}</span>
+        : undefined}
+      defaultOpen={studentLoanInterest > 0}
+      className={isMFS ? 'bg-gray-50' : ''}
+    >
+      <InfoTooltip
+        explanation="Deduct up to $2,500 of interest paid on qualified education loans (Form 1098-E). This is an above-the-line deduction — you can claim it even if you take the standard deduction. The deduction phases out at higher income levels and is not available for Married Filing Separately."
+        pubName="IRS Publication 970 — Tax Benefits for Education"
+        pubUrl="https://www.irs.gov/publications/p970"
+      />
 
       {isMFS ? (
         <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-2">
@@ -738,7 +709,7 @@ function StudentLoanSection() {
           )}
         </>
       )}
-    </div>
+    </CollapsibleCard>
   )
 }
 
@@ -769,23 +740,19 @@ function HSASection() {
   const totalLimit = limit + catchUp
 
   return (
-    <div className="mt-4 bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
-      <div className="flex items-baseline justify-between">
-        <div className="flex items-center gap-1">
-          <span className="text-sm font-semibold text-gray-800">Health Savings Account</span>
-          <InfoTooltip
-            explanation="Contributions to an HSA are an above-the-line deduction. Employer contributions (W-2 Box 12 code W) count toward the limit but are not deductible by you. Non-qualified distributions are taxable and subject to a 20% penalty unless you are age 65+ or disabled."
-            pubName="IRS Form 8889 — Health Savings Accounts"
-            pubUrl="https://www.irs.gov/forms-pubs/about-form-8889"
-          />
-          <span className="text-xs text-gray-400">Form 8889</span>
-        </div>
-        {hsaResult && hsaResult.deductibleAmount > 0 && (
-          <span className="text-sm font-semibold text-gray-700">
-            {formatCurrency(hsaResult.deductibleAmount)}
-          </span>
-        )}
-      </div>
+    <CollapsibleCard
+      title="Health Savings Account"
+      subtitle="Form 8889"
+      badge={hsaResult && hsaResult.deductibleAmount > 0
+        ? <span className="text-sm font-semibold text-gray-700">{formatCurrency(hsaResult.deductibleAmount)}</span>
+        : undefined}
+      defaultOpen={contributions > 0 || qualifiedExpenses > 0}
+    >
+      <InfoTooltip
+        explanation="Contributions to an HSA are an above-the-line deduction. Employer contributions (W-2 Box 12 code W) count toward the limit but are not deductible by you. Non-qualified distributions are taxable and subject to a 20% penalty unless you are age 65+ or disabled."
+        pubName="IRS Form 8889 — Health Savings Accounts"
+        pubUrl="https://www.irs.gov/forms-pubs/about-form-8889"
+      />
 
       {/* Coverage type */}
       <div className="flex flex-col gap-1">
@@ -860,7 +827,7 @@ function HSASection() {
           Excess contribution penalty (6%): {formatCurrency(hsaResult.excessPenalty)}
         </div>
       )}
-    </div>
+    </CollapsibleCard>
   )
 }
 
@@ -877,8 +844,6 @@ function OtherDeductionsSection({
   scheduleA: boolean
   setItemizedDeductions: (updates: Partial<ItemizedDeductions>) => void
 }) {
-  const [collapsed, setCollapsed] = useState(true)
-
   const otherTotal =
     itemized.gamblingLosses +
     itemized.casualtyTheftLosses +
@@ -886,66 +851,42 @@ function OtherDeductionsSection({
     itemized.otherMiscDeductions
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 flex flex-col">
-      {/* Collapsible header */}
-      <button
-        type="button"
-        onClick={() => setCollapsed(!collapsed)}
-        className="flex items-center justify-between gap-2 p-4 w-full text-left"
-      >
-        <div className="flex items-center gap-1">
-          <svg
-            className={`w-3.5 h-3.5 text-gray-400 shrink-0 transition-transform ${collapsed ? '' : 'rotate-90'}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-          <span className="text-sm font-semibold text-gray-800">Other Deductions</span>
-          <InfoTooltip
-            explanation="Includes gambling losses (limited to gambling winnings reported on Schedule 1), casualty and theft losses from federally declared disaster areas (Form 4684), federal estate tax on income in respect of a decedent (IRC §691(c)), and certain other deductions listed in the Schedule A instructions."
-            pubName="IRS Schedule A Instructions — Other Itemized Deductions (Line 16)"
-            pubUrl="https://www.irs.gov/instructions/i1040sca"
-          />
-          <span className="text-xs text-gray-400">Line 16</span>
-        </div>
-        <span className="text-sm font-semibold text-gray-700">
-          {formatCurrency(scheduleA ? otherDeductible : otherTotal)}
-        </span>
-      </button>
-
-      {/* Expanded detail fields */}
-      {!collapsed && (
-        <div className="px-4 pb-4 flex flex-col gap-3 border-t border-gray-100 pt-3">
-          <CurrencyInput
-            label="Gambling losses"
-            value={itemized.gamblingLosses}
-            onChange={(v) => setItemizedDeductions({ gamblingLosses: v })}
-            helperText="Cannot exceed gambling winnings reported as income"
-          />
-          <CurrencyInput
-            label="Casualty & theft losses"
-            value={itemized.casualtyTheftLosses}
-            onChange={(v) => setItemizedDeductions({ casualtyTheftLosses: v })}
-            helperText="Form 4684 — only for federally declared disaster areas"
-          />
-          <CurrencyInput
-            label="Federal estate tax on IRD"
-            value={itemized.federalEstateTaxIRD}
-            onChange={(v) => setItemizedDeductions({ federalEstateTaxIRD: v })}
-            helperText="IRC §691(c) — estate tax attributable to income in respect of a decedent"
-          />
-          <CurrencyInput
-            label="Other miscellaneous deductions"
-            value={itemized.otherMiscDeductions}
-            onChange={(v) => setItemizedDeductions({ otherMiscDeductions: v })}
-            helperText="See Schedule A instructions for qualifying deductions"
-          />
-        </div>
-      )}
-    </div>
+    <CollapsibleCard
+      title="Other Deductions"
+      subtitle="Line 16"
+      badge={<span className="text-sm font-semibold text-gray-700">{formatCurrency(scheduleA ? otherDeductible : otherTotal)}</span>}
+      defaultOpen={otherTotal > 0}
+    >
+      <InfoTooltip
+        explanation="Includes gambling losses (limited to gambling winnings reported on Schedule 1), casualty and theft losses from federally declared disaster areas (Form 4684), federal estate tax on income in respect of a decedent (IRC §691(c)), and certain other deductions listed in the Schedule A instructions."
+        pubName="IRS Schedule A Instructions — Other Itemized Deductions (Line 16)"
+        pubUrl="https://www.irs.gov/instructions/i1040sca"
+      />
+      <CurrencyInput
+        label="Gambling losses"
+        value={itemized.gamblingLosses}
+        onChange={(v) => setItemizedDeductions({ gamblingLosses: v })}
+        helperText="Cannot exceed gambling winnings reported as income"
+      />
+      <CurrencyInput
+        label="Casualty & theft losses"
+        value={itemized.casualtyTheftLosses}
+        onChange={(v) => setItemizedDeductions({ casualtyTheftLosses: v })}
+        helperText="Form 4684 — only for federally declared disaster areas"
+      />
+      <CurrencyInput
+        label="Federal estate tax on IRD"
+        value={itemized.federalEstateTaxIRD}
+        onChange={(v) => setItemizedDeductions({ federalEstateTaxIRD: v })}
+        helperText="IRC §691(c) — estate tax attributable to income in respect of a decedent"
+      />
+      <CurrencyInput
+        label="Other miscellaneous deductions"
+        value={itemized.otherMiscDeductions}
+        onChange={(v) => setItemizedDeductions({ otherMiscDeductions: v })}
+        helperText="See Schedule A instructions for qualifying deductions"
+      />
+    </CollapsibleCard>
   )
 }
 
@@ -999,23 +940,19 @@ function EducatorExpensesSection() {
   const isMFJ = filingStatus === 'mfj'
 
   return (
-    <div className="mt-4 bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
-      <div className="flex items-baseline justify-between">
-        <div className="flex items-center gap-1">
-          <span className="text-sm font-semibold text-gray-800">Educator Expenses</span>
-          <InfoTooltip
-            explanation="Eligible K-12 teachers, instructors, counselors, principals, or aides who worked at least 900 hours can deduct up to $300 of unreimbursed expenses for books, supplies, equipment, and professional development courses."
-            pubName="IRS Publication 17 — Educator Expenses"
-            pubUrl="https://www.irs.gov/taxtopics/tc458"
-          />
-          <span className="text-xs text-gray-400">Schedule 1, Line 11</span>
-        </div>
-        {result && result.totalDeduction > 0 && (
-          <span className="text-sm font-semibold text-gray-700">
-            {formatCurrency(result.totalDeduction)}
-          </span>
-        )}
-      </div>
+    <CollapsibleCard
+      title="Educator Expenses"
+      subtitle="Schedule 1, Line 11"
+      badge={result && result.totalDeduction > 0
+        ? <span className="text-sm font-semibold text-gray-700">{formatCurrency(result.totalDeduction)}</span>
+        : undefined}
+      defaultOpen={taxpayerExpenses > 0 || spouseExpenses > 0}
+    >
+      <InfoTooltip
+        explanation="Eligible K-12 teachers, instructors, counselors, principals, or aides who worked at least 900 hours can deduct up to $300 of unreimbursed expenses for books, supplies, equipment, and professional development courses."
+        pubName="IRS Publication 17 — Educator Expenses"
+        pubUrl="https://www.irs.gov/taxtopics/tc458"
+      />
       <CurrencyInput
         label="Your qualified expenses"
         value={taxpayerExpenses}
@@ -1030,7 +967,7 @@ function EducatorExpensesSection() {
           helperText={`Spouse maximum: ${formatCurrency(EDUCATOR_EXPENSES_MAX)}`}
         />
       )}
-    </div>
+    </CollapsibleCard>
   )
 }
 
@@ -1046,29 +983,25 @@ function SESepSimpleSection() {
   if (!hasScheduleC && !hasK1SE && contributions === 0) return null
 
   return (
-    <div className="mt-4 bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
-      <div className="flex items-baseline justify-between">
-        <div className="flex items-center gap-1">
-          <span className="text-sm font-semibold text-gray-800">SEP / SIMPLE / Qualified Plans</span>
-          <InfoTooltip
-            explanation="Self-employed individuals can deduct contributions to SEP-IRA, SIMPLE-IRA, solo 401(k), or Keogh plans. Enter the amount contributed — ensure it does not exceed your plan's contribution limits."
-            pubName="IRS Publication 560 — Retirement Plans for Small Business"
-            pubUrl="https://www.irs.gov/publications/p560"
-          />
-          <span className="text-xs text-gray-400">Schedule 1, Line 16</span>
-        </div>
-        {result && result.deductibleAmount > 0 && (
-          <span className="text-sm font-semibold text-gray-700">
-            {formatCurrency(result.deductibleAmount)}
-          </span>
-        )}
-      </div>
+    <CollapsibleCard
+      title="SEP / SIMPLE / Qualified Plans"
+      subtitle="Schedule 1, Line 16"
+      badge={result && result.deductibleAmount > 0
+        ? <span className="text-sm font-semibold text-gray-700">{formatCurrency(result.deductibleAmount)}</span>
+        : undefined}
+      defaultOpen={contributions > 0}
+    >
+      <InfoTooltip
+        explanation="Self-employed individuals can deduct contributions to SEP-IRA, SIMPLE-IRA, solo 401(k), or Keogh plans. Enter the amount contributed — ensure it does not exceed your plan's contribution limits."
+        pubName="IRS Publication 560 — Retirement Plans for Small Business"
+        pubUrl="https://www.irs.gov/publications/p560"
+      />
       <CurrencyInput
         label="Contributions to SEP, SIMPLE, or qualified plans"
         value={contributions}
         onChange={(v) => setContributions(v)}
       />
-    </div>
+    </CollapsibleCard>
   )
 }
 
@@ -1084,23 +1017,19 @@ function SEHealthInsuranceSection() {
   if (!hasScheduleC && !hasK1SE && premiums === 0) return null
 
   return (
-    <div className="mt-4 bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
-      <div className="flex items-baseline justify-between">
-        <div className="flex items-center gap-1">
-          <span className="text-sm font-semibold text-gray-800">Self-Employed Health Insurance</span>
-          <InfoTooltip
-            explanation="If you are self-employed and not eligible for an employer-sponsored health plan, you can deduct health, dental, and long-term care insurance premiums for yourself, your spouse, and your dependents. The deduction cannot exceed your net self-employment profit."
-            pubName="IRS Publication 535 — Business Expenses"
-            pubUrl="https://www.irs.gov/publications/p535"
-          />
-          <span className="text-xs text-gray-400">Schedule 1, Line 17</span>
-        </div>
-        {result && result.deductibleAmount > 0 && (
-          <span className="text-sm font-semibold text-gray-700">
-            {formatCurrency(result.deductibleAmount)}
-          </span>
-        )}
-      </div>
+    <CollapsibleCard
+      title="Self-Employed Health Insurance"
+      subtitle="Schedule 1, Line 17"
+      badge={result && result.deductibleAmount > 0
+        ? <span className="text-sm font-semibold text-gray-700">{formatCurrency(result.deductibleAmount)}</span>
+        : undefined}
+      defaultOpen={premiums > 0}
+    >
+      <InfoTooltip
+        explanation="If you are self-employed and not eligible for an employer-sponsored health plan, you can deduct health, dental, and long-term care insurance premiums for yourself, your spouse, and your dependents. The deduction cannot exceed your net self-employment profit."
+        pubName="IRS Publication 535 — Business Expenses"
+        pubUrl="https://www.irs.gov/publications/p535"
+      />
       <CurrencyInput
         label="Health insurance premiums paid"
         value={premiums}
@@ -1113,7 +1042,7 @@ function SEHealthInsuranceSection() {
           {result.deductibleAmount > 0 ? ` Deductible: ${formatCurrency(result.deductibleAmount)}.` : ' No deduction — no net SE profit.'}
         </div>
       )}
-    </div>
+    </CollapsibleCard>
   )
 }
 
@@ -1139,18 +1068,16 @@ function AlimonyReceivedSection() {
   }
 
   return (
-    <div className="mt-4 bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
-      <div className="flex items-baseline justify-between">
-        <div className="flex items-center gap-1">
-          <span className="text-sm font-semibold text-gray-800">Alimony Received</span>
-          <InfoTooltip
-            explanation="Alimony received under a divorce or separation agreement executed before January 1, 2019 is taxable income. For agreements executed on or after January 1, 2019, alimony is not taxable to the recipient (TCJA §11051)."
-            pubName="IRS Topic 452 — Alimony and Separate Maintenance"
-            pubUrl="https://www.irs.gov/taxtopics/tc452"
-          />
-          <span className="text-xs text-gray-400">Schedule 1, Line 2a</span>
-        </div>
-      </div>
+    <CollapsibleCard
+      title="Alimony Received"
+      subtitle="Schedule 1, Line 2a"
+      defaultOpen={alimonyReceived > 0}
+    >
+      <InfoTooltip
+        explanation="Alimony received under a divorce or separation agreement executed before January 1, 2019 is taxable income. For agreements executed on or after January 1, 2019, alimony is not taxable to the recipient (TCJA §11051)."
+        pubName="IRS Topic 452 — Alimony and Separate Maintenance"
+        pubUrl="https://www.irs.gov/taxtopics/tc452"
+      />
       {(!agreementDate || agreementDate < '2019-01-01') ? (
         <>
           <CurrencyInput
@@ -1187,7 +1114,7 @@ function AlimonyReceivedSection() {
           Agreements executed on or after January 1, 2019 — alimony is not taxable income.
         </div>
       )}
-    </div>
+    </CollapsibleCard>
   )
 }
 
@@ -1210,24 +1137,22 @@ function HouseholdEmploymentTaxSection() {
   }
 
   return (
-    <div className="mt-4 bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
-      <div className="flex items-baseline justify-between">
-        <div className="flex items-center gap-1">
-          <span className="text-sm font-semibold text-gray-800">Household Employment Taxes</span>
-          <InfoTooltip
-            explanation="If you paid a household employee (nanny, housekeeper, etc.) $2,700 or more in cash wages during 2025, you owe household employment taxes (Social Security, Medicare, and FUTA). Enter the total Schedule H tax amount — you can compute this using the IRS Schedule H worksheet or a payroll service."
-            pubName="IRS Publication 926 — Household Employer's Tax Guide"
-            pubUrl="https://www.irs.gov/publications/p926"
-          />
-          <span className="text-xs text-gray-400">Schedule H → Schedule 2, Line 9</span>
-        </div>
-      </div>
+    <CollapsibleCard
+      title="Household Employment Taxes"
+      subtitle="Schedule H"
+      defaultOpen={amount > 0}
+    >
+      <InfoTooltip
+        explanation="If you paid a household employee (nanny, housekeeper, etc.) $2,700 or more in cash wages during 2025, you owe household employment taxes (Social Security, Medicare, and FUTA). Enter the total Schedule H tax amount — you can compute this using the IRS Schedule H worksheet or a payroll service."
+        pubName="IRS Publication 926 — Household Employer's Tax Guide"
+        pubUrl="https://www.irs.gov/publications/p926"
+      />
       <CurrencyInput
         label="Total Schedule H tax"
         value={amount}
         onChange={(v) => setAmount(v)}
         helperText="Enter your computed Schedule H total (SS + Medicare + FUTA taxes on household employees)"
       />
-    </div>
+    </CollapsibleCard>
   )
 }
