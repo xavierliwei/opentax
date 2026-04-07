@@ -741,16 +741,27 @@ export function StockSalesPage() {
       }
 
       if (result.transactions.length > 0) {
-        // Remove any existing transactions from this broker, then append new ones
-        // This handles re-importing from the same broker cleanly
-        const fullBrokerName = result.transactions[0]?.brokerName ?? brokerName
-        const existing = forms.filter(f => f.brokerName !== fullBrokerName)
-        setForm1099Bs([...existing, ...result.transactions])
+        // Each import gets its own section. If the same broker name already
+        // exists, append a numeric suffix to distinguish imports.
+        const baseName = result.transactions[0]?.brokerName ?? brokerName
+        const existingCount = forms.filter(f =>
+          f.brokerName === baseName || f.brokerName?.startsWith(baseName + ' ('),
+        ).length
+        const importLabel = existingCount > 0
+          ? `${baseName} (${Math.floor(existingCount / Math.max(1, result.transactions.length)) + 2})`
+          : baseName
 
-        setBrokerImports(prev => {
-          const without = prev.filter(bi => bi.brokerName !== brokerName)
-          return [...without, { brokerName, count: result.rowCounts.parsed, result }]
-        })
+        // Tag transactions with the unique import label when there's a conflict
+        const taggedTransactions = existingCount > 0
+          ? result.transactions.map(t => ({ ...t, brokerName: importLabel }))
+          : result.transactions
+
+        setForm1099Bs([...forms, ...taggedTransactions])
+
+        setBrokerImports(prev => [
+          ...prev,
+          { brokerName: importLabel, count: result.rowCounts.parsed, result },
+        ])
       }
     } catch (e) {
       setLastImportResult({
