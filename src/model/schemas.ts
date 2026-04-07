@@ -150,6 +150,7 @@ const form1099BSchema = z.object({
   longTerm: z.boolean().nullable(),
   noncoveredSecurity: z.boolean(),
   federalTaxWithheld: centsNonNeg,
+  basisAdjustedFromSupplemental: z.boolean().optional(),
 })
 
 // ── 1099-INT ─────────────────────────────────────────────────────

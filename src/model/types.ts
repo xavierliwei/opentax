@@ -134,6 +134,9 @@ export interface Form1099B {
 
   // Federal withholding (rare for 1099-B)
   federalTaxWithheld: number   // cents
+
+  // Supplemental stock plan lot detail (Fidelity RSU/ESPP adjusted basis)
+  basisAdjustedFromSupplemental?: boolean
 }
 
 // ── 1099-INT ───────────────────────────────────────────────────
