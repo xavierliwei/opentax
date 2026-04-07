@@ -43,19 +43,9 @@ export async function autoDetectPdfBroker(data: ArrayBuffer): Promise<PdfParseOu
     .join(' ')
     .toUpperCase()
 
-  // ── Detect unsupported form types before routing to a parser ──
-  if (firstPageText.includes('1098') && firstPageText.includes('MORTGAGE INTEREST')) {
-    return emptyResult('This PDF is a Form 1098 (Mortgage Interest Statement). Upload it on the Deductions page instead.')
-  }
-  // 1099-R detected — route to standalone form parser (not a broker consolidated doc)
-  if (firstPageText.includes('1099-R') || firstPageText.includes('DISTRIBUTION CODE')) {
-    return emptyResult('This PDF is a 1099-R (retirement distributions). Please upload it on the Retirement Distributions page.')
-  }
-  if (firstPageText.includes('1099-NEC') || firstPageText.includes('NONEMPLOYEE COMPENSATION')) {
-    return emptyResult('This PDF is a 1099-NEC (non-employee compensation). 1099-NEC support is not yet available.')
-  }
-
-  // ── Route to broker-specific parsers ──
+  // ── Route to broker-specific parsers first ──
+  // Consolidated broker PDFs may mention form types (1099-R, 1099-NEC) in
+  // cover letters or summaries. Check for known brokers before rejecting.
   if (firstPageText.includes('FIDELITY') || firstPageText.includes('NATIONAL FINANCIAL SERVICES')) {
     const result = await parseFidelityPdf(data)
     return { ...result, brokerName: 'Fidelity' }
@@ -69,6 +59,18 @@ export async function autoDetectPdfBroker(data: ArrayBuffer): Promise<PdfParseOu
       form1099DIVs: [],
       form1099INTs: [],
     }
+  }
+
+  // ── Detect standalone form types (not consolidated broker docs) ──
+  if (firstPageText.includes('1098') && firstPageText.includes('MORTGAGE INTEREST')) {
+    return emptyResult('This PDF is a Form 1098 (Mortgage Interest Statement). Upload it on the Deductions page instead.')
+  }
+  if (firstPageText.includes('DISTRIBUTION CODE') ||
+      (firstPageText.includes('1099-R') && !firstPageText.includes('1099-B'))) {
+    return emptyResult('This PDF is a 1099-R (retirement distributions). Please upload it on the Retirement Distributions page.')
+  }
+  if (firstPageText.includes('1099-NEC') || firstPageText.includes('NONEMPLOYEE COMPENSATION')) {
+    return emptyResult('This PDF is a 1099-NEC (non-employee compensation). 1099-NEC support is not yet available.')
   }
 
   // Unknown broker — attempt Robinhood parser as fallback (original behavior)
