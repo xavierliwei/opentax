@@ -12,6 +12,7 @@ import { setTextField, setDollarField, formatSSN } from '../helpers'
 import type { TaxReturn } from '../../model/types'
 
 function fillCategoryLine(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   form: any,
   fields: { proceeds: string; basis: string; adjustments: string; gainLoss: string },
   cat: Form8949CategoryTotals | undefined,

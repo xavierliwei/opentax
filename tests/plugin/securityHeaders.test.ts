@@ -5,8 +5,7 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { TaxService } from '../../openclaw-plugin/service/TaxService.ts'
 import { createHttpService } from '../../openclaw-plugin/http/httpService.ts'
-import type { CorsConfig } from '../../openclaw-plugin/http/securityHeaders.ts'
-import { parseCorsOrigins, setSecurityHeaders, setCorsHeaders } from '../../openclaw-plugin/http/securityHeaders.ts'
+import { parseCorsOrigins } from '../../openclaw-plugin/http/securityHeaders.ts'
 
 // ── Helpers ──────────────────────────────────────────────────────
 

@@ -40,7 +40,7 @@ function computeCT(overrides: Partial<TaxReturn> = {}, config?: StateReturnConfi
   return computeFormCT1040(tr, fed, cfg)
 }
 
-const ctFullYear: StateReturnConfig = { stateCode: 'CT', residencyType: 'full-year' }
+const _ctFullYear: StateReturnConfig = { stateCode: 'CT', residencyType: 'full-year' }
 
 // ── Personal exemption phase-out by filing status ───────────────
 

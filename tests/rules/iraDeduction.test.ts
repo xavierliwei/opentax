@@ -9,7 +9,6 @@
 import { describe, it, expect } from 'vitest'
 import { cents } from '../../src/model/traced'
 import { computeIRADeduction } from '../../src/rules/2025/iraDeduction'
-import type { IRADeductionResult } from '../../src/rules/2025/iraDeduction'
 import { computeForm1040 } from '../../src/rules/2025/form1040'
 import { emptyTaxReturn } from '../../src/model/types'
 import { makeW2 } from '../fixtures/returns'

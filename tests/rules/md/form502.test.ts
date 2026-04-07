@@ -14,7 +14,7 @@ import type { TaxReturn, FilingStatus } from '../../../src/model/types'
 import { computeForm1040 } from '../../../src/rules/2025/form1040'
 import { computeForm502 } from '../../../src/rules/2025/md/form502'
 import { computeBracketTax } from '../../../src/rules/2025/taxComputation'
-import { MD_TAX_BRACKETS, MD_STANDARD_DEDUCTION, MD_PERSONAL_EXEMPTION, MD_COUNTIES } from '../../../src/rules/2025/md/constants'
+import { MD_TAX_BRACKETS, MD_STANDARD_DEDUCTION, MD_PERSONAL_EXEMPTION } from '../../../src/rules/2025/md/constants'
 import { makeW2, makeDependent, makeSSA1099 } from '../../fixtures/returns'
 import { mdModule } from '../../../src/rules/2025/md/module'
 

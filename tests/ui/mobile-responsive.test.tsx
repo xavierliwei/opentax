@@ -15,7 +15,6 @@ vi.mock('idb', () => ({
 }))
 
 const { useTaxStore } = await import('../../src/store/taxStore.ts')
-import { FilingStatusPage } from '../../src/ui/pages/FilingStatusPage.tsx'
 import { DependentsPage } from '../../src/ui/pages/DependentsPage.tsx'
 import { WelcomePage } from '../../src/ui/pages/WelcomePage.tsx'
 import { InterviewNav } from '../../src/ui/pages/InterviewNav.tsx'
@@ -82,7 +81,7 @@ describe('Responsive grid layouts', () => {
     await user.click(addBtn)
 
     // Verify that grids use responsive classes
-    const { container } = renderWithRouter(<DependentsPage />, { route: '/interview/dependents' })
+    const { container: _container } = renderWithRouter(<DependentsPage />, { route: '/interview/dependents' })
     // Need to re-add since it's a fresh render
     useTaxStore.getState().addDependent({
       firstName: '', lastName: '', ssn: '', relationship: '', monthsLived: 12, dateOfBirth: '',

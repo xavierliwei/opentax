@@ -16,8 +16,6 @@ import { computeForm1, computeApportionmentRatio } from '../../../src/rules/2025
 import {
   MA_TAX_RATE,
   MA_PERSONAL_EXEMPTION,
-  MA_SURTAX_THRESHOLD,
-  MA_SURTAX_RATE,
 } from '../../../src/rules/2025/ma/constants'
 import { makeW2, make1099INT, makeSSA1099 } from '../../fixtures/returns'
 

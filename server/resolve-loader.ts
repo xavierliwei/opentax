@@ -14,7 +14,7 @@ const rootBetterSqlite3URL = pathToFileURL(rootBetterSqlite3Path).href
 export function resolve(
   specifier: string,
   context: { parentURL?: string; conditions: string[] },
-  nextResolve: Function,
+  nextResolve: (...args: unknown[]) => unknown,
 ) {
   if (specifier === 'better-sqlite3') {
     return { url: rootBetterSqlite3URL, shortCircuit: true }

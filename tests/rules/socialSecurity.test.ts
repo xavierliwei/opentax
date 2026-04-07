@@ -10,7 +10,7 @@ import { cents } from '../../src/model/traced'
 import { computeTaxableSocialSecurity, SS_BASE_AMOUNT, SS_ADDITIONAL_AMOUNT } from '../../src/rules/2025/socialSecurityBenefits'
 import { computeForm1040 } from '../../src/rules/2025/form1040'
 import { emptyTaxReturn } from '../../src/model/types'
-import { makeW2, makeSSA1099, make1099INT } from '../fixtures/returns'
+import { makeW2, makeSSA1099 } from '../fixtures/returns'
 
 // ── Unit tests for the worksheet ─────────────────────────────
 

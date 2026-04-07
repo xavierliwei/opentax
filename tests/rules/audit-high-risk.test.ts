@@ -19,8 +19,7 @@
 
 import { describe, it, expect } from 'vitest'
 import { cents } from '../../src/model/traced'
-import { emptyTaxReturn } from '../../src/model/types'
-import type { TaxReturn, FilingStatus, Dependent } from '../../src/model/types'
+import type { FilingStatus, Dependent } from '../../src/model/types'
 import {
   STANDARD_DEDUCTION,
   ADDITIONAL_STANDARD_DEDUCTION,
@@ -37,9 +36,9 @@ import {
 } from '../../src/rules/2025/constants'
 import { computeAMT } from '../../src/rules/2025/amt'
 import { computeOrdinaryTax } from '../../src/rules/2025/taxComputation'
-import { isQualifyingChild, computeChildTaxCredit } from '../../src/rules/2025/childTaxCredit'
+import { computeChildTaxCredit } from '../../src/rules/2025/childTaxCredit'
 import { computeSaversCredit } from '../../src/rules/2025/saversCredit'
-import { makeW2, makeDependent } from '../fixtures/returns'
+import { makeDependent } from '../fixtures/returns'
 
 const ALL_STATUSES: FilingStatus[] = ['single', 'mfj', 'mfs', 'hoh', 'qw']
 

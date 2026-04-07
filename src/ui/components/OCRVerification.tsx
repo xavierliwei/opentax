@@ -83,6 +83,7 @@ const FORM_1099_R_FIELD_DEFS: { key: string; label: string; type: 'monetary' | '
   { key: 'iraOrSep', label: 'IRA/SEP/SIMPLE', type: 'text' },
 ]
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function getFieldDefsForType(formType: DetectedFormType) {
   switch (formType) {
     case 'W-2': return W2_FIELD_DEFS
@@ -93,6 +94,7 @@ export function getFieldDefsForType(formType: DetectedFormType) {
   }
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function buildVerificationFields(
   formType: DetectedFormType,
   extractedFields: Map<string, ExtractedField>,

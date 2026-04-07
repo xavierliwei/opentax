@@ -13,7 +13,6 @@ vi.mock('idb', () => ({
 
 // Import store after mock is in place
 const { useTaxStore } = await import('../../src/store/taxStore.ts')
-import { emptyTaxReturn } from '../../src/model/types.ts'
 import type { Dependent } from '../../src/model/types.ts'
 
 beforeEach(() => {
