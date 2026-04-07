@@ -23,7 +23,6 @@ import { cents } from '../../src/model/traced'
 import { emptyTaxReturn } from '../../src/model/types'
 import type { TaxReturn, HSAInfo, Form1099SA } from '../../src/model/types'
 import { computeHSADeduction } from '../../src/rules/2025/hsaDeduction'
-import type { HSAResult } from '../../src/rules/2025/hsaDeduction'
 import { computeForm1040 } from '../../src/rules/2025/form1040'
 import { makeW2 } from '../fixtures/returns'
 import {

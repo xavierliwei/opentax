@@ -10,7 +10,7 @@ import { fillScheduleC } from '../../src/forms/fillers/scheduleCFiller'
 import { computeScheduleC } from '../../src/rules/2025/scheduleC'
 import { emptyTaxReturn } from '../../src/model/types'
 import { cents } from '../../src/model/traced'
-import type { TaxReturn, ScheduleC } from '../../src/model/types'
+import type { TaxReturn } from '../../src/model/types'
 import { makeScheduleC } from '../fixtures/returns'
 import { SCHC_HEADER, SCHC_INCOME, SCHC_EXPENSES, SCHC_SUMMARY, SCHC_BUSINESS } from '../../src/forms/mappings/scheduleCFields'
 

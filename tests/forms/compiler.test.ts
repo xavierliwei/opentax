@@ -26,7 +26,6 @@ import {
 import { cents } from '../../src/model/traced'
 import { emptyTaxReturn } from '../../src/model/types'
 import { computeForm1040 } from '../../src/rules/2025/form1040'
-import { computeScheduleB } from '../../src/rules/2025/scheduleB'
 
 // ── Load PDF templates once ──────────────────────────────────
 
@@ -54,7 +53,7 @@ beforeAll(() => {
 
 // ── Helper: extract text fields from a non-flattened PDF ─────
 
-async function getFieldValue(pdfBytes: Uint8Array, fieldName: string): Promise<string | undefined> {
+async function _getFieldValue(pdfBytes: Uint8Array, fieldName: string): Promise<string | undefined> {
   const doc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true })
   const form = doc.getForm()
   try {

@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { parseCSV, parseCurrency, parseDate, parseTerm } from '../../src/intake/csv/utils'
 import { RobinhoodParser } from '../../src/intake/csv/robinhood'
-import type { Form1099B } from '../../src/model/types'
 
 // ═══════════════════════════════════════════════════════════════
 // CSV parser (RFC 4180)

@@ -8,7 +8,6 @@ import { tmpdir } from 'node:os'
 import { getRequestId } from '../../openclaw-plugin/http/requestId.ts'
 import { TaxService } from '../../openclaw-plugin/service/TaxService.ts'
 import { createHttpService } from '../../openclaw-plugin/http/httpService.ts'
-import { emptyTaxReturn } from '../../src/model/types.ts'
 
 // ── UUID v4 format regex ──────────────────────────────────────────
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
