@@ -1,15 +1,14 @@
 /**
  * Form 2441 (Child and Dependent Care Expenses) PDF filler.
  *
- * Part III only: Lines 3-11 (credit computation).
- * Skips Part I (qualifying persons detail) and Part II (care providers)
- * since we don't track that level of detail.
+ * Part II: Care provider details (name, address, TIN, amount paid).
+ * Part III: Lines 3-11 (credit computation).
  */
 
 import { PDFDocument } from 'pdf-lib'
 import type { TaxReturn } from '../../model/types'
 import type { DependentCareCreditResult } from '../../rules/2025/dependentCareCredit'
-import { F2441_HEADER, F2441_PART3 } from '../mappings/form2441Fields'
+import { F2441_HEADER, F2441_PART2, F2441_PART3 } from '../mappings/form2441Fields'
 import { setTextField, setDollarField, formatSSN } from '../helpers'
 
 export async function fillForm2441(
@@ -26,6 +25,24 @@ export async function fillForm2441(
   // Header
   setTextField(form, F2441_HEADER.name, `${taxReturn.taxpayer.firstName} ${taxReturn.taxpayer.lastName}`)
   setTextField(form, F2441_HEADER.ssn, formatSSN(taxReturn.taxpayer.ssn))
+
+  // Part II — Care Providers
+  const providers = taxReturn.dependentCare?.careProviders ?? []
+  for (let i = 0; i < Math.min(providers.length, F2441_PART2.length); i++) {
+    const p = providers[i]
+    const fields = F2441_PART2[i]
+    setTextField(form, fields.name, p.name)
+    setTextField(form, fields.address, p.address)
+    // Format TIN: EIN as XX-XXXXXXX, SSN as XXX-XX-XXXX
+    const digits = p.tin.replace(/\D/g, '')
+    if (digits.length === 9) {
+      const formatted = p.tinType === 'ein'
+        ? `${digits.slice(0, 2)}-${digits.slice(2)}`
+        : formatSSN(digits)
+      setTextField(form, fields.tin, formatted)
+    }
+    setDollarField(form, fields.amountPaid, p.amountPaid)
+  }
 
   // Part III — Dependent Care Credit
   // Line 3: Total qualified expenses

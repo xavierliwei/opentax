@@ -540,9 +540,18 @@ const priorYearInfoSchema = z.object({
 
 // ── Dependent Care ───────────────────────────────────────────────
 
+const careProviderSchema = z.object({
+  name: z.string(),
+  address: z.string(),
+  tin: z.string(),
+  tinType: z.enum(['ein', 'ssn']),
+  amountPaid: centsNonNeg,
+})
+
 const dependentCareExpensesSchema = z.object({
   totalExpenses: centsNonNeg,
   numQualifyingPersons: z.number().int().min(0),
+  careProviders: z.array(careProviderSchema).optional(),
 })
 
 // ── Retirement Contributions ─────────────────────────────────────

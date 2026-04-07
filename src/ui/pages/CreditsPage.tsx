@@ -5,7 +5,7 @@ import { CurrencyInput } from '../components/CurrencyInput.tsx'
 import { InfoTooltip } from '../components/InfoTooltip.tsx'
 import { InterviewNav } from './InterviewNav.tsx'
 import { SAVERS_CREDIT_THRESHOLDS, CTC_PHASEOUT_THRESHOLD, EDUCATION_CREDIT_PHASEOUT } from '../../rules/2025/constants.ts'
-import type { FilingStatus, StudentEducationExpense } from '../../model/types.ts'
+import type { FilingStatus, StudentEducationExpense, CareProvider } from '../../model/types.ts'
 import { RepeatableSection } from '../components/RepeatableSection.tsx'
 
 function formatCurrency(cents: number): string {
@@ -29,7 +29,8 @@ export function CreditsPage() {
   const setEducationExpenses = useTaxStore((s) => s.setEducationExpenses)
   const interview = useInterview()
 
-  const care = dependentCare ?? { totalExpenses: 0, numQualifyingPersons: 0 }
+  const care = dependentCare ?? { totalExpenses: 0, numQualifyingPersons: 0, careProviders: [] as CareProvider[] }
+  const careProviders: CareProvider[] = care.careProviders ?? []
   const retire = retirementContributions ?? { traditionalIRA: 0, rothIRA: 0 }
   const energy = energyCredits ?? {
     solarElectric: 0, solarWaterHeating: 0, batteryStorage: 0, geothermal: 0,
@@ -335,6 +336,98 @@ export function CreditsPage() {
             Children under 13 are automatically counted from your dependents
           </span>
         </div>
+
+        {/* Part II — Care Providers */}
+        <RepeatableSection<CareProvider>
+          label="Care Providers (Part II)"
+          items={careProviders}
+          addLabel="Add provider"
+          maxItems={3}
+          emptyMessage="No care providers added. Add providers for Form 2441 Part II."
+          onAdd={() => {
+            const newProvider: CareProvider = {
+              name: '',
+              address: '',
+              tin: '',
+              tinType: 'ein',
+              amountPaid: 0,
+            }
+            setDependentCare({ careProviders: [...careProviders, newProvider] })
+          }}
+          onRemove={(index) => {
+            setDependentCare({ careProviders: careProviders.filter((_, i) => i !== index) })
+          }}
+          renderItem={(provider, index) => (
+            <div className="flex flex-col gap-2 pr-6">
+              <input
+                type="text"
+                placeholder="Provider name (e.g., ABC Daycare)"
+                className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-tax-blue focus:border-transparent"
+                value={provider.name}
+                onChange={(e) => {
+                  const updated = [...careProviders]
+                  updated[index] = { ...provider, name: e.target.value }
+                  setDependentCare({ careProviders: updated })
+                }}
+              />
+              <input
+                type="text"
+                placeholder="Provider address"
+                className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-tax-blue focus:border-transparent"
+                value={provider.address}
+                onChange={(e) => {
+                  const updated = [...careProviders]
+                  updated[index] = { ...provider, address: e.target.value }
+                  setDependentCare({ careProviders: updated })
+                }}
+              />
+              <div className="flex gap-3 items-end">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-gray-600">TIN type</label>
+                  <select
+                    className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-tax-blue focus:border-transparent"
+                    value={provider.tinType}
+                    onChange={(e) => {
+                      const updated = [...careProviders]
+                      updated[index] = { ...provider, tinType: e.target.value as 'ein' | 'ssn' }
+                      setDependentCare({ careProviders: updated })
+                    }}
+                  >
+                    <option value="ein">EIN (daycare/facility)</option>
+                    <option value="ssn">SSN (individual/nanny)</option>
+                  </select>
+                </div>
+                <div className="flex-1 flex flex-col gap-1">
+                  <label className="text-xs font-medium text-gray-600">
+                    {provider.tinType === 'ein' ? 'EIN' : 'SSN'} (9 digits)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={provider.tinType === 'ein' ? 'XX-XXXXXXX' : 'XXX-XX-XXXX'}
+                    className="border border-gray-300 rounded-md px-3 py-1.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-tax-blue focus:border-transparent"
+                    value={provider.tin}
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/\D/g, '').slice(0, 9)
+                      const updated = [...careProviders]
+                      updated[index] = { ...provider, tin: raw }
+                      setDependentCare({ careProviders: updated })
+                    }}
+                  />
+                </div>
+              </div>
+              <CurrencyInput
+                label="Amount paid"
+                value={provider.amountPaid}
+                onChange={(v) => {
+                  const updated = [...careProviders]
+                  updated[index] = { ...provider, amountPaid: v }
+                  setDependentCare({ careProviders: updated })
+                }}
+              />
+            </div>
+          )}
+        />
+
         {dcCredit && dcCredit.creditAmount > 0 && (
           <div className="text-xs text-gray-500 bg-gray-50 rounded px-2 py-1">
             {dcCredit.numQualifyingPersons} qualifying person{dcCredit.numQualifyingPersons !== 1 ? 's' : ''}
