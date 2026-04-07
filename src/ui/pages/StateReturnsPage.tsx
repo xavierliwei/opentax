@@ -42,6 +42,7 @@ function getInfoTooltipUrl(code: string): string {
   }
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function getPartYearDateError(
   moveInDate?: string,
   moveOutDate?: string,
@@ -714,6 +715,7 @@ export function StateReturnsPage() {
 
   // Reset highlight when filtered list changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setHighlightIndex(-1)
   }, [searchText])
 
@@ -740,6 +742,7 @@ export function StateReturnsPage() {
     inputRef.current?.focus()
   }, [addStateReturn])
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (!dropdownOpen) {
       if (e.key === 'ArrowDown' || e.key === 'Enter') {
@@ -774,6 +777,7 @@ export function StateReturnsPage() {
         setHighlightIndex(-1)
         break
     }
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   }, [dropdownOpen, filteredStates, highlightIndex, selectState])
 
   const togglePanel = (code: string) => {

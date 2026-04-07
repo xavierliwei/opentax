@@ -6,7 +6,6 @@ import { TaxService } from '../../../openclaw-plugin/service/TaxService.ts'
 import { createQueryTools } from '../../../openclaw-plugin/tools/query.ts'
 import { createDataEntryTools } from '../../../openclaw-plugin/tools/dataEntry.ts'
 import type { ToolDef } from '../../../openclaw-plugin/tools/dataEntry.ts'
-import { cents } from '../../../src/model/traced.ts'
 import { explainLine } from '../../../src/rules/engine.ts'
 
 let workspace: string

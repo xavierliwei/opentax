@@ -17,7 +17,7 @@ import type { StateFormCompiler, StateCompiledForms } from '../../src/forms/stat
 import type { SupportedStateCode, TaxReturn, StateReturnConfig } from '../../src/model/types'
 import { emptyTaxReturn } from '../../src/model/types'
 import { getStateModule, getSupportedStates } from '../../src/rules/stateRegistry'
-import { getStateFormCompiler, getAllStateFormCompilers } from '../../src/forms/stateFormRegistry'
+import { getAllStateFormCompilers } from '../../src/forms/stateFormRegistry'
 import { computeAll } from '../../src/rules/engine'
 import { makeW2 } from '../fixtures/returns'
 import { cents } from '../../src/model/traced'
@@ -129,7 +129,7 @@ describe('Quality Gates — Registry Consistency', () => {
   })
 
   it('detects state code mismatch in module', () => {
-    const modules = new Map<SupportedStateCode, StateRulesModule>([
+    const _modules = new Map<SupportedStateCode, StateRulesModule>([
       ['CA', makeMockModule('CA', { stateCode: 'CA' })],
     ])
     // Register under CA but module says something different

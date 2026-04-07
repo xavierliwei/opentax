@@ -336,7 +336,7 @@ describe('NC additions — HSA deduction add-back', () => {
   })
 
   it('HSA add-back increases NC taxable income and tax', () => {
-    const withoutHSA = computeD400()
+    const _withoutHSA = computeD400()
     const withHSA = computeD400({
       hsa: {
         coverageType: 'family',

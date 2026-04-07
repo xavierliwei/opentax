@@ -106,7 +106,7 @@ describe('ScheduleCPage', () => {
     const homeOfficeCheckbox = screen.getByLabelText(/Home office deduction/)
     await user.click(homeOfficeCheckbox)
 
-    expect(screen.getByText(/Home office deduction \(Form 8829\) is not yet supported/)).toBeDefined()
+    expect(screen.getByText(/Home office deduction enabled/)).toBeDefined()
   })
 
   it('shows MFJ owner selector', async () => {

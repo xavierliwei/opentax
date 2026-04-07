@@ -14,9 +14,7 @@ import {
 } from '../../src/rules/2025/form1040'
 import {
   NIIT_RATE,
-  NIIT_THRESHOLD,
   ADDITIONAL_MEDICARE_RATE,
-  ADDITIONAL_MEDICARE_THRESHOLD,
   MEDICARE_TAX_RATE,
 } from '../../src/rules/2025/constants'
 import { makeW2, make1099INT, make1099DIV } from '../fixtures/returns'

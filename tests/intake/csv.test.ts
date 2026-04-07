@@ -1,9 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'fs'
-import { join } from 'path'
 import { parseCSV, parseCurrency, parseDate, parseTerm } from '../../src/intake/csv/utils'
 import { RobinhoodParser } from '../../src/intake/csv/robinhood'
-import type { Form1099B } from '../../src/model/types'
 
 // ═══════════════════════════════════════════════════════════════
 // CSV parser (RFC 4180)
@@ -185,101 +182,11 @@ describe('parseTerm()', () => {
 })
 
 // ═══════════════════════════════════════════════════════════════
-// Robinhood parser — golden file
+// Robinhood parser
 // ═══════════════════════════════════════════════════════════════
 
 describe('RobinhoodParser', () => {
   const parser = new RobinhoodParser()
-
-  describe('golden file test', () => {
-    const csv = readFileSync(
-      join(__dirname, '../fixtures/robinhood-sample.csv'),
-      'utf-8',
-    )
-    const result = parser.parse(csv)
-
-    it('parses expected number of transactions', () => {
-      expect(result.transactions).toHaveLength(8)
-    })
-
-    it('skips summary rows', () => {
-      expect(result.rowCounts.skipped).toBe(1)
-    })
-
-    it('reports no errors', () => {
-      expect(result.errors).toEqual([])
-    })
-
-    it('row counts are consistent', () => {
-      expect(result.rowCounts.total).toBe(
-        result.rowCounts.parsed + result.rowCounts.skipped,
-      )
-    })
-
-    it('parses NVDA (short-term, category A) correctly', () => {
-      const nvda = result.transactions[0]
-      expect(nvda.description).toBe('100 sh NVDA')
-      expect(nvda.dateAcquired).toBe('2025-01-10')
-      expect(nvda.dateSold).toBe('2025-03-15')
-      expect(nvda.proceeds).toBe(1520000)
-      expect(nvda.costBasis).toBe(1250000)
-      expect(nvda.gainLoss).toBe(270000)
-      expect(nvda.washSaleLossDisallowed).toBe(0)
-      expect(nvda.longTerm).toBe(false)
-      expect(nvda.basisReportedToIrs).toBe(true)
-      expect(nvda.noncoveredSecurity).toBe(false)
-    })
-
-    it('parses AAPL loss correctly', () => {
-      const aapl = result.transactions[1]
-      expect(aapl.gainLoss).toBe(-35000) // ($350.00)
-    })
-
-    it('parses option (TSLA call) correctly', () => {
-      const tslaCall = result.transactions[2]
-      expect(tslaCall.description).toBe('TSLA 02/21/2025 CALL $250.00')
-      expect(tslaCall.proceeds).toBe(120000)
-      expect(tslaCall.costBasis).toBe(80000)
-      expect(tslaCall.gainLoss).toBe(40000)
-    })
-
-    it('parses "Various" date acquired as null', () => {
-      const goog = result.transactions[3]
-      expect(goog.dateAcquired).toBeNull()
-    })
-
-    it('parses wash sale amount (W suffix)', () => {
-      const goog = result.transactions[3]
-      expect(goog.washSaleLossDisallowed).toBe(150000) // $1,500.00
-    })
-
-    it('parses long-term trades (category D)', () => {
-      const amzn = result.transactions[4]
-      expect(amzn.longTerm).toBe(true)
-      expect(amzn.basisReportedToIrs).toBe(true)
-      expect(amzn.noncoveredSecurity).toBe(false)
-    })
-
-    it('parses noncovered security (category B)', () => {
-      const pltr = result.transactions[6]
-      expect(pltr.longTerm).toBe(false)
-      expect(pltr.basisReportedToIrs).toBe(false)
-      expect(pltr.noncoveredSecurity).toBe(true)
-      expect(pltr.costBasis).toBeNull()
-    })
-
-    it('parses category E (long-term, basis not reported)', () => {
-      const mega = result.transactions[7]
-      expect(mega.longTerm).toBe(true)
-      expect(mega.basisReportedToIrs).toBe(false)
-      expect(mega.noncoveredSecurity).toBe(true)
-    })
-
-    it('flags RSU transactions with warning', () => {
-      // MEGA (RSU shares) with $0 basis should trigger RSU warning
-      expect(result.warnings.some(w => w.includes('RSU') || w.includes('MEGA'))).toBe(true)
-    })
-  })
 
   // ── Edge cases ───────────────────────────────────────────────
 

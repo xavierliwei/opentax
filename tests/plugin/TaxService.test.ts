@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { mkdtempSync, writeFileSync, existsSync, rmSync } from 'node:fs'
+import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import Database from 'better-sqlite3'
@@ -277,6 +277,7 @@ describe('TaxService', () => {
 
     it('stateChanged payload includes taxReturn and computeResult', () => {
       const svc = new TaxService(workspace)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let payload: any = null
       svc.on('stateChanged', (p) => { payload = p })
 

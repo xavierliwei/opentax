@@ -46,7 +46,9 @@ export function ExplainView() {
   // Refs so imperative handlers (wheel, global mousemove) always see latest values
   const zoomRef = useRef(zoom)
   const panRef = useRef(pan)
+  // eslint-disable-next-line react-hooks/refs
   zoomRef.current = zoom
+  // eslint-disable-next-line react-hooks/refs
   panRef.current = pan
 
   // Drag anchor: initial mouse position + initial pan at drag start

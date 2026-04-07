@@ -15,7 +15,6 @@ import {
   computeForeignTaxCredit,
   getDirectCreditThreshold,
 } from '../../src/rules/2025/foreignTaxCredit'
-import type { ForeignTaxCreditResult } from '../../src/rules/2025/foreignTaxCredit'
 import { computeForm1040 } from '../../src/rules/2025/form1040'
 import { makeW2, make1099DIV, make1099INT } from '../fixtures/returns'
 

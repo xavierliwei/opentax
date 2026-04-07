@@ -9,7 +9,7 @@
 import { describe, it, expect } from 'vitest'
 import { cents } from '../../../src/model/traced'
 import { emptyTaxReturn } from '../../../src/model/types'
-import type { TaxReturn, FilingStatus } from '../../../src/model/types'
+import type { TaxReturn } from '../../../src/model/types'
 import { computeForm1040 } from '../../../src/rules/2025/form1040'
 import { computeForm540 } from '../../../src/rules/2025/ca/form540'
 import { computeBracketTax } from '../../../src/rules/2025/taxComputation'

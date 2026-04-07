@@ -66,7 +66,7 @@ function parseRow(
       }
     } else {
       // Unquoted field — scan to comma or end-of-line
-      let fieldStart = i
+      const fieldStart = i
       while (i < len && raw[i] !== ',' && raw[i] !== '\n' && raw[i] !== '\r') {
         i++
       }
