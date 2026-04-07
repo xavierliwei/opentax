@@ -3,6 +3,7 @@ import { useTaxStore } from '../../store/taxStore.ts'
 import { useInterview } from '../../interview/useInterview.ts'
 import { CurrencyInput } from '../components/CurrencyInput.tsx'
 import { InfoTooltip } from '../components/InfoTooltip.tsx'
+import { CollapsibleCard } from '../components/CollapsibleCard.tsx'
 import { InterviewNav } from './InterviewNav.tsx'
 import { SAVERS_CREDIT_THRESHOLDS, CTC_PHASEOUT_THRESHOLD, EDUCATION_CREDIT_PHASEOUT } from '../../rules/2025/constants.ts'
 import type { FilingStatus, StudentEducationExpense, CareProvider } from '../../model/types.ts'
@@ -100,21 +101,20 @@ export function CreditsPage() {
         const hasQualifying = ctc && (ctc.numQualifyingChildren > 0 || ctc.numOtherDependents > 0)
 
         return (
-          <div className="mt-6 bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
-            <div className="flex items-baseline justify-between">
-              <div className="flex items-center gap-1">
-                <span className="text-sm font-semibold text-gray-800">Child Tax Credit</span>
-                <InfoTooltip
-                  explanation="A qualifying child must be under age 17 at the end of the tax year, have a valid SSN, be your son/daughter/stepchild/foster child/sibling/grandchild, and have lived with you for more than half the year. Each qualifying child generates a $2,200 credit."
-                  pubName="IRS Schedule 8812 Instructions"
-                  pubUrl="https://www.irs.gov/instructions/i1040s8"
-                />
-                <span className="text-xs text-gray-400">Schedule 8812</span>
-              </div>
-              {hasQualifying && form1040.line19.amount > 0 && (
-                <span className="text-sm font-semibold text-tax-green">{formatCurrency(form1040.line19.amount)}</span>
-              )}
-            </div>
+          <CollapsibleCard
+            title="Child Tax Credit"
+            subtitle="Schedule 8812"
+            badge={hasQualifying && form1040.line19.amount > 0 ? (
+              <span className="text-sm font-semibold text-tax-green">{formatCurrency(form1040.line19.amount)}</span>
+            ) : undefined}
+            defaultOpen={!!(hasQualifying && form1040.line19.amount > 0)}
+            className="mt-2"
+          >
+            <InfoTooltip
+              explanation="A qualifying child must be under age 17 at the end of the tax year, have a valid SSN, be your son/daughter/stepchild/foster child/sibling/grandchild, and have lived with you for more than half the year. Each qualifying child generates a $2,200 credit."
+              pubName="IRS Schedule 8812 Instructions"
+              pubUrl="https://www.irs.gov/instructions/i1040s8"
+            />
 
             {/* Diagnostic: missing fields preventing qualification */}
             {dependents.length > 0 && (missingSSN.length > 0 || missingDOB.length > 0 || badRelationship.length > 0 || lowMonths.length > 0) && (
@@ -231,24 +231,22 @@ export function CreditsPage() {
               )}
               {agi === 0 && <> Your AGI will update as you add income.</>}
             </div>
-          </div>
+          </CollapsibleCard>
         )
       })()}
 
       {/* ── Earned Income Credit (auto-computed) ───────────── */}
       {eic && eic.eligible && eic.creditAmount > 0 ? (
-        <div className="mt-4 bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
-          <div className="flex items-baseline justify-between">
-            <div className="flex items-center gap-1">
-              <span className="text-sm font-semibold text-gray-800">Earned Income Credit</span>
-              <InfoTooltip
-                explanation="The Earned Income Credit is computed at both earned income and AGI, taking the smaller amount. It is a refundable credit — it can reduce your tax below zero and result in a refund."
-                pubName="IRS Pub 596 — Earned Income Credit"
-                pubUrl="https://www.irs.gov/publications/p596"
-              />
-            </div>
-            <span className="text-sm font-semibold text-tax-green">{formatCurrency(eic.creditAmount)}</span>
-          </div>
+        <CollapsibleCard
+          title="Earned Income Credit"
+          badge={<span className="text-sm font-semibold text-tax-green">{formatCurrency(eic.creditAmount)}</span>}
+          defaultOpen={true}
+        >
+          <InfoTooltip
+            explanation="The Earned Income Credit is computed at both earned income and AGI, taking the smaller amount. It is a refundable credit — it can reduce your tax below zero and result in a refund."
+            pubName="IRS Pub 596 — Earned Income Credit"
+            pubUrl="https://www.irs.gov/publications/p596"
+          />
           <div className="flex flex-col gap-1">
             <div className="flex justify-between text-sm">
               <span className="text-gray-700 flex items-center">
@@ -277,7 +275,7 @@ export function CreditsPage() {
               <Link to="/explain/form1040.line27" className="text-xs text-tax-blue hover:text-blue-700" title="Why this number?">?</Link>
             </div>
           </div>
-        </div>
+        </CollapsibleCard>
       ) : eic && !eic.eligible && eic.ineligibleReason ? (
         <div className="mt-4 bg-gray-50 rounded-xl border border-gray-200 p-4">
           <div className="flex items-center gap-1 mb-2">
@@ -300,21 +298,19 @@ export function CreditsPage() {
       ) : null}
 
       {/* ── Dependent Care (Form 2441) ───────────────────── */}
-      <div className="mt-4 bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
-        <div className="flex items-baseline justify-between">
-          <div className="flex items-center gap-1">
-            <span className="text-sm font-semibold text-gray-800">Dependent Care</span>
-            <InfoTooltip
-              explanation="Credit for expenses paid to a care provider so you (and your spouse) could work or look for work. The qualifying person must be your dependent child under age 13, or a dependent or spouse who is physically or mentally incapable of self-care."
-              pubName="IRS Form 2441 — Child and Dependent Care Expenses"
-              pubUrl="https://www.irs.gov/forms-pubs/about-form-2441"
-            />
-            <span className="text-xs text-gray-400">Form 2441</span>
-          </div>
-          {dcCredit && dcCredit.creditAmount > 0 && (
-            <span className="text-sm font-semibold text-tax-green">{formatCurrency(dcCredit.creditAmount)}</span>
-          )}
-        </div>
+      <CollapsibleCard
+        title="Dependent Care"
+        subtitle="Form 2441"
+        badge={dcCredit && dcCredit.creditAmount > 0 ? (
+          <span className="text-sm font-semibold text-tax-green">{formatCurrency(dcCredit.creditAmount)}</span>
+        ) : undefined}
+        defaultOpen={care.totalExpenses > 0 || careProviders.length > 0}
+      >
+        <InfoTooltip
+          explanation="Credit for expenses paid to a care provider so you (and your spouse) could work or look for work. The qualifying person must be your dependent child under age 13, or a dependent or spouse who is physically or mentally incapable of self-care."
+          pubName="IRS Form 2441 — Child and Dependent Care Expenses"
+          pubUrl="https://www.irs.gov/forms-pubs/about-form-2441"
+        />
         <CurrencyInput
           label="Total expenses paid to care providers"
           value={care.totalExpenses}
@@ -435,37 +431,39 @@ export function CreditsPage() {
             {' '}&middot; Rate {Math.round(dcCredit.creditRate * 100)}%
           </div>
         )}
-      </div>
+      </CollapsibleCard>
 
       {/* ── Education Credits (Form 8863) ────────────────── */}
-      <div className={`mt-4 rounded-xl border p-4 flex flex-col gap-3 ${
-        filingStatus === 'mfs' ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-200'
-      }`}>
-        <div className="flex items-baseline justify-between">
-          <div className="flex items-center gap-1">
-            <span className={`text-sm font-semibold ${filingStatus === 'mfs' ? 'text-gray-400' : 'text-gray-800'}`}>
-              Education Credits
-            </span>
-            <InfoTooltip
-              explanation="American Opportunity Credit (AOTC): up to $2,500/student, 40% refundable, max 4 years. Lifetime Learning Credit (LLC): up to $2,000/return, non-refundable. Both phase out based on MAGI. You can claim both on the same return but not for the same student."
-              pubName="IRS Form 8863 — Education Credits"
-              pubUrl="https://www.irs.gov/forms-pubs/about-form-8863"
-            />
-            <span className="text-xs text-gray-400">Form 8863</span>
+      {filingStatus === 'mfs' ? (
+        <div className="mt-4 rounded-xl border p-4 flex flex-col gap-3 bg-gray-50 border-gray-200">
+          <div className="flex items-baseline justify-between">
+            <div className="flex items-center gap-1">
+              <span className="text-sm font-semibold text-gray-400">
+                Education Credits
+              </span>
+              <span className="text-xs text-gray-400">Form 8863</span>
+            </div>
           </div>
-          {eduCredit && (eduCredit.totalNonRefundable > 0 || eduCredit.totalRefundable > 0) && (
-            <span className="text-sm font-semibold text-tax-green">
-              {formatCurrency(eduCredit.totalNonRefundable + eduCredit.totalRefundable)}
-            </span>
-          )}
-        </div>
-
-        {filingStatus === 'mfs' ? (
           <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-2">
             Education credits are not available for Married Filing Separately.
           </div>
-        ) : (
-          <>
+        </div>
+      ) : (
+        <CollapsibleCard
+          title="Education Credits"
+          subtitle="Form 8863"
+          badge={eduCredit && (eduCredit.totalNonRefundable > 0 || eduCredit.totalRefundable > 0) ? (
+            <span className="text-sm font-semibold text-tax-green">
+              {formatCurrency(eduCredit.totalNonRefundable + eduCredit.totalRefundable)}
+            </span>
+          ) : undefined}
+          defaultOpen={students.length > 0}
+        >
+          <InfoTooltip
+            explanation="American Opportunity Credit (AOTC): up to $2,500/student, 40% refundable, max 4 years. Lifetime Learning Credit (LLC): up to $2,000/return, non-refundable. Both phase out based on MAGI. You can claim both on the same return but not for the same student."
+            pubName="IRS Form 8863 — Education Credits"
+            pubUrl="https://www.irs.gov/forms-pubs/about-form-8863"
+          />
             <RepeatableSection<StudentEducationExpense>
               label="Students"
               items={students}
@@ -625,34 +623,27 @@ export function CreditsPage() {
                 {eduCredit.phaseOutApplies && ` (${formatCurrency(eduCredit.llcRawCredit)} before phase-out)`}
               </div>
             )}
-          </>
-        )}
-      </div>
+        </CollapsibleCard>
+      )}
 
       {/* ── Retirement Savings (Form 8880) ───────────────── */}
-      <div className={`mt-4 rounded-xl border p-4 flex flex-col gap-3 ${
-        saversIneligible ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-200'
-      }`}>
-        <div className="flex items-baseline justify-between">
-          <div className="flex items-center gap-1">
-            <span className={`text-sm font-semibold ${saversIneligible ? 'text-gray-400' : 'text-gray-800'}`}>
-              Retirement Savings
-            </span>
-            <InfoTooltip
-              explanation="The Saver's Credit rewards low- and moderate-income taxpayers for contributing to retirement accounts. It applies to IRA contributions and elective deferrals (401(k), 403(b), SIMPLE, etc.). The credit rate (50%, 20%, or 10%) depends on your AGI and filing status."
-              pubName="IRS Form 8880 — Credit for Qualified Retirement Savings"
-              pubUrl="https://www.irs.gov/forms-pubs/about-form-8880"
-            />
-            <span className="text-xs text-gray-400">Form 8880</span>
-          </div>
-          {saversIneligible ? (
-            <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
-              Not eligible
-            </span>
-          ) : scCredit && scCredit.creditAmount > 0 ? (
-            <span className="text-sm font-semibold text-tax-green">{formatCurrency(scCredit.creditAmount)}</span>
-          ) : null}
-        </div>
+      <CollapsibleCard
+        title="Retirement Savings"
+        subtitle="Form 8880"
+        badge={saversIneligible ? (
+          <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+            Not eligible
+          </span>
+        ) : scCredit && scCredit.creditAmount > 0 ? (
+          <span className="text-sm font-semibold text-tax-green">{formatCurrency(scCredit.creditAmount)}</span>
+        ) : undefined}
+        defaultOpen={retire.traditionalIRA > 0 || retire.rothIRA > 0}
+      >
+        <InfoTooltip
+          explanation="The Saver's Credit rewards low- and moderate-income taxpayers for contributing to retirement accounts. It applies to IRA contributions and elective deferrals (401(k), 403(b), SIMPLE, etc.). The credit rate (50%, 20%, or 10%) depends on your AGI and filing status."
+          pubName="IRS Form 8880 — Credit for Qualified Retirement Savings"
+          pubUrl="https://www.irs.gov/forms-pubs/about-form-8880"
+        />
         {saversIneligible && (
           <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-2">
             Your AGI of {formatCurrency(agi)} exceeds the {formatCurrency(saversMaxAGI)} limit
@@ -692,24 +683,27 @@ export function CreditsPage() {
             {' '}&middot; Rate {Math.round(scCredit.creditRate * 100)}%
           </div>
         )}
-      </div>
+      </CollapsibleCard>
 
       {/* ── Residential Energy (Form 5695) ───────────────── */}
-      <div className="mt-4 bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
-        <div className="flex items-baseline justify-between">
-          <div className="flex items-center gap-1">
-            <span className="text-sm font-semibold text-gray-800">Residential Energy</span>
-            <InfoTooltip
-              explanation="Two credits: (1) Residential Clean Energy Credit (§25D) — 30% of solar, battery, and geothermal costs with no annual cap. (2) Energy Efficient Home Improvement Credit (§25C) — 30% of insulation, windows, HVAC, etc., with a $1,200 annual cap and a separate $2,000 cap for heat pumps."
-              pubName="IRS Form 5695 — Residential Energy Credits"
-              pubUrl="https://www.irs.gov/forms-pubs/about-form-5695"
-            />
-            <span className="text-xs text-gray-400">Form 5695</span>
-          </div>
-          {ecCredit && ecCredit.totalCredit > 0 && (
-            <span className="text-sm font-semibold text-tax-green">{formatCurrency(ecCredit.totalCredit)}</span>
-          )}
-        </div>
+      <CollapsibleCard
+        title="Residential Energy"
+        subtitle="Form 5695"
+        badge={ecCredit && ecCredit.totalCredit > 0 ? (
+          <span className="text-sm font-semibold text-tax-green">{formatCurrency(ecCredit.totalCredit)}</span>
+        ) : undefined}
+        defaultOpen={
+          energy.solarElectric > 0 || energy.solarWaterHeating > 0 || energy.batteryStorage > 0 ||
+          energy.geothermal > 0 || energy.insulation > 0 || energy.windows > 0 ||
+          energy.exteriorDoors > 0 || energy.centralAC > 0 || energy.waterHeater > 0 ||
+          energy.heatPump > 0 || energy.homeEnergyAudit > 0 || energy.biomassStove > 0
+        }
+      >
+        <InfoTooltip
+          explanation="Two credits: (1) Residential Clean Energy Credit (§25D) — 30% of solar, battery, and geothermal costs with no annual cap. (2) Energy Efficient Home Improvement Credit (§25C) — 30% of insulation, windows, HVAC, etc., with a $1,200 annual cap and a separate $2,000 cap for heat pumps."
+          pubName="IRS Form 5695 — Residential Energy Credits"
+          pubUrl="https://www.irs.gov/forms-pubs/about-form-5695"
+        />
 
         {/* Part I — Clean Energy */}
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mt-1">
@@ -791,7 +785,7 @@ export function CreditsPage() {
             {ecCredit.partIIHeatPumpCredit > 0 && ` (heat pump ${formatCurrency(ecCredit.partIIHeatPumpCredit)} + general ${formatCurrency(ecCredit.partIIGeneralCredit)})`}
           </div>
         )}
-      </div>
+      </CollapsibleCard>
 
       {/* ── Credit Summary (Line 20) ───────────────────────── */}
       {form1040.line20.amount > 0 && (
