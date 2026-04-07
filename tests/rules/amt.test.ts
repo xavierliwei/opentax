@@ -8,7 +8,6 @@
 import { describe, it, expect } from 'vitest'
 import { cents } from '../../src/model/traced'
 import { computeAMT, computeISOSpread } from '../../src/rules/2025/amt'
-import type { AMTResult } from '../../src/rules/2025/amt'
 import type { ISOExercise } from '../../src/model/types'
 import { computeOrdinaryTax, computeQDCGTax } from '../../src/rules/2025/taxComputation'
 import { AMT_EXEMPTION, AMT_PHASEOUT_THRESHOLD, AMT_28_PERCENT_THRESHOLD } from '../../src/rules/2025/constants'

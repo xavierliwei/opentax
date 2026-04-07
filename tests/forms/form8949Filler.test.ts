@@ -13,7 +13,6 @@ import { makeTransaction } from '../fixtures/returns'
 import { emptyTaxReturn } from '../../src/model/types'
 import { cents } from '../../src/model/traced'
 import type { TaxReturn, CapitalTransaction } from '../../src/model/types'
-import type { Form8949CategoryTotals } from '../../src/rules/2025/form8949'
 
 let templateBytes: Uint8Array
 

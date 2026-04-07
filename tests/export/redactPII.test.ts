@@ -146,6 +146,7 @@ describe('redactPII', () => {
           box11: 0,
           box12: 0,
           box13: 0,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any,
       ],
     })
@@ -185,6 +186,7 @@ describe('redactPII', () => {
           utilities: 0,
           wages: 0,
           otherExpenses: 0,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any,
       ],
     })

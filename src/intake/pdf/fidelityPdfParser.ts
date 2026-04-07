@@ -255,8 +255,8 @@ export async function parseFidelityPdf(data: ArrayBuffer): Promise<ConsolidatedP
     // ── Phase 1: Identify sections and collect section lines ──
     type Section = 'div' | 'int' | '1099b' | 'supplemental' | null
     let currentSection: Section = null
-    let divLines: Line[] = []
-    let intLines: Line[] = []
+    const divLines: Line[] = []
+    const intLines: Line[] = []
 
     // 1099-B state
     let currentCategory: Category8949 | null = null
@@ -355,7 +355,7 @@ export async function parseFidelityPdf(data: ArrayBuffer): Promise<ConsolidatedP
         continue
       }
       if (/^Box\s+[ABDE]\s+(Short|Long)/i.test(text)) continue
-      if (/^[\s\-]+$/.test(text.replace(/\s/g, ''))) continue  // dash separators
+      if (/^[\s-]+$/.test(text.replace(/\s/g, ''))) continue  // dash separators
       if (/^\*\s*This\s+is\s+important/i.test(text)) continue  // footer disclaimer
       if (/^Acquired\b/i.test(text)) continue  // continuation of column header
       if (/^Discount\b/i.test(text)) continue  // continuation of column header

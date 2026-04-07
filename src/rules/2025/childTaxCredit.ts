@@ -48,7 +48,7 @@ export function isQualifyingChild(dep: Dependent): boolean {
   if (isNaN(birthYear) || isNaN(birthMonth) || isNaN(birthDay)) return false
 
   // Age at Dec 31 of tax year
-  let age = TAX_YEAR - birthYear
+  const age = TAX_YEAR - birthYear
   // If birthday hasn't happened by Dec 31, they're still the younger age
   // But Dec 31 is the last day of the year, so if born on Dec 31 they've turned that age
   if (birthMonth > 12 || (birthMonth === 12 && birthDay > 31)) {

@@ -191,6 +191,7 @@ describe('validateFederalReturn', () => {
 
     const computed = {
       line37: { amount: cents(1200), source: 'computed', inputs: [] },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any
 
     const result = validateFederalReturn(model, computed)

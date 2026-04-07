@@ -142,8 +142,8 @@ export function OCRUpload({ formType: expectedFormType }: OCRUploadProps) {
 
       const fields = buildVerificationFields(detectedType, result.fields)
       setState({ status: 'verification', formType: detectedType, fields, isPdf: true })
-    } catch {
-      setState({ status: 'error', message: 'Failed to read PDF. The file may be corrupted or password-protected.' })
+    } catch (e) {
+      setState({ status: 'error', message: e instanceof Error ? e.message : 'Failed to read PDF. The file may be corrupted or password-protected.' })
     }
   }, [expectedFormType])
 

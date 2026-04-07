@@ -23,6 +23,7 @@ async function labelFields(filename: string) {
       try {
         // Put a short label: just the field number part
         const short = name.replace(/.*\./g, '')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ;(field as any).setText(short)
       } catch { /* ignore */ }
     } else if (type === 'PDFCheckBox') {

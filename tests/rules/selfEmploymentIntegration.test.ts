@@ -11,7 +11,7 @@ import { cents } from '../../src/model/traced'
 import { emptyTaxReturn } from '../../src/model/types'
 import { computeForm1040 } from '../../src/rules/2025/form1040'
 import { makeW2 } from '../fixtures/returns'
-import type { ScheduleC, ScheduleK1 } from '../../src/model/types'
+import type { ScheduleC } from '../../src/model/types'
 
 // ── Helpers ──────────────────────────────────────────────────────
 

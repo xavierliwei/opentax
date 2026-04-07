@@ -43,18 +43,22 @@ async function enumerateFields(filename: string) {
 
     if (type === 'PDFTextField') {
       try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         value = (field as any).getText() || ''
       } catch { /* ignore */ }
     } else if (type === 'PDFCheckBox') {
       try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         value = (field as any).isChecked() ? '[checked]' : '[unchecked]'
       } catch { /* ignore */ }
     } else if (type === 'PDFRadioGroup') {
       try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         value = `options: ${(field as any).getOptions?.()?.join(', ') || '?'}`
       } catch { /* ignore */ }
     } else if (type === 'PDFDropdown') {
       try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         value = `options: ${(field as any).getOptions?.()?.join(', ') || '?'}`
       } catch { /* ignore */ }
     }

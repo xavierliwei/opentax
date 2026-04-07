@@ -51,6 +51,15 @@ beforeAll(() => {
     f1040sc: new Uint8Array(readFileSync(join(dir, 'f1040sc.pdf'))),
     f1040sse: new Uint8Array(readFileSync(join(dir, 'f1040sse.pdf'))),
     f1116: new Uint8Array(readFileSync(join(dir, 'f1116.pdf'))),
+    f8995: new Uint8Array(readFileSync(join(dir, 'f8995.pdf'))),
+    f8995a: new Uint8Array(readFileSync(join(dir, 'f8995a.pdf'))),
+    f8582: new Uint8Array(readFileSync(join(dir, 'f8582.pdf'))),
+    f2441: new Uint8Array(readFileSync(join(dir, 'f2441.pdf'))),
+    f4952: new Uint8Array(readFileSync(join(dir, 'f4952.pdf'))),
+    f5695: new Uint8Array(readFileSync(join(dir, 'f5695.pdf'))),
+    f8880: new Uint8Array(readFileSync(join(dir, 'f8880.pdf'))),
+    f8959: new Uint8Array(readFileSync(join(dir, 'f8959.pdf'))),
+    f8960: new Uint8Array(readFileSync(join(dir, 'f8960.pdf'))),
   }
 })
 
