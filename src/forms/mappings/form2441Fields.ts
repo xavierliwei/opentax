@@ -17,8 +17,30 @@ export const F2441_HEADER = {
   ssn:  `${P1}f1_2[0]`,
 }
 
+// -- Part II -- Care Providers (Table_Line2, up to 3 rows) ---------------
+
+export const F2441_PART2 = [
+  {
+    name:      `${P1}Table_Line2[0].Row1[0].f1_15[0]`,
+    address:   `${P1}Table_Line2[0].Row1[0].f1_16[0]`,
+    tin:       `${P1}Table_Line2[0].Row1[0].f1_17[0]`,
+    amountPaid: `${P1}Table_Line2[0].Row1[0].f1_18[0]`,
+  },
+  {
+    name:      `${P1}Table_Line2[0].Row2[0].f1_19[0]`,
+    address:   `${P1}Table_Line2[0].Row2[0].f1_20[0]`,
+    tin:       `${P1}Table_Line2[0].Row2[0].f1_21[0]`,
+    amountPaid: `${P1}Table_Line2[0].Row2[0].f1_22[0]`,
+  },
+  {
+    name:      `${P1}Table_Line2[0].Row3[0].f1_23[0]`,
+    address:   `${P1}Table_Line2[0].Row3[0].f1_24[0]`,
+    tin:       `${P1}Table_Line2[0].Row3[0].f1_25[0]`,
+    amountPaid: `${P1}Table_Line2[0].Row3[0].f1_26[0]`,
+  },
+]
+
 // -- Part III -- Dependent Care Benefits (Lines 12-27 on Page 2) ----------
-// We skip Part I (qualifying persons) and Part II (care providers).
 // Part III lines 3-11 are on Page 1:
 
 export const F2441_PART3 = {

@@ -180,7 +180,7 @@ function TransactionRow({
   return (
     <>
       <tr className={even ? 'bg-gray-50/60' : ''}>
-        <td className="py-2 px-3 text-sm text-gray-900 truncate max-w-0">
+        <td className="py-2 px-3 text-sm text-gray-900">
           {titleCase(form.description)}
         </td>
         <td className="py-2 px-3 text-sm text-gray-500 whitespace-nowrap">
@@ -195,6 +195,9 @@ function TransactionRow({
         </td>
         <td className="py-2 px-3 text-sm text-gray-700 text-right whitespace-nowrap tabular-nums">
           {formatCents(form.proceeds)}
+        </td>
+        <td className="py-2 px-3 text-sm text-gray-500 text-right whitespace-nowrap tabular-nums">
+          {form.costBasis != null ? formatCents(form.costBasis) : '—'}
         </td>
         <td
           className={`py-2 px-3 text-sm font-semibold text-right whitespace-nowrap tabular-nums ${isGain ? 'text-emerald-600' : 'text-red-600'}`}
@@ -213,7 +216,7 @@ function TransactionRow({
       </tr>
       {form.washSaleLossDisallowed > 0 && (
         <tr className={even ? 'bg-gray-50/60' : ''}>
-          <td colSpan={5} className="pb-2 pt-0 px-3">
+          <td colSpan={6} className="pb-2 pt-0 px-3">
             <span className="inline-flex items-center gap-1 text-xs bg-amber-50 text-amber-700 border border-amber-200 rounded px-2 py-0.5">
               ⚠ Wash sale: {formatCents(form.washSaleLossDisallowed)} disallowed
             </span>
@@ -280,12 +283,13 @@ function CategorySection({
       {/* Table */}
       {!collapsed && (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[480px]">
+          <table className="w-full">
             <colgroup>
-              <col className="w-[38%]" />
-              <col className="w-[22%]" />
-              <col className="w-[18%]" />
-              <col className="w-[17%]" />
+              <col />
+              <col />
+              <col />
+              <col />
+              <col />
               <col className="w-8" />
             </colgroup>
             <thead>
@@ -293,6 +297,7 @@ function CategorySection({
                 <th className="py-1.5 px-3 text-left font-medium">Security</th>
                 <th className="py-1.5 px-3 text-left font-medium">Dates</th>
                 <th className="py-1.5 px-3 text-right font-medium">Proceeds</th>
+                <th className="py-1.5 px-3 text-right font-medium">Basis</th>
                 <th className="py-1.5 px-3 text-right font-medium">Gain / Loss</th>
                 <th className="py-1.5 px-2"></th>
               </tr>
@@ -782,7 +787,7 @@ export function StockSalesPage() {
   }, [forms])
 
   return (
-    <div data-testid="page-stock-sales" className="max-w-2xl mx-auto">
+    <div data-testid="page-stock-sales" className="max-w-5xl mx-auto">
       <h1 className="text-2xl font-bold text-gray-900">Stock Sales (1099-B)</h1>
       <p className="mt-1 text-sm text-gray-600">
         Import your broker's CSV or PDF export, or add transactions manually.

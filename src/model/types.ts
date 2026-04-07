@@ -134,6 +134,9 @@ export interface Form1099B {
 
   // Federal withholding (rare for 1099-B)
   federalTaxWithheld: number   // cents
+
+  // Supplemental stock plan lot detail (Fidelity RSU/ESPP adjusted basis)
+  basisAdjustedFromSupplemental?: boolean
 }
 
 // ── 1099-INT ───────────────────────────────────────────────────
@@ -574,9 +577,18 @@ export interface PriorYearInfo {
 
 // ── Dependent Care (Form 2441) ──────────────────────────────────
 
+export interface CareProvider {
+  name: string                  // provider name (daycare facility or individual)
+  address: string               // provider address
+  tin: string                   // 9 digits — EIN for daycare, SSN for nanny
+  tinType: 'ein' | 'ssn'       // determines formatting on PDF (XX-XXXXXXX vs XXX-XX-XXXX)
+  amountPaid: number            // cents
+}
+
 export interface DependentCareExpenses {
   totalExpenses: number         // cents — total paid to care providers
   numQualifyingPersons: number  // 1 or 2+ (determines $3K vs $6K limit)
+  careProviders?: CareProvider[]  // Part II — up to 3 care providers
 }
 
 // ── Retirement Contributions (Form 8880 — Saver's Credit) ───────
