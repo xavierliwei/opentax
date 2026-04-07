@@ -136,7 +136,7 @@ export interface TaxStoreState {
   setIsNonresidentAlien: (value: boolean) => void
   setNRAInfo: (updates: Partial<NRAInfo>) => void
   importReturn: (taxReturn: TaxReturn) => void
-  resetReturn: () => void
+  // resetReturn removed — too dangerous
 }
 
 // ── IndexedDB storage adapter ──────────────────────────────────
@@ -1087,9 +1087,7 @@ export const useTaxStore = create<TaxStoreState>()(
         set(recompute(taxReturn))
       },
 
-      resetReturn: () => {
-        set(recompute(emptyTaxReturn(2025)))
-      },
+      // resetReturn removed — too dangerous, causes permanent data loss
     }),
     {
       name: 'opentax-store',

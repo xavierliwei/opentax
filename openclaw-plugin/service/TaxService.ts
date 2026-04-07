@@ -674,8 +674,5 @@ export class TaxService extends EventEmitter {
     this.apply(taxReturn)
   }
 
-  resetReturn(): void {
-    log.info('Resetting tax return to empty state')
-    this.apply(emptyTaxReturn(2025))
-  }
+  // resetReturn removed — too dangerous, causes permanent data loss
 }
