@@ -109,6 +109,7 @@ export interface W2 {
 
 export interface Form1099B {
   id: string
+  owner?: 'taxpayer' | 'spouse'  // whose account (MFJ returns); defaults to 'taxpayer'
 
   // Broker info
   brokerName: string

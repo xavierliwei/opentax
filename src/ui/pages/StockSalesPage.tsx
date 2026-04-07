@@ -326,11 +326,15 @@ function BrokerSection({
   forms,
   onRemoveTransaction,
   onRemoveBroker,
+  onSetOwner,
+  filingStatus,
 }: {
   brokerName: string
   forms: Form1099B[]
   onRemoveTransaction: (id: string) => void
   onRemoveBroker: () => void
+  onSetOwner: (owner: 'taxpayer' | 'spouse') => void
+  filingStatus: string
 }) {
   const [collapsed, setCollapsed] = useState(false)
 
@@ -365,6 +369,17 @@ function BrokerSection({
             {forms.length} trade{forms.length !== 1 ? 's' : ''}
           </span>
         </button>
+        {filingStatus === 'mfj' && (
+          <select
+            className="text-xs border border-gray-200 rounded px-1.5 py-0.5 text-gray-600 bg-white focus:outline-none focus:ring-1 focus:ring-tax-blue shrink-0"
+            value={forms[0]?.owner ?? 'taxpayer'}
+            onChange={(e) => onSetOwner(e.target.value as 'taxpayer' | 'spouse')}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <option value="taxpayer">Taxpayer</option>
+            <option value="spouse">Spouse</option>
+          </select>
+        )}
         <span className={`text-sm font-bold tabular-nums shrink-0 ${isNetGain ? 'text-emerald-600' : 'text-red-600'}`}>
           {isNetGain ? '+' : '−'}{formatCents(Math.abs(netGL))}
         </span>
@@ -667,11 +682,13 @@ function BrokerChip({
 
 export function StockSalesPage() {
   const forms = useTaxStore((s) => s.taxReturn.form1099Bs)
+  const filingStatus = useTaxStore((s) => s.taxReturn.filingStatus)
   const rsuVestEvents = useTaxStore((s) => s.taxReturn.rsuVestEvents)
   const setForm1099Bs = useTaxStore((s) => s.setForm1099Bs)
   const addForm1099B = useTaxStore((s) => s.addForm1099B)
   const removeForm1099B = useTaxStore((s) => s.removeForm1099B)
   const removeForm1099BsByBroker = useTaxStore((s) => s.removeForm1099BsByBroker)
+  const updateForm1099B = useTaxStore((s) => s.updateForm1099B)
   const appendForm1099DIVs = useTaxStore((s) => s.appendForm1099DIVs)
   const appendForm1099INTs = useTaxStore((s) => s.appendForm1099INTs)
   const interview = useInterview()
@@ -880,6 +897,10 @@ export function StockSalesPage() {
               forms={brokerForms}
               onRemoveTransaction={removeForm1099B}
               onRemoveBroker={() => handleRemoveBroker(broker === 'Manual' ? '' : broker)}
+              filingStatus={filingStatus}
+              onSetOwner={(owner) => {
+                for (const f of brokerForms) updateForm1099B(f.id, { owner })
+              }}
             />
           ))}
 

@@ -136,6 +136,7 @@ const w2Schema = z.object({
 
 const form1099BSchema = z.object({
   id: z.string(),
+  owner: z.enum(['taxpayer', 'spouse']).optional(),
   brokerName: z.string(),
   brokerTin: z.string().optional(),
   description: z.string(),
